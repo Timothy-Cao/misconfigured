@@ -103,10 +103,11 @@ const ARROW_ANGLES: Record<number, number> = {
 
 function computeTilePx(width: number, height: number): number {
   if (typeof window === 'undefined') return 32;
-  const maxW = Math.min(window.innerWidth * 0.55, 640);
-  const maxH = window.innerHeight * 0.7;
+  const sidebarAllowance = window.innerWidth >= 1024 ? 360 : 48;
+  const maxW = Math.min(window.innerWidth - sidebarAllowance, 1040);
+  const maxH = Math.min(window.innerHeight * 0.78, 860);
   const s = Math.min(maxW / width, maxH / height);
-  return Math.max(16, Math.min(40, Math.floor(s)));
+  return Math.max(20, Math.min(56, Math.floor(s)));
 }
 
 function createFloorGrid(w: number, h: number): number[][] {
@@ -1322,7 +1323,7 @@ export default function LevelEditor() {
       </div>
 
       {/* Canvas */}
-      <div className="flex-1 flex justify-center">
+      <div className="flex-1 w-full flex justify-center">
         <div
           className="rounded-xl overflow-hidden border border-white/10"
           style={{ boxShadow: '0 0 40px rgba(168, 85, 247, 0.06)' }}

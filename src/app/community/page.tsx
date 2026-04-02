@@ -22,29 +22,39 @@ export default function CommunityPage() {
   }, [router]);
 
   return (
-    <main className="min-h-screen bg-[#0a0a0f] flex flex-col items-center justify-center p-6 sm:p-8 lg:p-10 relative overflow-hidden">
+    <main className="min-h-screen bg-[#0a0a0f] flex flex-col items-center p-6 sm:p-8 lg:p-10 relative overflow-hidden">
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[500px] h-[500px] rounded-full bg-cyan-500/5 blur-[110px]" />
 
-      <div className="relative z-10 w-full max-w-5xl rounded-[28px] border border-white/10 bg-white/[0.03] p-6 sm:p-8 lg:p-10">
-        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6">
-          <div>
-            <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-cyan-300 to-white bg-clip-text text-transparent">
-              Community Levels
-            </h1>
-            <p className="text-white/35 text-sm sm:text-base mt-1">
-              Community play is open. Uploading or overriding slots from the editor still requires the admin password.
-            </p>
-            <p className="text-white/20 text-xs sm:text-sm mt-2">Press Esc to return to the title.</p>
+      <div className="relative z-10 w-full max-w-5xl">
+        <div className="mb-6 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4 sm:px-6 animate-[fadeInUp_0.6s_ease-out]">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-cyan-300 to-white bg-clip-text text-transparent">
+                Community Levels
+              </h1>
+              <p className="text-white/35 text-sm sm:text-base mt-1">
+                Community play is open. Uploading or overriding slots from the editor still requires the admin password.
+              </p>
+              <p className="text-white/20 text-xs sm:text-sm mt-2">Press Esc to return to the title.</p>
+            </div>
+            <div className="flex gap-3">
+              <Link
+                href="/editor"
+                className="inline-flex items-center justify-center px-4 py-2.5 rounded-xl border border-white/10 bg-white/[0.04] text-white/75 hover:text-white hover:border-white/20 hover:bg-white/[0.08] transition-all duration-200"
+              >
+                Open Editor
+              </Link>
+              <Link
+                href="/"
+                className="inline-flex items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm sm:text-base text-white/75 hover:text-white hover:border-white/20 hover:bg-white/[0.08] transition-all duration-300"
+              >
+                Back to Title
+              </Link>
+            </div>
           </div>
-          <Link
-            href="/editor"
-            className="inline-flex items-center justify-center px-5 py-3 rounded-xl border border-white/10 bg-white/[0.04] text-white/75 hover:text-white hover:border-white/20 hover:bg-white/[0.08] transition-all duration-200"
-          >
-            Open Editor
-          </Link>
         </div>
 
-        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 sm:p-6">
+        <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-6 sm:p-8 lg:p-10">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
             <p className="text-white/45 text-sm sm:text-base">
               {levels.length > 0
@@ -87,13 +97,6 @@ export default function CommunityPage() {
           )}
         </div>
       </div>
-
-      <Link
-        href="/"
-        className="relative z-10 mt-6 inline-flex items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] px-5 py-3 text-sm sm:text-base text-white/75 hover:text-white hover:border-white/20 hover:bg-white/[0.08] transition-all duration-300"
-      >
-        Back to Title
-      </Link>
     </main>
   );
 }
