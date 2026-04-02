@@ -34,11 +34,12 @@ describe('isLevelUnlocked', () => {
     expect(isLevelUnlocked(1, { completedLevels: [], currentLevel: 1 })).toBe(true);
   });
 
-  it('level N+1 is unlocked if N is completed', () => {
-    expect(isLevelUnlocked(4, { completedLevels: [1, 2, 3], currentLevel: 4 })).toBe(true);
+  it('later levels are unlocked even with no completion progress', () => {
+    expect(isLevelUnlocked(25, { completedLevels: [], currentLevel: 1 })).toBe(true);
   });
 
-  it('level N+2 is locked if N+1 not completed', () => {
-    expect(isLevelUnlocked(5, { completedLevels: [1, 2, 3], currentLevel: 4 })).toBe(false);
+  it('saved progress no longer affects unlock state', () => {
+    expect(isLevelUnlocked(4, { completedLevels: [1, 2, 3], currentLevel: 4 })).toBe(true);
+    expect(isLevelUnlocked(5, { completedLevels: [1, 2, 3], currentLevel: 4 })).toBe(true);
   });
 });

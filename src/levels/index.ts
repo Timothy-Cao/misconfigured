@@ -24,6 +24,7 @@ import level22 from './level-22';
 import level23 from './level-23';
 import level24 from './level-24';
 import level25 from './level-25';
+import communityLevel1001 from './community-1001';
 
 const builtInLevels: LevelData[] = [
   level01, level02, level03, level04, level05,
@@ -36,6 +37,7 @@ const builtInLevels: LevelData[] = [
 const CUSTOM_LEVELS_KEY = 'misconfigured-custom-levels';
 const COMMUNITY_LEVELS_KEY = 'misconfigured-community-levels';
 export const COMMUNITY_LEVEL_START_ID = 1001;
+const builtInCommunityLevels: LevelData[] = [communityLevel1001];
 
 function cloneLevel(level: LevelData): LevelData {
   return {
@@ -67,6 +69,16 @@ function getCommunityLevelsRecord(): Record<string, LevelData> {
   }
 }
 
+function getMergedCommunityLevelsRecord(): Record<string, LevelData> {
+  const builtIn = Object.fromEntries(
+    builtInCommunityLevels.map(level => [String(level.id), cloneLevel(level)]),
+  );
+  return {
+    ...builtIn,
+    ...getCommunityLevelsRecord(),
+  };
+}
+
 export function saveCustomLevel(id: number, level: LevelData): void {
   const custom = getCustomLevels();
   custom[String(id)] = cloneLevel(level);
@@ -80,18 +92,18 @@ export function saveCommunityLevel(id: number, level: LevelData): void {
 }
 
 export function getCommunityLevels(): LevelData[] {
-  return Object.values(getCommunityLevelsRecord())
+  return Object.values(getMergedCommunityLevelsRecord())
     .map(level => cloneLevel(level))
     .sort((a, b) => a.id - b.id);
 }
 
 export function getCommunityLevel(id: number): LevelData | undefined {
-  const level = getCommunityLevelsRecord()[String(id)];
+  const level = getMergedCommunityLevelsRecord()[String(id)];
   return level ? cloneLevel(level) : undefined;
 }
 
 export function getNextCommunityLevelId(): number {
-  const ids = Object.keys(getCommunityLevelsRecord())
+  const ids = Object.keys(getMergedCommunityLevelsRecord())
     .map(Number)
     .filter(id => Number.isFinite(id));
   if (ids.length === 0) return COMMUNITY_LEVEL_START_ID;
@@ -105,7 +117,7 @@ export function getLevel(id: number): LevelData | undefined {
   const custom = getCustomLevels();
   if (custom[String(id)]) return cloneLevel(custom[String(id)]);
 
-  const community = getCommunityLevelsRecord();
+  const community = getMergedCommunityLevelsRecord();
   if (community[String(id)]) return cloneLevel(community[String(id)]);
 
   const builtIn = builtInLevels.find(l => l.id === id);
