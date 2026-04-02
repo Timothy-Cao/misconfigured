@@ -177,14 +177,91 @@ These are the concrete targets for the first ten implemented levels.
 - Put door `1` on cyan's path.
 - Start cyan far enough away that the first activation step only stages the crossing.
 
-## Next Design Pass
+## Levels 11-20
 
-After playtesting the first ten levels, the next set should add:
+The second batch keeps the same rule set: basic and easy-medium only. These levels widen the player's vocabulary without introducing full multi-system puzzles yet.
 
-- a second black-hole level with walls
-- a second checkpoint level where respawn is functionally required
-- a second push-block level
-- a second door/plate level
-- the first ice tutorial pair
+### Level 11 - Push Aside
 
-Those are intentionally not implemented yet.
+- Players: 1
+- Mechanic: second push-block lesson
+- Goal: teach that a block can be moved out of a lane, not only forward toward a finish
+- Intended shape: open room with a central block and a goal below
+
+### Level 12 - Weighted Door
+
+- Players: 1
+- Mechanic: block on plate opens door
+- Goal: teach that a block can hold a plate for you
+- Intended shape: plate above block, door to the right, goal behind the door
+
+### Level 13 - Relay
+
+- Players: 2
+- Mechanic: second plate-and-door lesson
+- Goal: one player activates the plate while the other crosses and finishes
+- Intended shape: short orange lane into a plate, short cyan lane through a door
+
+### Level 14 - After You
+
+- Players: 2
+- Mechanic: plate-holder finishes after the traveler
+- Goal: teach that a player can hold the route open, then finish later once the other player is locked
+- Intended shape: same structure as Level 13, but with a second goal for the plate-holder
+
+### Level 15 - Black Ice
+
+- Players: 1
+- Mechanic: ice introduction
+- Goal: teach that stepping onto ice causes sliding until a non-ice stop
+- Intended shape: straight vertical ice strip with the goal at the far end
+
+### Level 16 - Ice Brakes
+
+- Players: 1
+- Mechanic: ice with stopping points
+- Goal: teach that walls and floor islands define where a slide can end
+- Intended shape: square ice patch with a small pocket and a goal near the top
+
+### Level 17 - No Return
+
+- Players: 1
+- Mechanic: one-way introduction
+- Goal: teach that some tiles can only be entered from one side
+- Intended shape: straight approach from below into a one-way gate leading to the goal
+
+### Level 18 - Clockwise
+
+- Players: 1
+- Mechanic: one-way routing
+- Goal: teach that one-way gates can force a path around a loop
+- Intended shape: small maze with a clockwise-feeling route to the finish
+
+### Level 19 - Moving Sidewalk
+
+- Players: 1
+- Mechanic: conveyor introduction
+- Goal: teach that conveyors keep moving the player in a fixed direction
+- Intended shape: short conveyor strip that carries the player toward the goal
+
+### Level 20 - Ride and Rest
+
+- Players: 1
+- Mechanic: conveyor with a turn
+- Goal: teach that conveyors can be ridden through a route rather than treated as a single gimmick tile
+- Intended shape: L-shaped conveyor lane ending near the goal
+
+## Current Scope
+
+Implemented now:
+
+- Levels 1-10: core movement, walls, black holes, kill tiles, checkpoint, push block, first door/plate
+- Levels 11-20: second push and door/plate lessons, first ice pair, first one-way pair, first conveyor pair
+
+Still intentionally deferred:
+
+- mud
+- crumble
+- toggle systems
+- conveyors combined with multi-player timing
+- medium/hard puzzle chains
