@@ -11,12 +11,14 @@ export function isWalkable(tile: TileTypeValue, activePlates?: Set<number>, togg
   if (tile === TileType.VOID) return false;
   if (tile === TileType.PUSHABLE) return false;
   if (isDoor(tile)) {
-    if (!activePlates) return false;
-    return activePlates.has(doorNumber(tile));
+    if (!activePlates || !toggledSwitches) return false;
+    const n = doorNumber(tile);
+    return activePlates.has(n) || toggledSwitches.has(n);
   }
   if (isToggleBlock(tile)) {
-    if (!toggledSwitches) return false;
-    return toggledSwitches.has(toggleNumber(tile));
+    if (!activePlates || !toggledSwitches) return false;
+    const n = toggleNumber(tile);
+    return activePlates.has(n) || toggledSwitches.has(n);
   }
   if (tile === TileType.CRUMBLE && crumbledTiles && col !== undefined && row !== undefined) {
     return !crumbledTiles.has(`${row},${col}`);

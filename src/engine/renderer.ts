@@ -36,7 +36,7 @@ function getTileColor(tile: number, time: number, isOccupiedGoal: boolean, activ
   }
   if (isDoor(tile)) {
     const n = doorNumber(tile);
-    const open = activePlates.has(n);
+    const open = activePlates.has(n) || toggledSwitches.has(n);
     if (open) return '#1a1a2e';
     return '#2a2040';
   }
@@ -51,9 +51,9 @@ function getTileColor(tile: number, time: number, isOccupiedGoal: boolean, activ
   }
   if (isToggleBlock(tile)) {
     const n = toggleNumber(tile);
-    const open = toggledSwitches.has(n);
-    if (open) return '#1a1a2e'; // passable = floor color
-    return '#3a2818';
+    const open = activePlates.has(n) || toggledSwitches.has(n);
+    if (open) return '#1a1a2e';
+    return '#2a2040';
   }
   if (tile === TileType.BLACKHOLE) {
     const pulse = 0.6 + 0.4 * Math.sin(time * 2);
@@ -392,7 +392,7 @@ export function render(
       // Door — number and dotted outline when closed
       if (isDoor(tile)) {
         const n = doorNumber(tile);
-        const open = activePlates.has(n);
+        const open = activePlates.has(n) || toggledSwitches.has(n);
 
         if (!open) {
           ctx.save();
@@ -433,21 +433,23 @@ export function render(
       // Toggle block — number and X pattern when solid
       if (isToggleBlock(tile)) {
         const n = toggleNumber(tile);
-        const open = toggledSwitches.has(n);
+        const open = activePlates.has(n) || toggledSwitches.has(n);
 
         if (!open) {
-          // X pattern when solid
-          ctx.strokeStyle = 'rgba(255,160,40,0.3)';
+          // Legacy toggle-block tiles render like closed doors
+          ctx.strokeStyle = 'rgba(160,120,220,0.5)';
           ctx.lineWidth = 2;
+          ctx.setLineDash([4, 3]);
           ctx.beginPath();
           ctx.moveTo(x + 4, y + 4);
           ctx.lineTo(x + s - 4, y + s - 4);
           ctx.moveTo(x + s - 4, y + 4);
           ctx.lineTo(x + 4, y + s - 4);
           ctx.stroke();
+          ctx.setLineDash([]);
         }
 
-        ctx.fillStyle = open ? 'rgba(255,255,255,0.15)' : 'rgba(255,160,40,0.4)';
+        ctx.fillStyle = open ? 'rgba(255,255,255,0.15)' : 'rgba(160,120,220,0.5)';
         ctx.font = doorFont;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';

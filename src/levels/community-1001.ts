@@ -4,7 +4,6 @@ import {
   pressurePlateTile,
   doorTile,
   toggleSwitchTile,
-  toggleBlockTile,
   conveyorTile,
   oneWayTile,
 } from '@/engine/types';
@@ -55,7 +54,7 @@ setTile(grid, 6, 2, doorTile(1));
 
 setTile(grid, 7, 2, C);
 setTile(grid, 8, 2, toggleSwitchTile(1));
-setTile(grid, 9, 2, toggleBlockTile(1));
+setTile(grid, 9, 2, doorTile(1));
 setTile(grid, 10, 2, R);
 setTile(grid, 10, 3, oneWayTile(0));
 setTile(grid, 10, 4, 38);

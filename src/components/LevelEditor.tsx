@@ -1,14 +1,14 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { TileType, COLORS, PLAYER_DIRECTIONS, type LevelData, type Rotation, isPressurePlate, pressurePlateNumber, pressurePlateTile, isDoor, doorNumber, doorTile, isToggleSwitch, isToggleBlock, toggleNumber, toggleSwitchTile, toggleBlockTile, isConveyor, conveyorDirection, conveyorTile, isOneWay, oneWayDirection, oneWayTile, isRotationTile, rotationTileCW, DIR_DX, DIR_DY } from '@/engine/types';
+import { TileType, COLORS, PLAYER_DIRECTIONS, type LevelData, type Rotation, isPressurePlate, pressurePlateNumber, pressurePlateTile, isDoor, doorNumber, doorTile, isToggleSwitch, isToggleBlock, toggleNumber, toggleSwitchTile, isConveyor, conveyorDirection, conveyorTile, isOneWay, oneWayDirection, oneWayTile, isRotationTile, rotationTileCW, DIR_DX, DIR_DY } from '@/engine/types';
 import { getCommunityLevel, getCommunityLevels, getLevel, getNextCommunityLevelId, saveCommunityLevel, saveCustomLevel } from '@/levels';
 import { verifyAdminPassword } from '@/lib/admin';
 
 const MAX_SIZE = 20;
 const MIN_SIZE = 4;
 
-type Tool = 'floor' | 'wall' | 'goal' | 'kill' | 'pushable' | 'plate' | 'door' | 'ice' | 'mud' | 'crumble' | 'reverse' | 'tswitch' | 'tblock' | 'conveyor' | 'oneway' | 'rotation' | 'blackhole' | 'spawn0' | 'spawn1' | 'spawn2' | 'spawn3';
+type Tool = 'floor' | 'wall' | 'goal' | 'kill' | 'pushable' | 'plate' | 'door' | 'ice' | 'mud' | 'crumble' | 'reverse' | 'tswitch' | 'conveyor' | 'oneway' | 'rotation' | 'blackhole' | 'spawn0' | 'spawn1' | 'spawn2' | 'spawn3';
 type Tab = 'config' | 'blocks' | 'publish';
 type PublishScope = 'campaign' | 'community';
 
@@ -31,7 +31,6 @@ const TOOL_LABELS: Record<Tool, string> = {
   crumble: 'Crumble',
   reverse: 'Reverse',
   tswitch: 'Toggle Switch',
-  tblock: 'Toggle Block',
   conveyor: 'Conveyor',
   oneway: 'One-Way',
   rotation: 'Rotation',
@@ -55,7 +54,6 @@ const TOOL_SHORTCUTS: Record<string, Tool> = {
   p: 'crumble',
   a: 'blackhole',
   s: 'tswitch',
-  d: 'tblock',
   f: 'conveyor',
   g: 'rotation',
   h: 'reverse',
@@ -79,7 +77,6 @@ const SHORTCUT_DISPLAY: Partial<Record<Tool, string>> = {
   crumble: 'P',
   reverse: 'H',
   tswitch: 'S',
-  tblock: 'D',
   conveyor: 'F',
   oneway: 'O',
   rotation: 'G',
@@ -281,21 +278,6 @@ export default function LevelEditor() {
       return;
     }
 
-    if (tool === 'tblock') {
-      setGrid(prev => {
-        const current = prev[row][col];
-        const next = prev.map(r => [...r]);
-        if (mode === 'erase') {
-          if (isToggleBlock(current)) next[row][col] = TileType.FLOOR;
-        } else {
-          if (isToggleBlock(current)) return prev;
-          next[row][col] = toggleBlockTile(1);
-        }
-        return next;
-      });
-      return;
-    }
-
     if (tool === 'conveyor') {
       setGrid(prev => {
         const current = prev[row][col];
@@ -424,8 +406,6 @@ export default function LevelEditor() {
       mode = isDoor(currentTile) ? 'erase' : 'place';
     } else if (tool === 'tswitch') {
       mode = isToggleSwitch(currentTile) ? 'erase' : 'place';
-    } else if (tool === 'tblock') {
-      mode = isToggleBlock(currentTile) ? 'erase' : 'place';
     } else if (tool === 'conveyor') {
       mode = isConveyor(currentTile) ? 'erase' : 'place';
     } else if (tool === 'oneway') {
@@ -502,13 +482,6 @@ export default function LevelEditor() {
         next[row][col] = toggleSwitchTile(nextN);
         return next;
       }
-      if (isToggleBlock(tile)) {
-        const n = toggleNumber(tile);
-        const nextN = (n % 9) + 1;
-        const next = prev.map(r => [...r]);
-        next[row][col] = toggleBlockTile(nextN);
-        return next;
-      }
       if (isConveyor(tile)) {
         const dir = conveyorDirection(tile);
         const nextDir = (dir + 1) % 4;
@@ -557,8 +530,6 @@ export default function LevelEditor() {
           color = '#2a2040';
         } else if (isToggleSwitch(tile)) {
           color = '#2a2018';
-        } else if (isToggleBlock(tile)) {
-          color = '#3a2818';
         } else if (isConveyor(tile)) {
           color = '#1a1a2e';
         } else if (isOneWay(tile)) {
@@ -1166,19 +1137,19 @@ export default function LevelEditor() {
             <div className="bg-white/[0.03] border border-white/10 rounded-xl p-4">
               <h3 className="text-white/60 text-xs font-mono uppercase tracking-wider mb-3">Tiles</h3>
               <div className="grid grid-cols-1 gap-2">
-                {(['floor', 'wall', 'goal', 'kill', 'pushable', 'plate', 'door', 'ice', 'mud', 'crumble', 'reverse', 'tswitch', 'tblock', 'conveyor', 'oneway', 'rotation', 'blackhole'] as Tool[]).map(t => {
+                {(['floor', 'wall', 'goal', 'kill', 'pushable', 'plate', 'door', 'ice', 'mud', 'crumble', 'reverse', 'tswitch', 'conveyor', 'oneway', 'rotation', 'blackhole'] as Tool[]).map(t => {
                   const colorMap: Record<string, string> = {
                     floor: '#1a1a2e', wall: '#050508', goal: '#1a6b3a', kill: '#8b2020',
                     pushable: '#5a4a3a', plate: '#1a2a3a', door: '#2a2040',
                     ice: '#1a2a3a', mud: '#2a1a10', crumble: '#2a2020', reverse: '#2a1a2e',
-                    tswitch: '#2a2018', tblock: '#3a2818',
+                    tswitch: '#2a2018',
                     conveyor: '#1a1a2e', oneway: '#1a1a2e', rotation: '#1e1a2e',
                     blackhole: '#143a22',
                   };
                   const borderMap: Record<string, string> = {
                     wall: 'border border-white/20', plate: 'border border-cyan-500/40',
                     door: 'border border-purple-400/40 border-dashed', ice: 'border border-cyan-300/30',
-                    tswitch: 'border border-orange-400/40', tblock: 'border border-orange-400/30 border-dashed',
+                    tswitch: 'border border-orange-400/40',
                     conveyor: 'border border-blue-400/40', oneway: 'border border-yellow-400/40',
                     rotation: 'border border-purple-400/40',
                     blackhole: 'border border-green-400/40',
