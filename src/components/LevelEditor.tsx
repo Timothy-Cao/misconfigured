@@ -24,17 +24,17 @@ const TOOL_LABELS: Record<Tool, string> = {
   goal: 'Goal',
   kill: 'Kill Zone',
   pushable: 'Pushable',
-  plate: 'Plate',
+  plate: 'Pressure Plate',
   door: 'Door',
   ice: 'Ice',
   mud: 'Mud',
-  crumble: 'Crumble',
-  reverse: 'Reverse',
-  tswitch: 'T.Switch',
-  tblock: 'T.Block',
-  conveyor: 'Conveyor',
-  oneway: 'One-Way',
-  rotation: 'Rotation',
+  crumble: 'Crumble Tile',
+  reverse: 'Reverse Tile',
+  tswitch: 'Toggle Switch',
+  tblock: 'Toggle Block',
+  conveyor: 'Conveyor Belt',
+  oneway: 'One-Way Tile',
+  rotation: 'Rotation Tile',
   blackhole: 'Black Hole',
   spawn0: 'Player 1',
   spawn1: 'Player 2',
@@ -1033,6 +1033,17 @@ export default function LevelEditor() {
     setSpawns([null, null, null, null]);
   }, [width, height]);
 
+  const placedPlayers = spawns.filter(Boolean).length;
+  const goalCount = grid.flat().filter(t => t === TileType.GOAL).length;
+  const blackholeCount = grid.flat().filter(t => t === TileType.BLACKHOLE).length;
+  const editorWarnings: string[] = [];
+  if (placedPlayers < 1) {
+    editorWarnings.push('Need at least one player.');
+  }
+  if (blackholeCount === 0 && goalCount < 4) {
+    editorWarnings.push('Need four regular goals unless you place at least one black hole goal.');
+  }
+
   const TAB_LABELS: Record<Tab, string> = { config: 'Config', blocks: 'Blocks', publish: 'Publish' };
   const targetNamePlaceholder = publishScope === 'campaign'
     ? `Level ${saveTargetId}`
@@ -1041,7 +1052,7 @@ export default function LevelEditor() {
   return (
     <div className="flex flex-col lg:flex-row gap-6 items-start justify-center">
       {/* Sidebar */}
-      <div className="flex flex-col gap-4 w-full lg:w-56 shrink-0">
+      <div className="flex flex-col gap-4 w-full lg:w-72 shrink-0">
         {/* Tab bar */}
         <div className="flex rounded-xl overflow-hidden border border-white/10">
           {(['config', 'blocks', 'publish'] as Tab[]).map(t => (
@@ -1098,6 +1109,53 @@ export default function LevelEditor() {
                 className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-purple-500/50"
               />
             </div>
+
+            <div className="bg-white/[0.03] border border-white/10 rounded-xl p-4">
+              <h3 className="text-white/60 text-xs font-mono uppercase tracking-wider mb-3">Players</h3>
+              <div className="grid grid-cols-1 gap-2">
+                {([0, 1, 2, 3] as const).map(i => {
+                  const t = `spawn${i}` as Tool;
+                  const slot = spawns[i];
+                  return (
+                    <button
+                      key={t}
+                      onClick={() => setTool(t)}
+                      className={`text-sm px-3 py-3 rounded-xl border transition-all duration-200 text-left ${
+                        tool === t
+                          ? 'bg-white/10 border-white/30 text-white'
+                          : 'bg-white/[0.02] border-white/[0.06] text-white/65 hover:bg-white/5 hover:border-white/15'
+                      }`}
+                    >
+                      <span className="flex items-center gap-3">
+                        <span
+                          className="w-3.5 h-3.5 rounded-sm inline-block"
+                          style={{ backgroundColor: slot ? SPAWN_COLORS[slot.rotation] : 'rgba(255,255,255,0.12)' }}
+                        />
+                        <span>{TOOL_LABELS[t]}</span>
+                        <span className="ml-auto text-white/25 text-xs">{SHORTCUT_DISPLAY[t]}</span>
+                      </span>
+                      <span className="block mt-1 text-xs text-white/35">
+                        {slot
+                          ? `Placed at ${slot.col}, ${slot.row} facing ${DIRECTION_LABELS[slot.rotation]}`
+                          : 'Select, then click the map to place'}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="grid grid-cols-2 gap-2 mt-3">
+                {([0, 1, 2, 3] as const).map(i => (
+                  <button
+                    key={`dir-${i}`}
+                    onClick={() => cycleSpawnRotation(i)}
+                    disabled={!spawns[i]}
+                    className="text-xs px-3 py-2 rounded-lg border border-white/[0.08] bg-white/[0.02] text-white/60 hover:bg-white/5 hover:border-white/15 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200"
+                  >
+                    {spawns[i] ? `Player ${i + 1}: ${DIRECTION_LABELS[spawns[i]!.rotation]}` : `Player ${i + 1}: Unset`}
+                  </button>
+                ))}
+              </div>
+            </div>
           </>
         )}
 
@@ -1107,7 +1165,7 @@ export default function LevelEditor() {
             {/* Tile tools */}
             <div className="bg-white/[0.03] border border-white/10 rounded-xl p-4">
               <h3 className="text-white/60 text-xs font-mono uppercase tracking-wider mb-3">Tiles</h3>
-              <div className="grid grid-cols-2 gap-1.5">
+              <div className="grid grid-cols-1 gap-2">
                 {(['floor', 'wall', 'goal', 'kill', 'pushable', 'plate', 'door', 'ice', 'mud', 'crumble', 'reverse', 'tswitch', 'tblock', 'conveyor', 'oneway', 'rotation', 'blackhole'] as Tool[]).map(t => {
                   const colorMap: Record<string, string> = {
                     floor: '#1a1a2e', wall: '#050508', goal: '#1a6b3a', kill: '#8b2020',
@@ -1129,110 +1187,24 @@ export default function LevelEditor() {
                     <button
                       key={t}
                       onClick={() => setTool(t)}
-                      className={`text-xs px-2 py-2 rounded-lg border transition-all duration-200 text-left ${
+                      className={`text-sm px-3 py-3 rounded-xl border transition-all duration-200 text-left ${
                         tool === t
                           ? 'bg-white/10 border-white/30 text-white'
-                          : 'bg-white/[0.02] border-white/[0.06] text-white/50 hover:bg-white/5 hover:border-white/15'
+                          : 'bg-white/[0.02] border-white/[0.06] text-white/70 hover:bg-white/5 hover:border-white/15'
                       }`}
                     >
-                      <span className="flex items-center gap-1.5">
-                        <span className={`w-2.5 h-2.5 rounded-sm inline-block ${borderMap[t] || ''}`} style={{ backgroundColor: colorMap[t] }} />
-                        {TOOL_LABELS[t]}
-                        <span className="ml-auto text-white/20 text-[10px]">{SHORTCUT_DISPLAY[t]}</span>
+                      <span className="flex items-center gap-3">
+                        <span className={`w-3.5 h-3.5 rounded-sm inline-block ${borderMap[t] || ''}`} style={{ backgroundColor: colorMap[t] }} />
+                        <span>{TOOL_LABELS[t]}</span>
+                        <span className="ml-auto text-white/25 text-xs">{SHORTCUT_DISPLAY[t]}</span>
                       </span>
                     </button>
                   );
                 })}
               </div>
-              <p className="text-white/20 text-[10px] mt-2">Right-click to cycle number/direction</p>
-            </div>
-
-            {/* Spawn tools */}
-            <div className="bg-white/[0.03] border border-white/10 rounded-xl p-4">
-              <h3 className="text-white/60 text-xs font-mono uppercase tracking-wider mb-3">Players</h3>
-              <div className="grid grid-cols-1 gap-1.5">
-                {([0, 1, 2, 3] as const).map(i => {
-                  const t = `spawn${i}` as Tool;
-                  const slot = spawns[i];
-                  return (
-                    <button
-                      key={t}
-                      onClick={() => setTool(t)}
-                      className={`text-xs px-2 py-2 rounded-lg border transition-all duration-200 text-left ${
-                        tool === t
-                          ? 'bg-white/10 border-white/30 text-white'
-                          : 'bg-white/[0.02] border-white/[0.06] text-white/50 hover:bg-white/5 hover:border-white/15'
-                      }`}
-                    >
-                      <span className="flex items-center gap-2">
-                        <span
-                          className="w-3 h-3 rounded-sm inline-block"
-                          style={{ backgroundColor: slot ? SPAWN_COLORS[slot.rotation] : 'rgba(255,255,255,0.12)' }}
-                        />
-                        {TOOL_LABELS[t]}
-                        <span className="text-white/20 text-[10px]">{SHORTCUT_DISPLAY[t]}</span>
-                        <span className="text-white/30 text-[10px]">
-                          {slot ? DIRECTION_LABELS[slot.rotation] : 'Unset'}
-                        </span>
-                        <span className={`ml-auto text-[10px] ${spawns[i] ? 'text-green-400' : 'text-white/20'}`}>
-                          {spawns[i] ? `(${spawns[i]!.col},${spawns[i]!.row})` : '---'}
-                        </span>
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-              <div className="grid grid-cols-2 gap-1.5 mt-2">
-                {([0, 1, 2, 3] as const).map(i => (
-                  <button
-                    key={`dir-${i}`}
-                    onClick={() => cycleSpawnRotation(i)}
-                    disabled={!spawns[i]}
-                    className="text-[10px] px-2 py-1.5 rounded-lg border border-white/[0.08] bg-white/[0.02] text-white/50 hover:bg-white/5 hover:border-white/15 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200"
-                  >
-                    {spawns[i] ? `P${i + 1}: ${DIRECTION_LABELS[spawns[i]!.rotation]}` : `P${i + 1}: ---`}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Status */}
-            <div className="bg-white/[0.03] border border-white/10 rounded-xl p-4">
-                <h3 className="text-white/60 text-xs font-mono uppercase tracking-wider mb-3">Status</h3>
-                <div className="space-y-1 text-xs">
-                  {[0, 1, 2, 3].map(i => (
-                    <div key={i} className="flex items-center gap-2">
-                      <span
-                        className="w-2 h-2 rounded-sm"
-                        style={{ backgroundColor: spawns[i] ? SPAWN_COLORS[spawns[i]!.rotation] : 'rgba(255,255,255,0.12)' }}
-                      />
-                      <span className="text-white/40">
-                        P{i + 1} {spawns[i] ? `(${DIRECTION_LABELS[spawns[i]!.rotation]})` : ''}
-                      </span>
-                      <span className={`ml-auto ${spawns[i] ? 'text-green-400' : 'text-white/25'}`}>
-                        {spawns[i] ? 'Placed' : 'Missing'}
-                      </span>
-                  </div>
-                ))}
-                <div className="flex items-center gap-2 mt-2 pt-2 border-t border-white/[0.06]">
-                  <span className="w-2 h-2 rounded-sm bg-green-500" />
-                  <span className="text-white/40">
-                    Goals: {grid.flat().filter(t => t === TileType.GOAL).length}
-                    {grid.flat().some(t => t === TileType.BLACKHOLE) ? '' : `/${spawns.filter(Boolean).length || 1}`}
-                  </span>
-                  {grid.flat().filter(t => t === TileType.BLACKHOLE).length > 0 && (
-                    <span className="text-white/40 ml-1">
-                      BH: {grid.flat().filter(t => t === TileType.BLACKHOLE).length}
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-sm bg-cyan-400" />
-                  <span className="text-white/40">
-                    Players: {spawns.filter(Boolean).length}/4
-                  </span>
-                </div>
-              </div>
+              <p className="text-white/25 text-xs mt-3 leading-relaxed">
+                Left-click places or removes the selected tile. Right-click cycles tile number or direction where supported.
+              </p>
             </div>
 
             <button
@@ -1324,21 +1296,32 @@ export default function LevelEditor() {
 
       {/* Canvas */}
       <div className="flex-1 w-full flex justify-center">
-        <div
-          className="rounded-xl overflow-hidden border border-white/10"
-          style={{ boxShadow: '0 0 40px rgba(168, 85, 247, 0.06)' }}
-        >
-          <canvas
-            ref={canvasRef}
-            width={width * tilePx}
-            height={height * tilePx}
-            className="block cursor-crosshair select-none"
-            onMouseDown={handleCanvasMouseDown}
-            onMouseMove={handleCanvasMouseMove}
-            onMouseUp={handleCanvasMouseUp}
-            onMouseLeave={handleCanvasMouseLeave}
-            onContextMenu={handleContextMenu}
-          />
+        <div className="w-full max-w-fit">
+          <div
+            className="rounded-xl overflow-hidden border border-white/10"
+            style={{ boxShadow: '0 0 40px rgba(168, 85, 247, 0.06)' }}
+          >
+            <canvas
+              ref={canvasRef}
+              width={width * tilePx}
+              height={height * tilePx}
+              className="block cursor-crosshair select-none"
+              onMouseDown={handleCanvasMouseDown}
+              onMouseMove={handleCanvasMouseMove}
+              onMouseUp={handleCanvasMouseUp}
+              onMouseLeave={handleCanvasMouseLeave}
+              onContextMenu={handleContextMenu}
+            />
+          </div>
+          {editorWarnings.length > 0 && (
+            <div className="mt-3 rounded-xl border border-amber-400/20 bg-amber-500/10 px-4 py-3">
+              {editorWarnings.map((warning) => (
+                <p key={warning} className="text-sm text-amber-200/90">
+                  {warning}
+                </p>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
