@@ -948,7 +948,7 @@ export default function LevelEditor() {
     setGrid(level.grid.map(row => [...row]));
     setSpawns(nextSpawns);
     setLevelName(level.name);
-    setTab('config');
+    setTab('publish');
     setMessage(null);
   }, []);
 

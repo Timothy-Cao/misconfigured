@@ -34,7 +34,8 @@ const builtInLevels: LevelData[] = [
   level21, level22, level23, level24, level25,
 ];
 
-const CUSTOM_LEVELS_KEY = 'misconfigured-custom-levels';
+const CAMPAIGN_OVERRIDE_VERSION = 2;
+const CUSTOM_LEVELS_KEY = `misconfigured-custom-levels-v${CAMPAIGN_OVERRIDE_VERSION}`;
 const COMMUNITY_LEVELS_KEY = 'misconfigured-community-levels';
 export const COMMUNITY_LEVEL_START_ID = 1001;
 const builtInCommunityLevels: LevelData[] = [communityLevel1001];
