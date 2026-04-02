@@ -86,10 +86,10 @@ Rules for the opening set:
 
 - Players: 1
 - Mechanic: checkpoint
-- Board: short route with checkpoint in the middle and danger near the end
-- Goal: teach that progress can be banked before a risky section
-- Intended solve: touch checkpoint, then finish
-- Design note: the checkpoint should be unavoidable so the player learns it by contact
+- Board: narrow route with checkpoint on the only upward path and a visible side hazard
+- Goal: teach that checkpoints sit on the route and mark safe progress
+- Intended solve: touch checkpoint, continue upward, then cross to the goal
+- Design note: the checkpoint is now structurally forced instead of optional
 
 ### Level 9 - Push It Up
 
@@ -185,8 +185,8 @@ The second batch keeps the same rule set: basic and easy-medium only. These leve
 
 - Players: 1
 - Mechanic: second push-block lesson
-- Goal: teach that a block can be moved out of a lane, not only forward toward a finish
-- Intended shape: open room with a central block and a goal below
+- Goal: teach that a block can be moved sideways out of a lane, not only pushed forward
+- Intended shape: block under a wall cap so upward pushing fails and side pushing is required
 
 ### Level 12 - Weighted Door
 
