@@ -62,9 +62,9 @@ export function canMoveTo(
     }
   }
 
-  // Check if another player occupies the target tile (finished/absorbing players don't block)
+  // Check if another player occupies the target tile (finished/animating-out players don't block)
   for (let i = 0; i < allPlayers.length; i++) {
-    if (i === selfIndex || !allPlayers[i].alive || allPlayers[i].finished || allPlayers[i].absorbTimer > 0) continue;
+    if (i === selfIndex || !allPlayers[i].alive || allPlayers[i].finished || allPlayers[i].absorbTimer > 0 || allPlayers[i].deathTimer > 0) continue;
     // Locked-on-goal players block their tile
     if (allPlayers[i].col === targetCol && allPlayers[i].row === targetRow) {
       return false;

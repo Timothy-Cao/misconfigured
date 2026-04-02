@@ -45,6 +45,7 @@ export function createInitialState(level: LevelData, tileSize: number): GameStat
     finished: false,
     lockedOnGoal: false,
     absorbTimer: 0,
+    deathTimer: 0,
   }));
 
   return {
@@ -69,13 +70,31 @@ export function checkKillZones(state: GameState, level: LevelData): void {
     if (!player.alive) continue;
     const tile = level.grid[player.row]?.[player.col];
     if (tile === TileType.KILL || (tile === TileType.CRUMBLE && state.crumbledTiles.has(`${player.row},${player.col}`))) {
-      player.col = player.checkpointCol;
-      player.row = player.checkpointRow;
-      player.prevCol = player.col;
-      player.prevRow = player.row;
-      player.animProgress = 1;
-      player.sliding = false;
+      if (player.deathTimer === 0) {
+        player.deathTimer = 0.001;
+        player.sliding = false;
+        player.slideDx = 0;
+        player.slideDy = 0;
+      }
     }
+  }
+}
+
+function resolveDeaths(state: GameState): void {
+  for (const player of state.players) {
+    if (player.deathTimer < 1) continue;
+
+    player.col = player.checkpointCol;
+    player.row = player.checkpointRow;
+    player.prevCol = player.col;
+    player.prevRow = player.row;
+    player.animProgress = 1;
+    player.sliding = false;
+    player.slideDx = 0;
+    player.slideDy = 0;
+    player.deathTimer = 0;
+    player.lockedOnGoal = false;
+    player.absorbTimer = 0;
   }
 }
 
@@ -237,7 +256,7 @@ export function checkWinCondition(state: GameState, level: LevelData): boolean {
       continue;
     }
     // Still absorbing doesn't count yet
-    if (p.absorbTimer > 0) continue;
+    if (p.absorbTimer > 0 || p.deathTimer > 0) continue;
     const isOnGoal = goals.some(g => g.col === p.col && g.row === p.row);
     if (isOnGoal) {
       occupied.add(`${p.row},${p.col}`);
@@ -421,7 +440,7 @@ export class GameEngine {
 
     for (let i = 0; i < this.state.players.length; i++) {
       const player = this.state.players[i];
-      if (!player.alive || player.finished || player.lockedOnGoal || player.absorbTimer > 0) continue;
+      if (!player.alive || player.finished || player.lockedOnGoal || player.absorbTimer > 0 || player.deathTimer > 0) continue;
 
       // Ice sliding overrides normal input
       if (player.sliding) {
@@ -497,7 +516,7 @@ export class GameEngine {
 
     // Black hole absorption — start absorb animation when landing on black hole
     for (const player of this.state.players) {
-      if (!player.alive || player.finished) continue;
+      if (!player.alive || player.finished || player.deathTimer > 0) continue;
       if (player.animProgress >= 1) {
         const tile = this.level.grid[player.row]?.[player.col];
         if (tile === TileType.BLACKHOLE && player.absorbTimer === 0) {
@@ -520,12 +539,19 @@ export class GameEngine {
       }
     }
 
+    for (const player of this.state.players) {
+      if (player.deathTimer > 0) {
+        player.deathTimer = Math.min(1, player.deathTimer + dt / 0.35);
+      }
+    }
+
     // Update tile-based effects
     updateReverseTiles(this.state, this.level);
     updateRotationTiles(this.state, this.level);
     updateCrumbleTiles(this.state, this.level, prevPositions);
     checkCheckpoints(this.state, this.level);
     checkKillZones(this.state, this.level);
+    resolveDeaths(this.state);
 
     // Re-update pressure plates after movement
     updatePressurePlates(this.state, this.level);

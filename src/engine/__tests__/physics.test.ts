@@ -59,7 +59,7 @@ const makePlayer = (col: number, row: number): PlayerState => ({
   alive: true,
   checkpointCol: col, checkpointRow: row,
   rotation: 0, color: '#ff9a56',
-  reversed: false, sliding: false, slideDx: 0, slideDy: 0, finished: false, lockedOnGoal: false, absorbTimer: 0,
+  reversed: false, sliding: false, slideDx: 0, slideDy: 0, finished: false, lockedOnGoal: false, absorbTimer: 0, deathTimer: 0,
 });
 
 describe('canMoveTo', () => {

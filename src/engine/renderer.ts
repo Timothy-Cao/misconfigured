@@ -595,6 +595,46 @@ export function render(
       continue;
     }
 
+    // Kill-tile death animation — collapse + red flare
+    if (player.deathTimer > 0) {
+      const dt = player.deathTimer;
+      const scale = 1 - dt * 0.75;
+      const spin = dt * Math.PI * 2;
+      const alpha = 1 - dt * 0.9;
+      const s = size * scale;
+
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.translate(centerX, centerY);
+      ctx.rotate(spin);
+
+      ctx.shadowColor = '#ff4444';
+      ctx.shadowBlur = 10 + 14 * dt;
+      roundRect(ctx, -s / 2, -s / 2, s, s, playerRadius * scale);
+      ctx.fillStyle = directionColor;
+      ctx.fill();
+
+      const burstRadius = size * (0.35 + dt * 0.45);
+      ctx.beginPath();
+      ctx.arc(0, 0, burstRadius, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(255, 90, 90, ${0.55 * alpha})`;
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      const as2 = s * 0.28;
+      ctx.rotate(ARROW_ANGLES[player.rotation]);
+      ctx.beginPath();
+      ctx.moveTo(as2, 0);
+      ctx.lineTo(-as2 * 0.5, -as2 * 0.7);
+      ctx.lineTo(-as2 * 0.5, as2 * 0.7);
+      ctx.closePath();
+      ctx.fillStyle = `rgba(255,255,255,${0.65 * alpha})`;
+      ctx.fill();
+
+      ctx.restore();
+      continue;
+    }
+
     const px = centerX - size / 2;
     const py = centerY - size / 2;
 

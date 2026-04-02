@@ -101,6 +101,7 @@ export interface PlayerState {
   finished: boolean; // true when absorbed by black hole goal
   lockedOnGoal: boolean; // true when locked onto a regular goal
   absorbTimer: number; // 0..1 animation progress for black hole absorption
+  deathTimer: number; // 0..1 animation progress for kill-tile death before respawn
 }
 
 export interface PushableBlock {

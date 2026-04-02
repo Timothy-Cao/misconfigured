@@ -45,28 +45,24 @@ describe('createInitialState', () => {
 });
 
 describe('checkKillZones', () => {
-  it('kills player standing on kill tile and respawns at checkpoint', () => {
+  it('starts death animation when player stands on kill tile', () => {
     const state = createInitialState(testLevel, TILE);
     // Move player 0 to kill zone (col 2, row 2)
     state.players[0].col = 2;
     state.players[0].row = 2;
     checkKillZones(state, testLevel);
-    // Should respawn at start (no checkpoint touched)
-    expect(state.players[0].col).toBe(1);
-    expect(state.players[0].row).toBe(1);
+    expect(state.players[0].col).toBe(2);
+    expect(state.players[0].row).toBe(2);
+    expect(state.players[0].deathTimer).toBeGreaterThan(0);
   });
 
-  it('respawns at checkpoint if one was touched', () => {
+  it('does not overwrite an in-progress death animation', () => {
     const state = createInitialState(testLevel, TILE);
-    // Set checkpoint for player 0
-    state.players[0].checkpointCol = 3;
-    state.players[0].checkpointRow = 1;
-    // Move to kill zone
     state.players[0].col = 2;
     state.players[0].row = 2;
+    state.players[0].deathTimer = 0.5;
     checkKillZones(state, testLevel);
-    expect(state.players[0].col).toBe(3);
-    expect(state.players[0].row).toBe(1);
+    expect(state.players[0].deathTimer).toBe(0.5);
   });
 
   it('does not affect players not on kill tiles', () => {
@@ -74,6 +70,7 @@ describe('checkKillZones', () => {
     const origCol = state.players[0].col;
     checkKillZones(state, testLevel);
     expect(state.players[0].col).toBe(origCol);
+    expect(state.players[0].deathTimer).toBe(0);
   });
 });
 
