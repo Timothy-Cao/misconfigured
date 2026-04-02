@@ -53,6 +53,15 @@ export default function Home() {
           />
         ))}
       </div>
+
+      <a
+        href="https://timcao.com"
+        target="_blank"
+        rel="noreferrer"
+        className="absolute bottom-6 z-10 text-sm sm:text-base font-medium tracking-[0.18em] uppercase text-white/18 hover:text-white/38 transition-colors duration-300 animate-[fadeInUp_0.8s_ease-out_0.7s_both]"
+      >
+        a tim cao game
+      </a>
     </main>
   );
 }
