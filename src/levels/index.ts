@@ -34,6 +34,16 @@ const builtInLevels: LevelData[] = [
 ];
 
 const CUSTOM_LEVELS_KEY = 'misconfigured-custom-levels';
+const COMMUNITY_LEVELS_KEY = 'misconfigured-community-levels';
+export const COMMUNITY_LEVEL_START_ID = 1001;
+
+function cloneLevel(level: LevelData): LevelData {
+  return {
+    ...level,
+    grid: level.grid.map(row => [...row]),
+    players: level.players.map(player => ({ ...player })) as LevelData['players'],
+  };
+}
 
 function getCustomLevels(): Record<string, LevelData> {
   if (typeof window === 'undefined') return {};
@@ -46,10 +56,46 @@ function getCustomLevels(): Record<string, LevelData> {
   }
 }
 
+function getCommunityLevelsRecord(): Record<string, LevelData> {
+  if (typeof window === 'undefined') return {};
+  try {
+    const raw = localStorage.getItem(COMMUNITY_LEVELS_KEY);
+    if (!raw) return {};
+    return JSON.parse(raw);
+  } catch {
+    return {};
+  }
+}
+
 export function saveCustomLevel(id: number, level: LevelData): void {
   const custom = getCustomLevels();
-  custom[String(id)] = level;
+  custom[String(id)] = cloneLevel(level);
   localStorage.setItem(CUSTOM_LEVELS_KEY, JSON.stringify(custom));
+}
+
+export function saveCommunityLevel(id: number, level: LevelData): void {
+  const community = getCommunityLevelsRecord();
+  community[String(id)] = cloneLevel(level);
+  localStorage.setItem(COMMUNITY_LEVELS_KEY, JSON.stringify(community));
+}
+
+export function getCommunityLevels(): LevelData[] {
+  return Object.values(getCommunityLevelsRecord())
+    .map(level => cloneLevel(level))
+    .sort((a, b) => a.id - b.id);
+}
+
+export function getCommunityLevel(id: number): LevelData | undefined {
+  const level = getCommunityLevelsRecord()[String(id)];
+  return level ? cloneLevel(level) : undefined;
+}
+
+export function getNextCommunityLevelId(): number {
+  const ids = Object.keys(getCommunityLevelsRecord())
+    .map(Number)
+    .filter(id => Number.isFinite(id));
+  if (ids.length === 0) return COMMUNITY_LEVEL_START_ID;
+  return Math.max(COMMUNITY_LEVEL_START_ID, ...ids) + 1;
 }
 
 export const levels: LevelData[] = builtInLevels;
@@ -57,8 +103,13 @@ export const levels: LevelData[] = builtInLevels;
 export function getLevel(id: number): LevelData | undefined {
   // Custom levels override built-in
   const custom = getCustomLevels();
-  if (custom[String(id)]) return custom[String(id)];
-  return builtInLevels.find(l => l.id === id);
+  if (custom[String(id)]) return cloneLevel(custom[String(id)]);
+
+  const community = getCommunityLevelsRecord();
+  if (community[String(id)]) return cloneLevel(community[String(id)]);
+
+  const builtIn = builtInLevels.find(l => l.id === id);
+  return builtIn ? cloneLevel(builtIn) : undefined;
 }
 
 export const TOTAL_LEVELS = builtInLevels.length;

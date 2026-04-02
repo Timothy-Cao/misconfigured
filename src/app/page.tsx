@@ -32,6 +32,13 @@ export default function Home() {
         Level Editor
       </Link>
 
+      <Link
+        href="/community"
+        className="relative z-10 text-white/25 hover:text-white/60 text-sm transition-colors duration-300 animate-[fadeInUp_0.8s_ease-out_0.55s_both]"
+      >
+        Community Levels
+      </Link>
+
       {/* Decorative player dots */}
       <div className="flex gap-3 animate-[fadeInUp_0.8s_ease-out_0.6s_both]">
         {['#ff9a56', '#4ecdc4', '#3b82f6', '#a855f7'].map((color, i) => (

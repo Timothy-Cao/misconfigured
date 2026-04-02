@@ -2,14 +2,15 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { TileType, COLORS, PLAYER_DIRECTIONS, type LevelData, isPressurePlate, pressurePlateNumber, pressurePlateTile, isDoor, doorNumber, doorTile, isToggleSwitch, isToggleBlock, toggleNumber, toggleSwitchTile, toggleBlockTile, isConveyor, conveyorDirection, conveyorTile, isOneWay, oneWayDirection, oneWayTile, isRotationTile, rotationTileCW, DIR_DX, DIR_DY } from '@/engine/types';
-import { saveCustomLevel } from '@/levels';
+import { getCommunityLevel, getCommunityLevels, getLevel, getNextCommunityLevelId, saveCommunityLevel, saveCustomLevel } from '@/levels';
+import { verifyAdminPassword } from '@/lib/admin';
 
 const MAX_SIZE = 20;
 const MIN_SIZE = 4;
-const SAVE_HASH = 'c11b328fc4309ef6478beb387eb5c8348661075ccdffda64d6e9627788f2171c';
 
 type Tool = 'floor' | 'wall' | 'goal' | 'kill' | 'pushable' | 'plate' | 'door' | 'ice' | 'mud' | 'crumble' | 'reverse' | 'tswitch' | 'tblock' | 'conveyor' | 'oneway' | 'rotation' | 'blackhole' | 'spawn0' | 'spawn1' | 'spawn2' | 'spawn3';
 type Tab = 'config' | 'blocks' | 'publish';
+type PublishScope = 'campaign' | 'community';
 
 interface SpawnPoint {
   col: number;
@@ -99,14 +100,6 @@ const ARROW_ANGLES: Record<number, number> = {
   3: Math.PI,
 };
 
-async function sha256(text: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(text);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
 function computeTilePx(width: number, height: number): number {
   if (typeof window === 'undefined') return 32;
   const maxW = Math.min(window.innerWidth * 0.55, 640);
@@ -144,7 +137,10 @@ export default function LevelEditor() {
   const [tool, setTool] = useState<Tool>('wall');
   const [tab, setTab] = useState<Tab>('blocks');
   const [levelName, setLevelName] = useState('');
+  const [publishScope, setPublishScope] = useState<PublishScope>('campaign');
   const [saveTargetId, setSaveTargetId] = useState(1);
+  const [communityTargetId, setCommunityTargetId] = useState(1001);
+  const [communityLevels, setCommunityLevels] = useState<LevelData[]>([]);
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState<{ text: string; type: 'error' | 'success' } | null>(null);
   const [isPainting, setIsPainting] = useState(false);
@@ -159,6 +155,19 @@ export default function LevelEditor() {
     window.addEventListener('resize', update);
     return () => window.removeEventListener('resize', update);
   }, [width, height]);
+
+  const refreshCommunityLevels = useCallback(() => {
+    const levels = getCommunityLevels();
+    setCommunityLevels(levels);
+    setCommunityTargetId(current => {
+      if (levels.some(level => level.id === current)) return current;
+      return getNextCommunityLevelId();
+    });
+  }, []);
+
+  useEffect(() => {
+    refreshCommunityLevels();
+  }, [refreshCommunityLevels]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -907,6 +916,63 @@ export default function LevelEditor() {
     return null;
   }, [grid, spawns, height, width]);
 
+  const loadLevelIntoEditor = useCallback((level: LevelData) => {
+    setWidth(level.width);
+    setHeight(level.height);
+    setGrid(level.grid.map(row => [...row]));
+    setSpawns(level.players.map(player => ({
+      col: player.startX,
+      row: player.startY,
+    })) as (SpawnPoint | null)[]);
+    setLevelName(level.name);
+    setTab('config');
+    setMessage(null);
+  }, []);
+
+  const buildLevelData = useCallback((id: number, fallbackName: string): LevelData => {
+    const validSpawns = spawns.filter(Boolean) as SpawnPoint[];
+    return {
+      id,
+      name: levelName || fallbackName,
+      width,
+      height,
+      grid: grid.map(row => [...row]),
+      players: validSpawns.map((spawn, i) => ({
+        startX: spawn.col,
+        startY: spawn.row,
+        rotation: PLAYER_DIRECTIONS[i],
+      })) as LevelData['players'],
+    };
+  }, [grid, height, levelName, spawns, width]);
+
+  const handleLoad = useCallback(() => {
+    setMessage(null);
+
+    const sourceLevel = publishScope === 'campaign'
+      ? getLevel(saveTargetId)
+      : getCommunityLevel(communityTargetId);
+
+    if (!sourceLevel) {
+      setMessage({
+        text: publishScope === 'campaign'
+          ? `Level ${saveTargetId} could not be loaded.`
+          : `Community level ${communityTargetId} does not exist yet.`,
+        type: 'error',
+      });
+      return;
+    }
+
+    loadLevelIntoEditor({
+      ...sourceLevel,
+      grid: sourceLevel.grid.map(row => [...row]),
+      players: sourceLevel.players.map(player => ({ ...player })) as LevelData['players'],
+    });
+    setMessage({
+      text: `Loaded ${sourceLevel.name} into the editor as a new working copy.`,
+      type: 'success',
+    });
+  }, [communityTargetId, loadLevelIntoEditor, publishScope, saveTargetId]);
+
   const handleSave = useCallback(async () => {
     setMessage(null);
 
@@ -916,29 +982,24 @@ export default function LevelEditor() {
       return;
     }
 
-    const hash = await sha256(password);
-    if (hash !== SAVE_HASH) {
+    const isValidPassword = await verifyAdminPassword(password);
+    if (!isValidPassword) {
       setMessage({ text: 'Invalid admin password', type: 'error' });
       return;
     }
 
-    const validSpawns = spawns.filter(Boolean) as SpawnPoint[];
-    const levelData: LevelData = {
-      id: saveTargetId,
-      name: levelName || `Level ${saveTargetId}`,
-      width,
-      height,
-      grid: grid.map(r => [...r]),
-      players: validSpawns.map((s, i) => ({
-        startX: s.col,
-        startY: s.row,
-        rotation: PLAYER_DIRECTIONS[i],
-      })) as LevelData['players'],
-    };
+    if (publishScope === 'campaign') {
+      const levelData = buildLevelData(saveTargetId, `Level ${saveTargetId}`);
+      saveCustomLevel(saveTargetId, levelData);
+      setMessage({ text: `Saved to Level ${saveTargetId}!`, type: 'success' });
+      return;
+    }
 
-    saveCustomLevel(saveTargetId, levelData);
-    setMessage({ text: `Saved to Level ${saveTargetId}!`, type: 'success' });
-  }, [validate, password, spawns, saveTargetId, width, height, grid, levelName]);
+    const levelData = buildLevelData(communityTargetId, `Community ${communityTargetId}`);
+    saveCommunityLevel(communityTargetId, levelData);
+    refreshCommunityLevels();
+    setMessage({ text: `Saved to Community ${communityTargetId}!`, type: 'success' });
+  }, [buildLevelData, communityTargetId, password, publishScope, refreshCommunityLevels, saveTargetId, validate]);
 
   const clearGrid = useCallback(() => {
     setGrid(createFloorGrid(width, height));
@@ -946,6 +1007,9 @@ export default function LevelEditor() {
   }, [width, height]);
 
   const TAB_LABELS: Record<Tab, string> = { config: 'Config', blocks: 'Blocks', publish: 'Publish' };
+  const targetNamePlaceholder = publishScope === 'campaign'
+    ? `Level ${saveTargetId}`
+    : `Community ${communityTargetId}`;
 
   return (
     <div className="flex flex-col lg:flex-row gap-6 items-start justify-center">
@@ -1003,7 +1067,7 @@ export default function LevelEditor() {
                 type="text"
                 value={levelName}
                 onChange={e => setLevelName(e.target.value)}
-                placeholder={`Level ${saveTargetId}`}
+                placeholder={targetNamePlaceholder}
                 className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-purple-500/50"
               />
             </div>
@@ -1129,19 +1193,56 @@ export default function LevelEditor() {
         {/* Publish tab */}
         {tab === 'publish' && (
           <div className="bg-white/[0.03] border border-white/10 rounded-xl p-4">
-            <h3 className="text-white/60 text-xs font-mono uppercase tracking-wider mb-3">Save Level</h3>
+            <h3 className="text-white/60 text-xs font-mono uppercase tracking-wider mb-3">Load or Save</h3>
             <label className="block mb-2">
-              <span className="text-white/40 text-xs">Target Level</span>
+              <span className="text-white/40 text-xs">Destination</span>
               <select
-                value={saveTargetId}
-                onChange={e => setSaveTargetId(parseInt(e.target.value))}
+                value={publishScope}
+                onChange={e => setPublishScope(e.target.value as PublishScope)}
                 className="w-full bg-[#12121a] border border-white/10 rounded-lg px-3 py-1.5 text-white text-sm mt-1 focus:outline-none focus:border-purple-500/50 [&>option]:bg-[#12121a] [&>option]:text-white"
               >
-                {Array.from({ length: 25 }, (_, i) => (
-                  <option key={i + 1} value={i + 1}>Level {i + 1}</option>
-                ))}
+                <option value="campaign">Campaign Levels</option>
+                <option value="community">Community Levels</option>
               </select>
             </label>
+            {publishScope === 'campaign' ? (
+              <label className="block mb-2">
+                <span className="text-white/40 text-xs">Target Level</span>
+                <select
+                  value={saveTargetId}
+                  onChange={e => setSaveTargetId(parseInt(e.target.value))}
+                  className="w-full bg-[#12121a] border border-white/10 rounded-lg px-3 py-1.5 text-white text-sm mt-1 focus:outline-none focus:border-purple-500/50 [&>option]:bg-[#12121a] [&>option]:text-white"
+                >
+                  {Array.from({ length: 25 }, (_, i) => (
+                    <option key={i + 1} value={i + 1}>Level {i + 1}</option>
+                  ))}
+                </select>
+              </label>
+            ) : (
+              <>
+                <label className="block mb-2">
+                  <span className="text-white/40 text-xs">Community Slot</span>
+                  <input
+                    type="number"
+                    min={1001}
+                    value={communityTargetId}
+                    onChange={e => setCommunityTargetId(Math.max(1001, parseInt(e.target.value) || 1001))}
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-white text-sm mt-1 focus:outline-none focus:border-purple-500/50"
+                  />
+                </label>
+                <div className="mb-2 rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2 text-[11px] text-white/35">
+                  {communityLevels.length > 0
+                    ? `Existing community slots: ${communityLevels.map(level => level.id).join(', ')}`
+                    : 'No community levels saved yet. The first save will create slot 1001.'}
+                </div>
+              </>
+            )}
+            <button
+              onClick={handleLoad}
+              className="w-full text-sm px-3 py-2 mb-3 bg-white/5 border border-white/10 rounded-lg text-white/70 hover:bg-white/10 hover:border-white/20 transition-all duration-200"
+            >
+              Load Into Editor
+            </button>
             <label className="block mb-3">
               <span className="text-white/40 text-xs">Admin Password</span>
               <input
@@ -1156,7 +1257,7 @@ export default function LevelEditor() {
               onClick={handleSave}
               className="w-full text-sm px-3 py-2 bg-purple-500/20 border border-purple-500/30 rounded-lg text-purple-300 hover:bg-purple-500/30 hover:border-purple-500/50 transition-all duration-200"
             >
-              Save
+              {publishScope === 'campaign' ? 'Save Campaign Override' : 'Save Community Level'}
             </button>
             {message && (
               <p className={`text-xs mt-2 ${message.type === 'error' ? 'text-red-400' : 'text-green-400'}`}>
