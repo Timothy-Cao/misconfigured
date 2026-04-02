@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import GameCanvas from '@/components/GameCanvas';
 import HUD from '@/components/HUD';
 import { getLevel, TOTAL_LEVELS } from '@/levels';
@@ -11,7 +11,7 @@ export default function PlayPage() {
   const params = useParams();
   const router = useRouter();
   const levelId = Number(params.id);
-  const level = getLevel(levelId);
+  const level = useMemo(() => getLevel(levelId), [levelId]);
   const { completeLevel } = useGameProgress();
   const [levelComplete, setLevelComplete] = useState(false);
   const [playersOnGoals, setPlayersOnGoals] = useState(0);
