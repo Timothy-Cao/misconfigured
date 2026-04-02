@@ -69,6 +69,7 @@ export default function PlayPage() {
           levelName={level.name}
           levelComplete={levelComplete}
           playersOnGoals={playersOnGoals}
+          totalPlayers={level.players.length}
           completionTime={completionTime}
           onRestart={handleRestart}
           onNextLevel={handleNextLevel}

@@ -1,4 +1,4 @@
-import { type LevelData, type GameState, type PlayerState, type PushableBlock, COLORS, PLAYER_DIRECTIONS, PLAYER_SIZE_RATIO, TileType, STEP_INTERVAL, ANIM_DURATION, isPressurePlate, pressurePlateNumber, isDoor, doorNumber, isToggleSwitch, toggleNumber, isConveyor, conveyorDirection, isRotationTile, rotationTileCW, DIR_DX, DIR_DY, type Rotation } from './types';
+import { type LevelData, type GameState, type PlayerState, type PushableBlock, COLORS, PLAYER_SIZE_RATIO, TileType, STEP_INTERVAL, ANIM_DURATION, isPressurePlate, pressurePlateNumber, isDoor, doorNumber, isToggleSwitch, toggleNumber, isConveyor, conveyorDirection, isRotationTile, rotationTileCW, DIR_DX, DIR_DY, type Rotation } from './types';
 
 import { InputManager, remapInput } from './input';
 import { getTileAt, isWalkable, canMoveTo } from './physics';
@@ -27,7 +27,7 @@ function collectPushableBlocks(level: LevelData): PushableBlock[] {
 }
 
 export function createInitialState(level: LevelData, tileSize: number): GameState {
-  const players = level.players.map((p, i) => ({
+  const players = level.players.map((p) => ({
     col: p.startX,
     row: p.startY,
     prevCol: p.startX,
@@ -36,8 +36,8 @@ export function createInitialState(level: LevelData, tileSize: number): GameStat
     alive: true,
     checkpointCol: p.startX,
     checkpointRow: p.startY,
-    rotation: PLAYER_DIRECTIONS[i],
-    color: COLORS.players[i],
+    rotation: p.rotation,
+    color: COLORS.players[p.rotation],
     reversed: false,
     sliding: false,
     slideDx: 0,
@@ -45,7 +45,7 @@ export function createInitialState(level: LevelData, tileSize: number): GameStat
     finished: false,
     lockedOnGoal: false,
     absorbTimer: 0,
-  })) as [PlayerState, PlayerState, PlayerState, PlayerState];
+  }));
 
   return {
     players,
@@ -247,8 +247,7 @@ export function checkWinCondition(state: GameState, level: LevelData): boolean {
   state.playersOnGoals = playersSettled;
   state.occupiedGoals = occupied;
 
-  // All 4 players must be either locked on a goal or absorbed by a black hole
-  return playersSettled === 4;
+  return playersSettled === state.players.length;
 }
 
 function tryPushBlock(
@@ -342,9 +341,9 @@ export class GameEngine {
   private elapsed: number = 0;
   private originalGrid: number[][];
   /** Time since last step for each player (for hold-to-walk) */
-  private stepTimers: number[] = [0, 0, 0, 0];
+  private stepTimers: number[];
   /** Whether each player has taken their first step (for initial delay) */
-  private firstStep: boolean[] = [true, true, true, true];
+  private firstStep: boolean[];
 
   constructor(
     canvas: HTMLCanvasElement,
@@ -358,6 +357,8 @@ export class GameEngine {
     this.state = createInitialState(level, tileSize);
     this.input = new InputManager();
     this.callbacks = callbacks;
+    this.stepTimers = Array(level.players.length).fill(0);
+    this.firstStep = Array(level.players.length).fill(true);
 
     canvas.width = level.width * tileSize;
     canvas.height = level.height * tileSize;
@@ -381,8 +382,8 @@ export class GameEngine {
     this.level.grid = this.originalGrid.map(r => [...r]);
     this.state = createInitialState(this.level, this.state.tileSize);
     this.elapsed = 0;
-    this.stepTimers = [0, 0, 0, 0];
-    this.firstStep = [true, true, true, true];
+    this.stepTimers = Array(this.state.players.length).fill(0);
+    this.firstStep = Array(this.state.players.length).fill(true);
     toggleCooldown.clear();
     rotationCooldown.clear();
   }
@@ -418,7 +419,7 @@ export class GameEngine {
     // Store previous positions for crumble detection
     const prevPositions = this.state.players.map(p => ({ col: p.col, row: p.row }));
 
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < this.state.players.length; i++) {
       const player = this.state.players[i];
       if (!player.alive || player.finished || player.lockedOnGoal || player.absorbTimer > 0) continue;
 

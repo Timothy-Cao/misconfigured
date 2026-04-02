@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { TileType, COLORS, PLAYER_DIRECTIONS, type LevelData, isPressurePlate, pressurePlateNumber, pressurePlateTile, isDoor, doorNumber, doorTile, isToggleSwitch, isToggleBlock, toggleNumber, toggleSwitchTile, toggleBlockTile, isConveyor, conveyorDirection, conveyorTile, isOneWay, oneWayDirection, oneWayTile, isRotationTile, rotationTileCW, DIR_DX, DIR_DY } from '@/engine/types';
+import { TileType, COLORS, PLAYER_DIRECTIONS, type LevelData, type Rotation, isPressurePlate, pressurePlateNumber, pressurePlateTile, isDoor, doorNumber, doorTile, isToggleSwitch, isToggleBlock, toggleNumber, toggleSwitchTile, toggleBlockTile, isConveyor, conveyorDirection, conveyorTile, isOneWay, oneWayDirection, oneWayTile, isRotationTile, rotationTileCW, DIR_DX, DIR_DY } from '@/engine/types';
 import { getCommunityLevel, getCommunityLevels, getLevel, getNextCommunityLevelId, saveCommunityLevel, saveCustomLevel } from '@/levels';
 import { verifyAdminPassword } from '@/lib/admin';
 
@@ -15,6 +15,7 @@ type PublishScope = 'campaign' | 'community';
 interface SpawnPoint {
   col: number;
   row: number;
+  rotation: Rotation;
 }
 
 const TOOL_LABELS: Record<Tool, string> = {
@@ -35,10 +36,10 @@ const TOOL_LABELS: Record<Tool, string> = {
   oneway: 'One-Way',
   rotation: 'Rotation',
   blackhole: 'Black Hole',
-  spawn0: 'Orange (Up)',
-  spawn1: 'Cyan (Right)',
-  spawn2: 'Blue (Down)',
-  spawn3: 'Purple (Left)',
+  spawn0: 'Player 1',
+  spawn1: 'Player 2',
+  spawn2: 'Player 3',
+  spawn3: 'Player 4',
 };
 
 const TOOL_SHORTCUTS: Record<string, Tool> = {
@@ -372,10 +373,23 @@ export default function LevelEditor() {
         return next;
       }
       const next = [...prev];
-      next[idx] = { col, row };
+      next[idx] = { col, row, rotation: existing?.rotation ?? PLAYER_DIRECTIONS[idx] };
       return next;
     });
   }, [tool, width, height]);
+
+  const cycleSpawnRotation = useCallback((idx: number) => {
+    setSpawns(prev => {
+      const current = prev[idx];
+      if (!current) return prev;
+        const next = [...prev];
+        next[idx] = {
+          ...current,
+          rotation: ((current.rotation + 1) % 4) as Rotation,
+        };
+        return next;
+      });
+  }, []);
 
   const getCanvasCell = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
@@ -862,15 +876,15 @@ export default function LevelEditor() {
       const size = tilePx * 0.6;
 
       ctx.save();
-      ctx.shadowColor = SPAWN_COLORS[i];
+      ctx.shadowColor = SPAWN_COLORS[sp.rotation];
       ctx.shadowBlur = 8;
-      ctx.fillStyle = SPAWN_COLORS[i];
+      ctx.fillStyle = SPAWN_COLORS[sp.rotation];
       ctx.beginPath();
       ctx.roundRect(cx - size / 2, cy - size / 2, size, size, 4);
       ctx.fill();
       ctx.restore();
 
-      const rotation = PLAYER_DIRECTIONS[i];
+      const rotation = sp.rotation;
       ctx.save();
       ctx.translate(cx, cy);
       ctx.rotate(ARROW_ANGLES[rotation]);
@@ -888,8 +902,8 @@ export default function LevelEditor() {
 
   const validate = useCallback((): string | null => {
     const validSpawns = spawns.filter(Boolean) as SpawnPoint[];
-    if (validSpawns.length !== 4) {
-      return `Need exactly 4 spawn points (have ${validSpawns.length})`;
+    if (validSpawns.length < 1 || validSpawns.length > 4) {
+      return `Need between 1 and 4 spawn points (have ${validSpawns.length})`;
     }
 
     let goalCount = 0;
@@ -900,10 +914,12 @@ export default function LevelEditor() {
         if (grid[r][c] === TileType.BLACKHOLE) blackholeCount++;
       }
     }
-    if (blackholeCount === 0 && goalCount !== 4) return `Need exactly 4 goal tiles or at least 1 black hole (have ${goalCount} goals)`;
+    if (blackholeCount === 0 && goalCount !== validSpawns.length) {
+      return `Need exactly ${validSpawns.length} goal tiles or at least 1 black hole (have ${goalCount} goals)`;
+    }
     if (blackholeCount > 0 && goalCount + blackholeCount < 1) return 'Need at least 1 goal or black hole tile';
 
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < validSpawns.length; i++) {
       const s = validSpawns[i];
       if (grid[s.row][s.col] === TileType.VOID) {
         return `Spawn ${i + 1} is on a wall/void tile`;
@@ -911,37 +927,47 @@ export default function LevelEditor() {
     }
 
     const positions = new Set(validSpawns.map(s => `${s.row},${s.col}`));
-    if (positions.size < 4) return 'Spawn points must be on different tiles';
+    if (positions.size < validSpawns.length) return 'Spawn points must be on different tiles';
 
     return null;
   }, [grid, spawns, height, width]);
 
   const loadLevelIntoEditor = useCallback((level: LevelData) => {
+    const nextSpawns: (SpawnPoint | null)[] = [null, null, null, null];
+    for (let i = 0; i < Math.min(level.players.length, 4); i++) {
+      const player = level.players[i];
+      nextSpawns[i] = {
+        col: player.startX,
+        row: player.startY,
+        rotation: player.rotation,
+      };
+    }
+
     setWidth(level.width);
     setHeight(level.height);
     setGrid(level.grid.map(row => [...row]));
-    setSpawns(level.players.map(player => ({
-      col: player.startX,
-      row: player.startY,
-    })) as (SpawnPoint | null)[]);
+    setSpawns(nextSpawns);
     setLevelName(level.name);
     setTab('config');
     setMessage(null);
   }, []);
 
   const buildLevelData = useCallback((id: number, fallbackName: string): LevelData => {
-    const validSpawns = spawns.filter(Boolean) as SpawnPoint[];
+    const players = spawns.flatMap((spawn) => (
+      spawn ? [{
+        startX: spawn.col,
+        startY: spawn.row,
+        rotation: spawn.rotation,
+      }] : []
+    ));
+
     return {
       id,
       name: levelName || fallbackName,
       width,
       height,
       grid: grid.map(row => [...row]),
-      players: validSpawns.map((spawn, i) => ({
-        startX: spawn.col,
-        startY: spawn.row,
-        rotation: PLAYER_DIRECTIONS[i],
-      })) as LevelData['players'],
+      players,
     };
   }, [grid, height, levelName, spawns, width]);
 
@@ -1122,10 +1148,11 @@ export default function LevelEditor() {
 
             {/* Spawn tools */}
             <div className="bg-white/[0.03] border border-white/10 rounded-xl p-4">
-              <h3 className="text-white/60 text-xs font-mono uppercase tracking-wider mb-3">4squares</h3>
+              <h3 className="text-white/60 text-xs font-mono uppercase tracking-wider mb-3">Players</h3>
               <div className="grid grid-cols-1 gap-1.5">
                 {([0, 1, 2, 3] as const).map(i => {
                   const t = `spawn${i}` as Tool;
+                  const slot = spawns[i];
                   return (
                     <button
                       key={t}
@@ -1139,10 +1166,13 @@ export default function LevelEditor() {
                       <span className="flex items-center gap-2">
                         <span
                           className="w-3 h-3 rounded-sm inline-block"
-                          style={{ backgroundColor: SPAWN_COLORS[i] }}
+                          style={{ backgroundColor: slot ? SPAWN_COLORS[slot.rotation] : 'rgba(255,255,255,0.12)' }}
                         />
                         {TOOL_LABELS[t]}
                         <span className="text-white/20 text-[10px]">{SHORTCUT_DISPLAY[t]}</span>
+                        <span className="text-white/30 text-[10px]">
+                          {slot ? DIRECTION_LABELS[slot.rotation] : 'Unset'}
+                        </span>
                         <span className={`ml-auto text-[10px] ${spawns[i] ? 'text-green-400' : 'text-white/20'}`}>
                           {spawns[i] ? `(${spawns[i]!.col},${spawns[i]!.row})` : '---'}
                         </span>
@@ -1151,32 +1181,55 @@ export default function LevelEditor() {
                   );
                 })}
               </div>
+              <div className="grid grid-cols-2 gap-1.5 mt-2">
+                {([0, 1, 2, 3] as const).map(i => (
+                  <button
+                    key={`dir-${i}`}
+                    onClick={() => cycleSpawnRotation(i)}
+                    disabled={!spawns[i]}
+                    className="text-[10px] px-2 py-1.5 rounded-lg border border-white/[0.08] bg-white/[0.02] text-white/50 hover:bg-white/5 hover:border-white/15 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200"
+                  >
+                    {spawns[i] ? `P${i + 1}: ${DIRECTION_LABELS[spawns[i]!.rotation]}` : `P${i + 1}: ---`}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Status */}
             <div className="bg-white/[0.03] border border-white/10 rounded-xl p-4">
-              <h3 className="text-white/60 text-xs font-mono uppercase tracking-wider mb-3">Status</h3>
-              <div className="space-y-1 text-xs">
-                {[0, 1, 2, 3].map(i => (
-                  <div key={i} className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-sm" style={{ backgroundColor: SPAWN_COLORS[i] }} />
-                    <span className="text-white/40">{DIRECTION_LABELS[i]}</span>
-                    <span className={`ml-auto ${spawns[i] ? 'text-green-400' : 'text-white/25'}`}>
-                      {spawns[i] ? 'Placed' : 'Missing'}
-                    </span>
+                <h3 className="text-white/60 text-xs font-mono uppercase tracking-wider mb-3">Status</h3>
+                <div className="space-y-1 text-xs">
+                  {[0, 1, 2, 3].map(i => (
+                    <div key={i} className="flex items-center gap-2">
+                      <span
+                        className="w-2 h-2 rounded-sm"
+                        style={{ backgroundColor: spawns[i] ? SPAWN_COLORS[spawns[i]!.rotation] : 'rgba(255,255,255,0.12)' }}
+                      />
+                      <span className="text-white/40">
+                        P{i + 1} {spawns[i] ? `(${DIRECTION_LABELS[spawns[i]!.rotation]})` : ''}
+                      </span>
+                      <span className={`ml-auto ${spawns[i] ? 'text-green-400' : 'text-white/25'}`}>
+                        {spawns[i] ? 'Placed' : 'Missing'}
+                      </span>
                   </div>
                 ))}
                 <div className="flex items-center gap-2 mt-2 pt-2 border-t border-white/[0.06]">
                   <span className="w-2 h-2 rounded-sm bg-green-500" />
                   <span className="text-white/40">
                     Goals: {grid.flat().filter(t => t === TileType.GOAL).length}
-                    {grid.flat().some(t => t === TileType.BLACKHOLE) ? '' : '/4'}
+                    {grid.flat().some(t => t === TileType.BLACKHOLE) ? '' : `/${spawns.filter(Boolean).length || 1}`}
                   </span>
                   {grid.flat().filter(t => t === TileType.BLACKHOLE).length > 0 && (
                     <span className="text-white/40 ml-1">
                       BH: {grid.flat().filter(t => t === TileType.BLACKHOLE).length}
                     </span>
                   )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-sm bg-cyan-400" />
+                  <span className="text-white/40">
+                    Players: {spawns.filter(Boolean).length}/4
+                  </span>
                 </div>
               </div>
             </div>

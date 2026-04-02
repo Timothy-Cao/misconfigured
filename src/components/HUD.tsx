@@ -8,6 +8,7 @@ interface HUDProps {
   levelName?: string;
   levelComplete: boolean;
   playersOnGoals: number;
+  totalPlayers: number;
   completionTime: number;
   onRestart: () => void;
   onNextLevel: () => void;
@@ -22,7 +23,7 @@ function formatTime(seconds: number): string {
     : `${s}.${String(ms).padStart(2, '0')}s`;
 }
 
-export default function HUD({ levelId, levelName, levelComplete, playersOnGoals, completionTime, onRestart, onNextLevel }: HUDProps) {
+export default function HUD({ levelId, levelName, levelComplete, playersOnGoals, totalPlayers, completionTime, onRestart, onNextLevel }: HUDProps) {
   const displayName = levelName || `Level ${String(levelId).padStart(2, '0')}`;
 
   return (
@@ -49,9 +50,9 @@ export default function HUD({ levelId, levelName, levelComplete, playersOnGoals,
         </span>
 
         <div className="flex gap-2 items-center">
-          <div className="flex items-center gap-1.5">
-            <div className="flex gap-1">
-              {[0, 1, 2, 3].map(i => (
+            <div className="flex items-center gap-1.5">
+              <div className="flex gap-1">
+              {Array.from({ length: totalPlayers }, (_, i) => (
                 <div
                   key={i}
                   className="w-3 h-3 rounded-sm transition-all duration-300"
@@ -63,9 +64,9 @@ export default function HUD({ levelId, levelName, levelComplete, playersOnGoals,
               ))}
             </div>
             <span className={`text-xs font-mono tracking-wider transition-colors duration-300 ${
-              playersOnGoals === 4 ? 'text-green-400' : 'text-white/40'
+              playersOnGoals === totalPlayers ? 'text-green-400' : 'text-white/40'
             }`}>
-              {playersOnGoals}/4
+              {playersOnGoals}/{totalPlayers}
             </span>
           </div>
 

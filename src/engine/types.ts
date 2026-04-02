@@ -80,7 +80,7 @@ export interface LevelData {
   width: number;
   height: number;
   grid: number[][]; // TileTypeValue[][]
-  players: [PlayerStart, PlayerStart, PlayerStart, PlayerStart];
+  players: PlayerStart[];
 }
 
 export interface PlayerState {
@@ -110,7 +110,7 @@ export interface PushableBlock {
 }
 
 export interface GameState {
-  players: [PlayerState, PlayerState, PlayerState, PlayerState];
+  players: PlayerState[];
   levelComplete: boolean;
   tileSize: number;
   time: number;
