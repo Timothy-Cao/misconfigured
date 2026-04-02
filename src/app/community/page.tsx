@@ -33,7 +33,7 @@ export default function CommunityPage() {
                 Community Levels
               </h1>
               <p className="text-white/35 text-sm sm:text-base mt-1">
-                Community play is open. Uploading or overriding slots from the editor still requires the admin password.
+                Community play is open. In the current local-only setup, publishing from the editor still uses the built-in admin gate.
               </p>
               <p className="text-white/20 text-xs sm:text-sm mt-2">Press Esc to return to the title.</p>
             </div>

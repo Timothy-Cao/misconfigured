@@ -1,4 +1,4 @@
-import { TileType, COLORS, PLAYER_SIZE_RATIO, type LevelData, type GameState, isPressurePlate, pressurePlateNumber, isDoor, doorNumber, isToggleSwitch, isToggleBlock, toggleNumber, isConveyor, conveyorDirection, isOneWay, oneWayDirection, isRotationTile, rotationTileCW, DIR_DX, DIR_DY } from './types';
+import { TileType, COLORS, PLAYER_SIZE_RATIO, type LevelData, type GameState, isPressurePlate, pressurePlateNumber, isDoor, doorNumber, isToggleSwitch, isToggleBlock, toggleNumber, isConveyor, conveyorDirection, isOneWay, oneWayOrientation, isRotationTile, rotationTileCW, DIR_DX, DIR_DY } from './types';
 
 const ARROW_ANGLES: Record<number, number> = {
   0: -Math.PI / 2,
@@ -482,38 +482,52 @@ export function render(
         }
       }
       if (isOneWay(tile)) {
-        const dir = oneWayDirection(tile);
-        const dx = DIR_DX[dir];
-        const dy = DIR_DY[dir];
-        // Arrow shows which direction you can enter FROM
-        const arrowLen = s * 0.25;
-        // Draw arrow pointing INTO the tile (from the entry direction)
-        const startX = cx - dx * s * 0.35;
-        const startY = cy - dy * s * 0.35;
-        const endX = cx + dx * s * 0.15;
-        const endY = cy + dy * s * 0.15;
-        ctx.strokeStyle = 'rgba(255,220,100,0.4)';
-        ctx.lineWidth = 2.5;
-        ctx.beginPath();
-        ctx.moveTo(startX, startY);
-        ctx.lineTo(endX, endY);
-        ctx.stroke();
-        // Arrowhead
-        ctx.beginPath();
-        ctx.moveTo(endX, endY);
-        ctx.lineTo(endX - dx * arrowLen + dy * arrowLen * 0.5, endY - dy * arrowLen - dx * arrowLen * 0.5);
-        ctx.moveTo(endX, endY);
-        ctx.lineTo(endX - dx * arrowLen - dy * arrowLen * 0.5, endY - dy * arrowLen + dx * arrowLen * 0.5);
-        ctx.stroke();
-        // Border line on the opposite side (blocked entry)
-        const blockX = cx + dx * s * 0.45;
-        const blockY = cy + dy * s * 0.45;
-        ctx.strokeStyle = 'rgba(255,100,100,0.25)';
+        const vertical = oneWayOrientation(tile) === 0;
+        ctx.strokeStyle = 'rgba(255,220,100,0.28)';
         ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(blockX - dy * s * 0.4, blockY + dx * s * 0.4);
-        ctx.lineTo(blockX + dy * s * 0.4, blockY - dx * s * 0.4);
-        ctx.stroke();
+
+        for (let offset = -2; offset <= 2; offset++) {
+          const pos = offset * s * 0.18;
+          ctx.beginPath();
+          if (vertical) {
+            ctx.moveTo(cx + pos, y + s * 0.12);
+            ctx.lineTo(cx + pos, y + s * 0.88);
+          } else {
+            ctx.moveTo(x + s * 0.12, cy + pos);
+            ctx.lineTo(x + s * 0.88, cy + pos);
+          }
+          ctx.stroke();
+        }
+
+        ctx.strokeStyle = 'rgba(255,235,140,0.55)';
+        ctx.lineWidth = 2.25;
+        if (vertical) {
+          const arrowSpread = s * 0.1;
+          const arrowInset = s * 0.18;
+          ctx.beginPath();
+          ctx.moveTo(cx, y + arrowInset);
+          ctx.lineTo(cx - arrowSpread, y + arrowInset + arrowSpread);
+          ctx.moveTo(cx, y + arrowInset);
+          ctx.lineTo(cx + arrowSpread, y + arrowInset + arrowSpread);
+          ctx.moveTo(cx, y + s - arrowInset);
+          ctx.lineTo(cx - arrowSpread, y + s - arrowInset - arrowSpread);
+          ctx.moveTo(cx, y + s - arrowInset);
+          ctx.lineTo(cx + arrowSpread, y + s - arrowInset - arrowSpread);
+          ctx.stroke();
+        } else {
+          const arrowSpread = s * 0.1;
+          const arrowInset = s * 0.18;
+          ctx.beginPath();
+          ctx.moveTo(x + arrowInset, cy);
+          ctx.lineTo(x + arrowInset + arrowSpread, cy - arrowSpread);
+          ctx.moveTo(x + arrowInset, cy);
+          ctx.lineTo(x + arrowInset + arrowSpread, cy + arrowSpread);
+          ctx.moveTo(x + s - arrowInset, cy);
+          ctx.lineTo(x + s - arrowInset - arrowSpread, cy - arrowSpread);
+          ctx.moveTo(x + s - arrowInset, cy);
+          ctx.lineTo(x + s - arrowInset - arrowSpread, cy + arrowSpread);
+          ctx.stroke();
+        }
       }
 
       // Rotation tile — CW or CCW indicator

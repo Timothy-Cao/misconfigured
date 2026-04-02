@@ -1,11 +1,5 @@
 import type { Metadata } from 'next';
-import { Geist_Mono } from 'next/font/google';
 import './globals.css';
-
-const geistMono = Geist_Mono({
-  subsets: ['latin'],
-  variable: '--font-mono',
-});
 
 export const metadata: Metadata = {
   title: 'Misconfigured',
@@ -18,7 +12,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={geistMono.variable}>
+    <html lang="en">
       <body className="bg-[#0a0a0f] text-white antialiased">{children}</body>
     </html>
   );

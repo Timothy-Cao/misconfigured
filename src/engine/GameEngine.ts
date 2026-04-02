@@ -1,4 +1,4 @@
-import { type LevelData, type GameState, type PlayerState, type PushableBlock, COLORS, PLAYER_SIZE_RATIO, TileType, STEP_INTERVAL, ANIM_DURATION, isPressurePlate, pressurePlateNumber, isDoor, doorNumber, isToggleSwitch, toggleNumber, isConveyor, conveyorDirection, isRotationTile, rotationTileCW, DIR_DX, DIR_DY, type Rotation } from './types';
+import { type LevelData, type GameState, type PlayerState, type PushableBlock, COLORS, TileType, STEP_INTERVAL, ANIM_DURATION, isPressurePlate, pressurePlateNumber, isToggleSwitch, toggleNumber, isConveyor, conveyorDirection, isRotationTile, rotationTileCW, DIR_DX, DIR_DY, type Rotation } from './types';
 
 import { InputManager, remapInput } from './input';
 import { getTileAt, isWalkable, canMoveTo } from './physics';
@@ -420,6 +420,8 @@ export class GameEngine {
   private stepTimers: number[];
   /** Whether each player has taken their first step (for initial delay) */
   private firstStep: boolean[];
+  /** One-shot mobile swipe input consumed on the next update */
+  private queuedSwipe: { dx: number; dy: number } | null = null;
 
   constructor(
     canvas: HTMLCanvasElement,
@@ -460,8 +462,14 @@ export class GameEngine {
     this.elapsed = 0;
     this.stepTimers = Array(this.state.players.length).fill(0);
     this.firstStep = Array(this.state.players.length).fill(true);
+    this.queuedSwipe = null;
     toggleCooldown.clear();
     rotationCooldown.clear();
+  }
+
+  queueSwipe(dx: number, dy: number): void {
+    if (dx === 0 && dy === 0) return;
+    this.queuedSwipe = { dx, dy };
   }
 
   private loop = (now: number): void => {
@@ -480,6 +488,8 @@ export class GameEngine {
 
   private update(dt: number): void {
     const keys = this.input.getKeys();
+    const swipeInput = this.queuedSwipe;
+    this.queuedSwipe = null;
 
     // Update pressure plates and toggles BEFORE movement
     updatePressurePlates(this.state, this.level);
@@ -521,7 +531,17 @@ export class GameEngine {
         continue;
       }
 
-      let move = remapInput(keys, player.rotation);
+      let move = swipeInput
+        ? remapInput(
+            {
+              w: swipeInput.dy < 0,
+              a: swipeInput.dx < 0,
+              s: swipeInput.dy > 0,
+              d: swipeInput.dx > 0,
+            },
+            player.rotation,
+          )
+        : remapInput(keys, player.rotation);
 
       // Reverse controls if on reverse tile
       if (player.reversed) {
@@ -531,12 +551,29 @@ export class GameEngine {
       const hasInput = move.dx !== 0 || move.dy !== 0;
 
       if (hasInput) {
+        if (swipeInput) {
+          const sdx = move.dx !== 0 ? (move.dx > 0 ? 1 : -1) : 0;
+          const sdy = move.dy !== 0 ? (move.dy > 0 ? 1 : -1) : 0;
+          const moved = stepPlayer(player, sdx, sdy, i, this.state, this.level);
+          if (moved) {
+            this.firstStep[i] = false;
+            const newTile = this.level.grid[player.row]?.[player.col];
+            if (newTile === TileType.ICE) {
+              player.sliding = true;
+              player.slideDx = sdx;
+              player.slideDy = sdy;
+              this.stepTimers[i] = 0;
+            }
+          }
+          continue;
+        }
+
         this.stepTimers[i] += dt;
         const interval = this.firstStep[i] ? 0 : STEP_INTERVAL;
         if (this.stepTimers[i] >= interval) {
           this.stepTimers[i] -= Math.max(interval, STEP_INTERVAL);
           // Normalize to single axis (prefer horizontal if both pressed)
-          let sdx = move.dx !== 0 ? (move.dx > 0 ? 1 : -1) : 0;
+          const sdx = move.dx !== 0 ? (move.dx > 0 ? 1 : -1) : 0;
           let sdy = move.dy !== 0 ? (move.dy > 0 ? 1 : -1) : 0;
           if (sdx !== 0 && sdy !== 0) sdy = 0;
 

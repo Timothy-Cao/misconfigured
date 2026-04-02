@@ -79,7 +79,7 @@ export default function TestPage() {
               <p>Tile values: 0=void, 1=floor, 2=kill, 3=goal, 4=checkpoint, 5=pushable</p>
               <p>6=ice, 7=mud, 8=crumble, 9=reverse, 80=blackhole</p>
               <p>10-18=plates, 20-28=doors, 30-33=conveyor(URDL)</p>
-              <p>34-37=oneway(URDL), 38=CW, 39=CCW</p>
+              <p>34/36=path vertical, 35/37=path horizontal, 38=CW, 39=CCW</p>
               <p>60-68=toggleSw, 70-78=toggleBlk</p>
             </div>
           </div>
@@ -94,7 +94,7 @@ export default function TestPage() {
               />
             )}
             {!level && (
-              <div className="text-white/20 text-sm mt-20">Click "Load Level" to start</div>
+              <div className="text-white/20 text-sm mt-20">Click &quot;Load Level&quot; to start</div>
             )}
           </div>
         </div>

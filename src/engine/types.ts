@@ -13,7 +13,7 @@ export const TileType = {
   // Pressure plates: 10-18 (plate number = tileValue - 9, i.e. 10=plate1, 18=plate9)
   // Doors: 20-28 (door number = tileValue - 19, i.e. 20=door1, 28=door9)
   // Conveyor belts: 30-33 (direction: 30=up, 31=right, 32=down, 33=left)
-  // One-way tiles: 34-37 (enterable from: 34=up, 35=right, 36=down, 37=left)
+  // Directional path tiles: 34/36=vertical, 35/37=horizontal
   // Rotation tiles: 38=CW, 39=CCW
   // Teleporters A: 40-48, B: 50-58 (numbered 1-9, paired by number)
   // Toggle switches: 60-68, Toggle blocks: 70-78 (numbered 1-9)
@@ -38,10 +38,14 @@ export function isConveyor(tile: number): boolean { return tile >= 30 && tile <=
 export function conveyorDirection(tile: number): number { return tile - 30; }
 export function conveyorTile(dir: number): number { return dir + 30; }
 
-// One-way helpers (enterable from direction 0=up, 1=right, 2=down, 3=left)
+// Directional path helpers (0=vertical, 1=horizontal)
 export function isOneWay(tile: number): boolean { return tile >= 34 && tile <= 37; }
-export function oneWayDirection(tile: number): number { return tile - 34; }
-export function oneWayTile(dir: number): number { return dir + 34; }
+export function oneWayOrientation(tile: number): 0 | 1 {
+  return tile === 35 || tile === 37 ? 1 : 0;
+}
+export function oneWayTile(orientation: number): number {
+  return orientation === 1 ? 35 : 34;
+}
 
 // Rotation tile helpers
 export function isRotationTile(tile: number): boolean { return tile === 38 || tile === 39; }

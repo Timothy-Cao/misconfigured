@@ -30,7 +30,7 @@ export default function LevelsPage() {
               <h1 className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent mb-2">
                 Select Level
               </h1>
-              <p className="text-white/30 text-sm sm:text-base">All levels are open right now. Press Esc to return to the title.</p>
+              <p className="text-white/30 text-sm sm:text-base">Finish levels to unlock the path ahead. Press Esc to return to the title.</p>
             </div>
             <div className="flex gap-3">
               <Link

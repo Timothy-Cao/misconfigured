@@ -1,4 +1,4 @@
-import { TileType, type TileTypeValue, type LevelData, type PlayerState, isDoor, doorNumber, isToggleBlock, toggleNumber, isOneWay, oneWayDirection, DIR_DX, DIR_DY } from './types';
+import { TileType, type TileTypeValue, type LevelData, type PlayerState, isDoor, doorNumber, isToggleBlock, toggleNumber, isOneWay, oneWayOrientation } from './types';
 
 export function getTileAt(level: LevelData, col: number, row: number): TileTypeValue {
   if (row < 0 || row >= level.height || col < 0 || col >= level.width) {
@@ -29,7 +29,7 @@ export function isWalkable(tile: TileTypeValue, activePlates?: Set<number>, togg
 /**
  * Check if a player can move to target tile (grid-based).
  * Returns true if the tile is walkable, not occupied by another player,
- * and one-way entry rules are satisfied.
+ * and directional-path axis rules are satisfied.
  */
 export function canMoveTo(
   level: LevelData,
@@ -50,16 +50,23 @@ export function canMoveTo(
     return false;
   }
 
-  // One-way entry check
+  const moveDx = targetCol - fromCol;
+  const moveDy = targetRow - fromRow;
+
+  // Directional path tiles only allow travel along their axis, both entering and exiting.
+  const currentTile = getTileAt(level, fromCol, fromRow);
+  if (isOneWay(currentTile)) {
+    const orientation = oneWayOrientation(currentTile);
+    const movingAlongCurrentAxis = orientation === 0 ? moveDx === 0 : moveDy === 0;
+    if (!movingAlongCurrentAxis) {
+      return false;
+    }
+  }
+
   if (isOneWay(tile)) {
-    const dir = oneWayDirection(tile);
-    const allowedDx = DIR_DX[dir];
-    const allowedDy = DIR_DY[dir];
-    const moveDx = targetCol - fromCol;
-    const moveDy = targetRow - fromRow;
-    // Player must be coming FROM the allowed direction
-    // dir=0 (from up): player moves down (dy=1), so allowedDy=-1, moveDy must be 1 (opposite)
-    if (moveDx !== -allowedDx || moveDy !== -allowedDy) {
+    const orientation = oneWayOrientation(tile);
+    const movingAlongTargetAxis = orientation === 0 ? moveDx === 0 : moveDy === 0;
+    if (!movingAlongTargetAxis) {
       return false;
     }
   }

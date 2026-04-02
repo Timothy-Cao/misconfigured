@@ -5,7 +5,7 @@ import {
   checkCheckpoints,
   checkWinCondition,
 } from '../GameEngine';
-import { TileType, type LevelData } from '../types';
+import { type LevelData } from '../types';
 
 // 5x5 test level with kill, goal, checkpoint
 const testLevel: LevelData = {

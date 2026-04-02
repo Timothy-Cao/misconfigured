@@ -20,6 +20,7 @@ export default function LevelSelect() {
               key={id}
               className="aspect-square min-h-[64px] sm:min-h-[78px] flex items-center justify-center rounded-xl bg-white/[0.03] text-white/15 font-mono text-lg sm:text-2xl cursor-not-allowed border border-white/[0.04] select-none"
               style={{ animationDelay: `${i * 30}ms` }}
+              aria-label={`Level ${id} locked`}
             >
               {id}
             </div>
@@ -36,6 +37,7 @@ export default function LevelSelect() {
                 : 'bg-white/[0.06] text-white/80 border-white/10 hover:bg-white/[0.12] hover:border-white/25 hover:shadow-[0_0_20px_rgba(255,255,255,0.05)]'
             }`}
             style={{ animationDelay: `${i * 30}ms` }}
+            aria-label={`Play level ${id}`}
           >
             {completed ? '✓' : id}
           </Link>

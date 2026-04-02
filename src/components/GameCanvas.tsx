@@ -18,6 +18,7 @@ export default function GameCanvas({ level, onLevelComplete, onProgressUpdate, o
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<GameEngine | null>(null);
+  const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
   const [scale, setScale] = useState(1);
 
   // Compute scale so the canvas fills available space without distorting
@@ -62,6 +63,38 @@ export default function GameCanvas({ level, onLevelComplete, onProgressUpdate, o
     };
   }, [level, onLevelComplete, onProgressUpdate, onGameOver, onLivesUpdate]);
 
+  const handleTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
+    if (event.touches.length !== 1) return;
+    const touch = event.touches[0];
+    touchStartRef.current = {
+      x: touch.clientX,
+      y: touch.clientY,
+      time: performance.now(),
+    };
+  };
+
+  const handleTouchEnd = (event: React.TouchEvent<HTMLDivElement>) => {
+    const start = touchStartRef.current;
+    touchStartRef.current = null;
+    if (!start || event.changedTouches.length !== 1) return;
+
+    const touch = event.changedTouches[0];
+    const dx = touch.clientX - start.x;
+    const dy = touch.clientY - start.y;
+    const elapsed = performance.now() - start.time;
+    const distance = Math.hypot(dx, dy);
+
+    if (elapsed > 320 || distance < 24) return;
+
+    event.preventDefault();
+
+    if (Math.abs(dx) > Math.abs(dy)) {
+      engineRef.current?.queueSwipe(dx > 0 ? 1 : -1, 0);
+    } else {
+      engineRef.current?.queueSwipe(0, dy > 0 ? 1 : -1);
+    }
+  };
+
   return (
     <div
       ref={wrapperRef}
@@ -70,7 +103,10 @@ export default function GameCanvas({ level, onLevelComplete, onProgressUpdate, o
         width: level.width * BASE_TILE_SIZE * scale,
         height: level.height * BASE_TILE_SIZE * scale,
         boxShadow: '0 0 60px rgba(168, 85, 247, 0.08), 0 0 120px rgba(0, 0, 0, 0.5)',
+        touchAction: 'none',
       }}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
     >
       <canvas
         ref={canvasRef}

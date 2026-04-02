@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { TileType, COLORS, PLAYER_DIRECTIONS, type LevelData, type Rotation, isPressurePlate, pressurePlateNumber, pressurePlateTile, isDoor, doorNumber, doorTile, isToggleSwitch, isToggleBlock, toggleNumber, toggleSwitchTile, isConveyor, conveyorDirection, conveyorTile, isOneWay, oneWayDirection, oneWayTile, isRotationTile, rotationTileCW, DIR_DX, DIR_DY } from '@/engine/types';
+import { TileType, COLORS, PLAYER_DIRECTIONS, type LevelData, type Rotation, isPressurePlate, pressurePlateNumber, pressurePlateTile, isDoor, doorNumber, doorTile, isToggleSwitch, isToggleBlock, toggleNumber, toggleSwitchTile, isConveyor, conveyorDirection, conveyorTile, isOneWay, oneWayOrientation, oneWayTile, isRotationTile, rotationTileCW, DIR_DX, DIR_DY } from '@/engine/types';
 import { getCommunityLevel, getCommunityLevels, getLevel, getNextCommunityLevelId, saveCommunityLevel, saveCustomLevel } from '@/levels';
 import { verifyAdminPassword } from '@/lib/admin';
 
@@ -142,8 +142,11 @@ export default function LevelEditor() {
   const [levelLives, setLevelLives] = useState(1);
   const [publishScope, setPublishScope] = useState<PublishScope>('campaign');
   const [saveTargetId, setSaveTargetId] = useState(1);
-  const [communityTargetId, setCommunityTargetId] = useState(1001);
-  const [communityLevels, setCommunityLevels] = useState<LevelData[]>([]);
+  const [communityLevels, setCommunityLevels] = useState<LevelData[]>(() => getCommunityLevels());
+  const [communityTargetId, setCommunityTargetId] = useState(() => {
+    const levels = getCommunityLevels();
+    return levels.length > 0 ? getNextCommunityLevelId() : 1001;
+  });
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState<{ text: string; type: 'error' | 'success' } | null>(null);
   const [isPainting, setIsPainting] = useState(false);
@@ -151,6 +154,7 @@ export default function LevelEditor() {
   const lastPaintedRef = useRef<string>('');
   const [tilePx, setTilePx] = useState(32);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const touchPaintModeRef = useRef<'place' | 'erase'>('place');
 
   useEffect(() => {
     function update() { setTilePx(computeTilePx(width, height)); }
@@ -167,10 +171,6 @@ export default function LevelEditor() {
       return getNextCommunityLevelId();
     });
   }, []);
-
-  useEffect(() => {
-    refreshCommunityLevels();
-  }, [refreshCommunityLevels]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -306,7 +306,7 @@ export default function LevelEditor() {
           if (isOneWay(current)) next[row][col] = TileType.FLOOR;
         } else {
           if (isOneWay(current)) return prev;
-          next[row][col] = oneWayTile(0); // default: enterable from up
+          next[row][col] = oneWayTile(0); // default: vertical
         }
         return next;
       });
@@ -379,16 +379,20 @@ export default function LevelEditor() {
       });
   }, []);
 
-  const getCanvasCell = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+  const getCanvasCellFromClient = useCallback((clientX: number, clientY: number) => {
     const canvas = canvasRef.current;
     if (!canvas) return null;
     const rect = canvas.getBoundingClientRect();
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
-    const col = Math.floor((e.clientX - rect.left) * scaleX / tilePx);
-    const row = Math.floor((e.clientY - rect.top) * scaleY / tilePx);
+    const col = Math.floor((clientX - rect.left) * scaleX / tilePx);
+    const row = Math.floor((clientY - rect.top) * scaleY / tilePx);
     return { col, row };
   }, [tilePx]);
+
+  const getCanvasCell = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    return getCanvasCellFromClient(e.clientX, e.clientY);
+  }, [getCanvasCellFromClient]);
 
   const handleCanvasMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     if (e.button !== 0) return;
@@ -453,6 +457,67 @@ export default function LevelEditor() {
     lastPaintedRef.current = '';
   }, []);
 
+  const handleCanvasTouchStart = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
+    const touch = e.touches[0];
+    if (!touch) return;
+    const cell = getCanvasCellFromClient(touch.clientX, touch.clientY);
+    if (!cell) return;
+
+    const { col, row } = cell;
+
+    if (tool.startsWith('spawn')) {
+      e.preventDefault();
+      handleSpawnClick(col, row);
+      return;
+    }
+
+    const currentTile = grid[row]?.[col];
+    let mode: 'place' | 'erase';
+
+    if (tool === 'plate') {
+      mode = isPressurePlate(currentTile) ? 'erase' : 'place';
+    } else if (tool === 'door') {
+      mode = isDoor(currentTile) ? 'erase' : 'place';
+    } else if (tool === 'tswitch') {
+      mode = isToggleSwitch(currentTile) ? 'erase' : 'place';
+    } else if (tool === 'conveyor') {
+      mode = isConveyor(currentTile) ? 'erase' : 'place';
+    } else if (tool === 'oneway') {
+      mode = isOneWay(currentTile) ? 'erase' : 'place';
+    } else if (tool === 'rotation') {
+      mode = isRotationTile(currentTile) ? 'erase' : 'place';
+    } else {
+      const targetTile = getToolTile(tool);
+      mode = currentTile === targetTile ? 'erase' : 'place';
+    }
+
+    e.preventDefault();
+    touchPaintModeRef.current = mode;
+    lastPaintedRef.current = `${col},${row}`;
+    applyToolAt(col, row, mode);
+    setIsPainting(true);
+  }, [applyToolAt, getCanvasCellFromClient, getToolTile, grid, handleSpawnClick, tool]);
+
+  const handleCanvasTouchMove = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
+    if (!isPainting || tool.startsWith('spawn')) return;
+    const touch = e.touches[0];
+    if (!touch) return;
+    const cell = getCanvasCellFromClient(touch.clientX, touch.clientY);
+    if (!cell) return;
+
+    const key = `${cell.col},${cell.row}`;
+    if (key === lastPaintedRef.current) return;
+
+    e.preventDefault();
+    lastPaintedRef.current = key;
+    applyToolAt(cell.col, cell.row, touchPaintModeRef.current);
+  }, [applyToolAt, getCanvasCellFromClient, isPainting, tool]);
+
+  const handleCanvasTouchEnd = useCallback(() => {
+    setIsPainting(false);
+    lastPaintedRef.current = '';
+  }, []);
+
   const handleContextMenu = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     e.preventDefault();
     setIsPainting(false);
@@ -495,8 +560,8 @@ export default function LevelEditor() {
         return next;
       }
       if (isOneWay(tile)) {
-        const dir = oneWayDirection(tile);
-        const nextDir = (dir + 1) % 4;
+        const orientation = oneWayOrientation(tile);
+        const nextDir = (orientation + 1) % 2;
         const next = prev.map(r => [...r]);
         next[row][col] = oneWayTile(nextDir);
         return next;
@@ -812,35 +877,51 @@ export default function LevelEditor() {
 
         // One-way — entry arrow
         if (isOneWay(tile)) {
-          const dir = oneWayDirection(tile);
-          const ddx = DIR_DX[dir];
-          const ddy = DIR_DY[dir];
-          const arrowLen = s * 0.2;
-          const startX2 = cx - ddx * s * 0.3;
-          const startY2 = cy - ddy * s * 0.3;
-          const endX2 = cx + ddx * s * 0.1;
-          const endY2 = cy + ddy * s * 0.1;
-          ctx.strokeStyle = 'rgba(255,220,100,0.5)';
-          ctx.lineWidth = 2.5;
-          ctx.beginPath();
-          ctx.moveTo(startX2, startY2);
-          ctx.lineTo(endX2, endY2);
-          ctx.stroke();
-          ctx.beginPath();
-          ctx.moveTo(endX2, endY2);
-          ctx.lineTo(endX2 - ddx * arrowLen + ddy * arrowLen * 0.5, endY2 - ddy * arrowLen - ddx * arrowLen * 0.5);
-          ctx.moveTo(endX2, endY2);
-          ctx.lineTo(endX2 - ddx * arrowLen - ddy * arrowLen * 0.5, endY2 - ddy * arrowLen + ddx * arrowLen * 0.5);
-          ctx.stroke();
-          // Block line on opposite side
-          const bx = cx + ddx * s * 0.4;
-          const by = cy + ddy * s * 0.4;
-          ctx.strokeStyle = 'rgba(255,100,100,0.3)';
+          const vertical = oneWayOrientation(tile) === 0;
+          ctx.strokeStyle = 'rgba(255,220,100,0.45)';
           ctx.lineWidth = 2;
-          ctx.beginPath();
-          ctx.moveTo(bx - ddy * s * 0.35, by + ddx * s * 0.35);
-          ctx.lineTo(bx + ddy * s * 0.35, by - ddx * s * 0.35);
-          ctx.stroke();
+          for (let offset = -2; offset <= 2; offset++) {
+            const pos = offset * s * 0.18;
+            ctx.beginPath();
+            if (vertical) {
+              ctx.moveTo(cx + pos, y + s * 0.12);
+              ctx.lineTo(cx + pos, y + s * 0.88);
+            } else {
+              ctx.moveTo(x + s * 0.12, cy + pos);
+              ctx.lineTo(x + s * 0.88, cy + pos);
+            }
+            ctx.stroke();
+          }
+
+          ctx.strokeStyle = 'rgba(255,245,180,0.75)';
+          ctx.lineWidth = 2;
+          if (vertical) {
+            const spread = s * 0.1;
+            const inset = s * 0.18;
+            ctx.beginPath();
+            ctx.moveTo(cx, y + inset);
+            ctx.lineTo(cx - spread, y + inset + spread);
+            ctx.moveTo(cx, y + inset);
+            ctx.lineTo(cx + spread, y + inset + spread);
+            ctx.moveTo(cx, y + s - inset);
+            ctx.lineTo(cx - spread, y + s - inset - spread);
+            ctx.moveTo(cx, y + s - inset);
+            ctx.lineTo(cx + spread, y + s - inset - spread);
+            ctx.stroke();
+          } else {
+            const spread = s * 0.1;
+            const inset = s * 0.18;
+            ctx.beginPath();
+            ctx.moveTo(x + inset, cy);
+            ctx.lineTo(x + inset + spread, cy - spread);
+            ctx.moveTo(x + inset, cy);
+            ctx.lineTo(x + inset + spread, cy + spread);
+            ctx.moveTo(x + s - inset, cy);
+            ctx.lineTo(x + s - inset - spread, cy - spread);
+            ctx.moveTo(x + s - inset, cy);
+            ctx.lineTo(x + s - inset - spread, cy + spread);
+            ctx.stroke();
+          }
         }
 
         // Rotation — CW/CCW symbol
@@ -1032,8 +1113,8 @@ export default function LevelEditor() {
   if (placedPlayers < 1) {
     editorWarnings.push('Need at least one player.');
   }
-  if (blackholeCount === 0 && goalCount < 4) {
-    editorWarnings.push('Need four regular goals unless you place at least one black hole goal.');
+  if (blackholeCount === 0 && goalCount < placedPlayers) {
+    editorWarnings.push(`Need ${placedPlayers} regular goals unless you place at least one black hole goal.`);
   }
 
   const TAB_LABELS: Record<Tab, string> = { config: 'Config', blocks: 'Blocks', publish: 'Publish' };
@@ -1044,7 +1125,7 @@ export default function LevelEditor() {
   return (
     <div className="flex flex-col lg:flex-row gap-6 items-start justify-center">
       {/* Sidebar */}
-      <div className="flex flex-col gap-4 w-full lg:w-72 shrink-0">
+      <div className="order-2 lg:order-1 flex flex-col gap-4 w-full lg:w-72 shrink-0">
         {/* Tab bar */}
         <div className="flex rounded-xl overflow-hidden border border-white/10">
           {(['config', 'blocks', 'publish'] as Tab[]).map(t => (
@@ -1170,7 +1251,7 @@ export default function LevelEditor() {
             {/* Tile tools */}
             <div className="bg-white/[0.03] border border-white/10 rounded-xl p-4">
               <h3 className="text-white/60 text-xs font-mono uppercase tracking-wider mb-3">Tiles</h3>
-              <div className="grid grid-cols-1 gap-2">
+              <div className="grid grid-flow-col auto-cols-[minmax(160px,1fr)] lg:grid-flow-row lg:auto-cols-auto lg:grid-cols-1 gap-2 overflow-x-auto lg:overflow-visible pb-1">
                 {(['floor', 'wall', 'goal', 'kill', 'pushable', 'plate', 'door', 'ice', 'mud', 'crumble', 'reverse', 'tswitch', 'conveyor', 'oneway', 'rotation', 'blackhole', 'life'] as Tool[]).map(t => {
                   const colorMap: Record<string, string> = {
                     floor: '#1a1a2e', wall: '#050508', goal: '#1a6b3a', kill: '#8b2020',
@@ -1208,7 +1289,7 @@ export default function LevelEditor() {
                 })}
               </div>
               <p className="text-white/25 text-xs mt-3 leading-relaxed">
-                Left-click places or removes the selected tile. Right-click cycles tile number or direction where supported.
+                Left-click or tap places/removes the selected tile. Right-click cycles tile number or direction where supported.
               </p>
             </div>
 
@@ -1300,21 +1381,26 @@ export default function LevelEditor() {
       </div>
 
       {/* Canvas */}
-      <div className="flex-1 w-full flex justify-center">
-        <div className="w-full max-w-fit">
+      <div className="order-1 lg:order-2 flex-1 w-full flex justify-center">
+        <div className="w-full max-w-full">
           <div
-            className="rounded-xl overflow-hidden border border-white/10"
+            className="rounded-xl overflow-auto border border-white/10"
             style={{ boxShadow: '0 0 40px rgba(168, 85, 247, 0.06)' }}
           >
             <canvas
               ref={canvasRef}
               width={width * tilePx}
               height={height * tilePx}
-              className="block cursor-crosshair select-none"
+              className="block cursor-crosshair select-none mx-auto"
+              style={{ touchAction: 'none' }}
               onMouseDown={handleCanvasMouseDown}
               onMouseMove={handleCanvasMouseMove}
               onMouseUp={handleCanvasMouseUp}
               onMouseLeave={handleCanvasMouseLeave}
+              onTouchStart={handleCanvasTouchStart}
+              onTouchMove={handleCanvasTouchMove}
+              onTouchEnd={handleCanvasTouchEnd}
+              onTouchCancel={handleCanvasTouchEnd}
               onContextMenu={handleContextMenu}
             />
           </div>

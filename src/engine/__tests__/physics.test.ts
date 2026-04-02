@@ -98,4 +98,65 @@ describe('canMoveTo', () => {
     // Move from (1,1) to (2,1) — dead player there, should be allowed
     expect(canMoveTo(testLevel, 2, 1, 1, 1, 0, players)).toBe(true);
   });
+
+  it('allows entering a vertical path tile from above or below', () => {
+    const players = [makePlayer(2, 1), makePlayer(4, 4), makePlayer(4, 3), makePlayer(3, 4)];
+    const level: LevelData = {
+      ...testLevel,
+      grid: [
+        [0, 0, 0, 0, 0],
+        [0, 1, 1, 1, 0],
+        [0, 1, 34, 1, 0],
+        [0, 1, 1, 1, 0],
+        [0, 0, 0, 0, 0],
+      ],
+    };
+    expect(canMoveTo(level, 2, 2, 2, 1, 0, players)).toBe(true);
+    expect(canMoveTo(level, 2, 2, 2, 3, 0, [makePlayer(2, 3), players[1], players[2], players[3]])).toBe(true);
+  });
+
+  it('blocks entering a vertical path tile from the side', () => {
+    const players = [makePlayer(1, 2), makePlayer(4, 4), makePlayer(4, 3), makePlayer(3, 4)];
+    const level: LevelData = {
+      ...testLevel,
+      grid: [
+        [0, 0, 0, 0, 0],
+        [0, 1, 1, 1, 0],
+        [0, 1, 34, 1, 0],
+        [0, 1, 1, 1, 0],
+        [0, 0, 0, 0, 0],
+      ],
+    };
+    expect(canMoveTo(level, 2, 2, 1, 2, 0, players)).toBe(false);
+  });
+
+  it('blocks exiting a vertical path tile sideways', () => {
+    const players = [makePlayer(2, 2), makePlayer(4, 4), makePlayer(4, 3), makePlayer(3, 4)];
+    const level: LevelData = {
+      ...testLevel,
+      grid: [
+        [0, 0, 0, 0, 0],
+        [0, 1, 1, 1, 0],
+        [0, 1, 34, 1, 0],
+        [0, 1, 1, 1, 0],
+        [0, 0, 0, 0, 0],
+      ],
+    };
+    expect(canMoveTo(level, 3, 2, 2, 2, 0, players)).toBe(false);
+  });
+
+  it('allows horizontal travel through a horizontal path tile', () => {
+    const players = [makePlayer(1, 2), makePlayer(4, 4), makePlayer(4, 3), makePlayer(3, 4)];
+    const level: LevelData = {
+      ...testLevel,
+      grid: [
+        [0, 0, 0, 0, 0],
+        [0, 1, 1, 1, 0],
+        [0, 1, 35, 1, 0],
+        [0, 1, 1, 1, 0],
+        [0, 0, 0, 0, 0],
+      ],
+    };
+    expect(canMoveTo(level, 2, 2, 1, 2, 0, players)).toBe(true);
+  });
 });
