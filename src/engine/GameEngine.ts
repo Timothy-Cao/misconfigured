@@ -150,10 +150,23 @@ function updateReverseTiles(state: GameState, level: LevelData): void {
  * Update which pressure plates are active.
  */
 export function updatePressurePlates(state: GameState, level: LevelData): void {
+  state.activePlates = getActivePlates(state, level);
+}
+
+function getActivePlates(
+  state: GameState,
+  level: LevelData,
+  movedPlayerIndex?: number,
+  movedPlayerCol?: number,
+  movedPlayerRow?: number,
+): Set<number> {
   const active = new Set<number>();
-  for (const player of state.players) {
+  for (let i = 0; i < state.players.length; i++) {
+    const player = state.players[i];
     if (!player.alive) continue;
-    const tile = level.grid[player.row]?.[player.col];
+    const playerCol = i === movedPlayerIndex && movedPlayerCol !== undefined ? movedPlayerCol : player.col;
+    const playerRow = i === movedPlayerIndex && movedPlayerRow !== undefined ? movedPlayerRow : player.row;
+    const tile = level.grid[playerRow]?.[playerCol];
     if (tile !== undefined && isPressurePlate(tile)) {
       active.add(pressurePlateNumber(tile));
     }
@@ -163,7 +176,7 @@ export function updatePressurePlates(state: GameState, level: LevelData): void {
       active.add(pressurePlateNumber(block.underTile));
     }
   }
-  state.activePlates = active;
+  return active;
 }
 
 /**
@@ -331,7 +344,11 @@ function stepPlayer(
     tryPushBlock(level, state, targetCol, targetRow, dx, dy);
   }
 
-  if (!canMoveTo(level, targetCol, targetRow, player.col, player.row, selfIndex, state.players, state.activePlates, state.toggledSwitches, state.crumbledTiles)) {
+  const currentActivePlates = getActivePlates(state, level);
+  state.activePlates = currentActivePlates;
+  const projectedActivePlates = getActivePlates(state, level, selfIndex, targetCol, targetRow);
+
+  if (!canMoveTo(level, targetCol, targetRow, player.col, player.row, selfIndex, state.players, projectedActivePlates, state.toggledSwitches, state.crumbledTiles)) {
     return false;
   }
 
@@ -341,6 +358,7 @@ function stepPlayer(
   player.col = targetCol;
   player.row = targetRow;
   player.animProgress = 0;
+  state.activePlates = projectedActivePlates;
   return true;
 }
 
