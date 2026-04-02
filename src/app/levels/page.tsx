@@ -1,28 +1,46 @@
+'use client';
+
 import Link from 'next/link';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import LevelSelect from '@/components/LevelSelect';
 
 export default function LevelsPage() {
+  const router = useRouter();
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        router.push('/');
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [router]);
+
   return (
-    <main className="min-h-screen bg-[#0a0a0f] flex flex-col items-center justify-center gap-10 p-8 relative overflow-hidden">
-      {/* Ambient glow */}
-      <div className="absolute top-1/4 right-1/4 w-[400px] h-[400px] rounded-full bg-green-500/5 blur-[100px]" />
+    <main className="min-h-screen bg-[#0a0a0f] flex flex-col items-center justify-center gap-8 p-6 sm:p-8 lg:p-10 relative overflow-hidden">
+      <div className="absolute top-1/4 right-1/4 w-[480px] h-[480px] rounded-full bg-green-500/5 blur-[110px]" />
 
-      <div className="text-center relative z-10 animate-[fadeInUp_0.6s_ease-out]">
-        <h1 className="text-4xl font-bold bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent mb-2">
-          Select Level
-        </h1>
-        <p className="text-white/30 text-sm">Complete levels to unlock the next</p>
-      </div>
+      <div className="relative z-10 w-full max-w-5xl rounded-[28px] border border-white/10 bg-white/[0.03] px-6 py-8 sm:px-10 sm:py-10 animate-[fadeInUp_0.6s_ease-out]">
+        <div className="text-center">
+          <h1 className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent mb-2">
+            Select Level
+          </h1>
+          <p className="text-white/30 text-sm sm:text-base">All levels are open right now. Press Esc to return to the title.</p>
+        </div>
 
-      <div className="relative z-10 animate-[fadeInUp_0.6s_ease-out_0.15s_both]">
-        <LevelSelect />
+        <div className="mt-8 sm:mt-10">
+          <LevelSelect />
+        </div>
       </div>
 
       <Link
         href="/"
-        className="relative z-10 text-white/30 hover:text-white/70 text-sm transition-colors duration-300 animate-[fadeInUp_0.6s_ease-out_0.3s_both]"
+        className="relative z-10 inline-flex items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] px-5 py-3 text-sm sm:text-base text-white/75 hover:text-white hover:border-white/20 hover:bg-white/[0.08] transition-all duration-300 animate-[fadeInUp_0.6s_ease-out_0.3s_both]"
       >
-        &larr; Back to Title
+        Back to Title
       </Link>
     </main>
   );
