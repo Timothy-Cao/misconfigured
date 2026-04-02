@@ -18,6 +18,7 @@ export const TileType = {
   // Teleporters A: 40-48, B: 50-58 (numbered 1-9, paired by number)
   // Toggle switches: 60-68, Toggle blocks: 70-78 (numbered 1-9)
   BLACKHOLE: 80,
+  LIFE_PICKUP: 81,
 } as const;
 
 export type TileTypeValue = number;
@@ -81,6 +82,7 @@ export interface LevelData {
   height: number;
   grid: number[][]; // TileTypeValue[][]
   players: PlayerStart[];
+  lives?: number; // starting lives for the level (default: 1)
 }
 
 export interface PlayerState {
@@ -128,6 +130,14 @@ export interface GameState {
   toggledSwitches: Set<number>;
   /** Map of player index -> teleport charge time (seconds on teleporter) */
   teleportCharges: Map<number, number>;
+  /** Remaining lives for this level (shared across all players) */
+  livesRemaining: number;
+  /** Current max lives for HUD display (starting lives + collected pickups) */
+  maxLives: number;
+  /** True when all lives are exhausted */
+  gameOver: boolean;
+  /** Set of "row,col" positions for collected life pickup tiles */
+  collectedLifeTiles: Set<string>;
 }
 
 // Input direction after rotation is applied

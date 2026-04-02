@@ -88,6 +88,7 @@ const level: LevelData = {
     { startX: 2, startY: 2, rotation: 0 },
     { startX: 12, startY: 12, rotation: 1 },
   ],
+  lives: 1,
 };
 
 export default level;

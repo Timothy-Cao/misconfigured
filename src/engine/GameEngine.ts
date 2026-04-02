@@ -48,6 +48,8 @@ export function createInitialState(level: LevelData, tileSize: number): GameStat
     deathTimer: 0,
   }));
 
+  const startingLives = level.lives ?? 1;
+
   return {
     players,
     levelComplete: false,
@@ -62,6 +64,10 @@ export function createInitialState(level: LevelData, tileSize: number): GameStat
     crumbledTiles: new Set(),
     toggledSwitches: new Set(),
     teleportCharges: new Map(),
+    livesRemaining: startingLives,
+    maxLives: startingLives,
+    gameOver: false,
+    collectedLifeTiles: new Set(),
   };
 }
 
@@ -80,9 +86,22 @@ export function checkKillZones(state: GameState, level: LevelData): void {
   }
 }
 
-function resolveDeaths(state: GameState): void {
+/** Resolves completed death animations. Returns true if a life was consumed. */
+function resolveDeaths(state: GameState): boolean {
+  let lifeLost = false;
   for (const player of state.players) {
     if (player.deathTimer < 1) continue;
+
+    // Consume a life
+    state.livesRemaining = Math.max(0, state.livesRemaining - 1);
+    lifeLost = true;
+
+    if (state.livesRemaining <= 0) {
+      state.gameOver = true;
+      // Don't respawn — leave the player in death state
+      player.deathTimer = 1;
+      continue;
+    }
 
     player.col = player.checkpointCol;
     player.row = player.checkpointRow;
@@ -96,6 +115,24 @@ function resolveDeaths(state: GameState): void {
     player.lockedOnGoal = false;
     player.absorbTimer = 0;
   }
+  return lifeLost;
+}
+
+function checkLifePickups(state: GameState, level: LevelData): boolean {
+  let collected = false;
+  for (const player of state.players) {
+    if (!player.alive || player.finished || player.lockedOnGoal || player.deathTimer > 0) continue;
+    const key = `${player.row},${player.col}`;
+    const tile = level.grid[player.row]?.[player.col];
+    if (tile === TileType.LIFE_PICKUP && !state.collectedLifeTiles.has(key)) {
+      state.collectedLifeTiles.add(key);
+      state.livesRemaining++;
+      state.maxLives++;
+      level.grid[player.row][player.col] = TileType.FLOOR;
+      collected = true;
+    }
+  }
+  return collected;
 }
 
 export function checkCheckpoints(state: GameState, level: LevelData): void {
@@ -365,6 +402,8 @@ function stepPlayer(
 export interface GameEngineCallbacks {
   onLevelComplete?: (completionTime: number) => void;
   onProgressUpdate?: (playersOnGoals: number) => void;
+  onGameOver?: () => void;
+  onLivesUpdate?: (lives: number, maxLives: number) => void;
 }
 
 export class GameEngine {
@@ -431,7 +470,7 @@ export class GameEngine {
     this.elapsed += dt;
     this.state.time = this.elapsed;
 
-    if (!this.state.levelComplete) {
+    if (!this.state.levelComplete && !this.state.gameOver) {
       this.update(dt);
     }
 
@@ -569,14 +608,26 @@ export class GameEngine {
     updateCrumbleTiles(this.state, this.level, prevPositions);
     checkCheckpoints(this.state, this.level);
     checkKillZones(this.state, this.level);
-    resolveDeaths(this.state);
+    const lifeLost = resolveDeaths(this.state);
+    if (lifeLost) {
+      this.callbacks.onLivesUpdate?.(this.state.livesRemaining, this.state.maxLives);
+      if (this.state.gameOver) {
+        this.callbacks.onGameOver?.();
+      }
+    }
+
+    // Check life pickups
+    const lifeCollected = checkLifePickups(this.state, this.level);
+    if (lifeCollected) {
+      this.callbacks.onLivesUpdate?.(this.state.livesRemaining, this.state.maxLives);
+    }
 
     // Re-update pressure plates after movement
     updatePressurePlates(this.state, this.level);
 
     // Only check win after all player animations have finished
     const allAnimsDone = this.state.players.every(p => p.animProgress >= 1);
-    if (allAnimsDone && checkWinCondition(this.state, this.level)) {
+    if (allAnimsDone && !this.state.gameOver && checkWinCondition(this.state, this.level)) {
       this.state.levelComplete = true;
       this.state.completionTime = this.elapsed;
       this.callbacks.onLevelComplete?.(this.elapsed);

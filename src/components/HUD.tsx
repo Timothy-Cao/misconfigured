@@ -10,6 +10,9 @@ interface HUDProps {
   playersOnGoals: number;
   totalPlayers: number;
   completionTime: number;
+  lives: number;
+  maxLives: number;
+  gameOver: boolean;
   onRestart: () => void;
   onNextLevel: () => void;
 }
@@ -23,7 +26,7 @@ function formatTime(seconds: number): string {
     : `${s}.${String(ms).padStart(2, '0')}s`;
 }
 
-export default function HUD({ levelId, levelName, levelComplete, playersOnGoals, totalPlayers, completionTime, onRestart, onNextLevel }: HUDProps) {
+export default function HUD({ levelId, levelName, levelComplete, playersOnGoals, totalPlayers, completionTime, lives, maxLives, gameOver, onRestart, onNextLevel }: HUDProps) {
   const displayName = levelName || `Level ${String(levelId).padStart(2, '0')}`;
 
   return (
@@ -70,6 +73,32 @@ export default function HUD({ levelId, levelName, levelComplete, playersOnGoals,
             </span>
           </div>
 
+          {/* Lives display */}
+          <div className="flex items-center gap-1">
+            {maxLives <= 3 ? (
+              // Show individual hearts
+              Array.from({ length: maxLives }, (_, i) => (
+                <span
+                  key={i}
+                  className={`text-sm transition-all duration-300 ${
+                    i < lives ? 'opacity-100 scale-100' : 'opacity-25 scale-90'
+                  }`}
+                  style={{ color: i < lives ? '#ff5064' : 'rgba(255,255,255,0.3)' }}
+                >
+                  {i < lives ? '\u2764' : '\u2661'}
+                </span>
+              ))
+            ) : (
+              // Compact display
+              <span className="flex items-center gap-1 text-xs font-mono">
+                <span style={{ color: '#ff5064' }}>{'\u2764'}</span>
+                <span className={`tracking-wider ${lives <= 1 ? 'text-red-400' : 'text-white/50'}`}>
+                  x{lives}
+                </span>
+              </span>
+            )}
+          </div>
+
           <button
             onClick={onRestart}
             className="text-white/40 hover:text-white text-xs px-3 py-1.5 border border-white/10 rounded-lg hover:border-white/25 hover:bg-white/5 transition-all duration-200 backdrop-blur-sm"
@@ -79,6 +108,37 @@ export default function HUD({ levelId, levelName, levelComplete, playersOnGoals,
           </button>
         </div>
       </div>
+
+      {/* Game over overlay */}
+      {gameOver && !levelComplete && (
+        <div className="absolute inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center animate-[fadeIn_0.4s_ease-out]">
+          <div className="text-center animate-[fadeInUp_0.5s_ease-out_0.1s_both]">
+            <div className="text-red-400 text-sm font-mono tracking-widest uppercase mb-2 animate-[fadeInUp_0.5s_ease-out_0.2s_both]">
+              Game Over
+            </div>
+            <h2 className="text-4xl font-black bg-gradient-to-r from-red-400 to-orange-400 bg-clip-text text-transparent mb-2">
+              No Lives Left
+            </h2>
+            <p className="text-white/40 font-mono text-sm mb-8 animate-[fadeInUp_0.5s_ease-out_0.25s_both]">
+              {displayName}
+            </p>
+            <div className="flex gap-3 justify-center animate-[fadeInUp_0.5s_ease-out_0.3s_both]">
+              <button
+                onClick={onRestart}
+                className="px-8 py-2.5 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-lg font-semibold hover:from-red-400 hover:to-orange-400 transition-all duration-300 shadow-[0_0_20px_rgba(239,68,68,0.3)] hover:shadow-[0_0_30px_rgba(239,68,68,0.5)]"
+              >
+                Try Again
+              </button>
+              <Link
+                href="/levels"
+                className="px-6 py-2.5 border border-white/15 text-white/70 rounded-lg hover:bg-white/5 hover:border-white/25 transition-all duration-200"
+              >
+                Levels
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Level complete overlay */}
       {levelComplete && (

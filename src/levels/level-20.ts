@@ -18,6 +18,7 @@ const level: LevelData = {
   players: [
     { startX: 1, startY: 2, rotation: 1 },
   ],
+  lives: 1,
 };
 
 export default level;

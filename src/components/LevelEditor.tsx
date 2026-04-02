@@ -8,7 +8,7 @@ import { verifyAdminPassword } from '@/lib/admin';
 const MAX_SIZE = 20;
 const MIN_SIZE = 4;
 
-type Tool = 'floor' | 'wall' | 'goal' | 'kill' | 'pushable' | 'plate' | 'door' | 'ice' | 'mud' | 'crumble' | 'reverse' | 'tswitch' | 'conveyor' | 'oneway' | 'rotation' | 'blackhole' | 'spawn0' | 'spawn1' | 'spawn2' | 'spawn3';
+type Tool = 'floor' | 'wall' | 'goal' | 'kill' | 'pushable' | 'plate' | 'door' | 'ice' | 'mud' | 'crumble' | 'reverse' | 'tswitch' | 'conveyor' | 'oneway' | 'rotation' | 'blackhole' | 'life' | 'spawn0' | 'spawn1' | 'spawn2' | 'spawn3';
 type Tab = 'config' | 'blocks' | 'publish';
 type PublishScope = 'campaign' | 'community';
 
@@ -35,6 +35,7 @@ const TOOL_LABELS: Record<Tool, string> = {
   oneway: 'One-Way',
   rotation: 'Rotation',
   blackhole: 'Black Hole',
+  life: 'Life Pickup',
   spawn0: 'Player 1',
   spawn1: 'Player 2',
   spawn2: 'Player 3',
@@ -53,6 +54,7 @@ const TOOL_SHORTCUTS: Record<string, Tool> = {
   o: 'oneway',
   p: 'crumble',
   a: 'blackhole',
+  l: 'life',
   s: 'tswitch',
   f: 'conveyor',
   g: 'rotation',
@@ -81,6 +83,7 @@ const SHORTCUT_DISPLAY: Partial<Record<Tool, string>> = {
   oneway: 'O',
   rotation: 'G',
   blackhole: 'A',
+  life: 'L',
   spawn0: '1',
   spawn1: '2',
   spawn2: '3',
@@ -136,6 +139,7 @@ export default function LevelEditor() {
   const [tool, setTool] = useState<Tool>('wall');
   const [tab, setTab] = useState<Tab>('blocks');
   const [levelName, setLevelName] = useState('');
+  const [levelLives, setLevelLives] = useState(1);
   const [publishScope, setPublishScope] = useState<PublishScope>('campaign');
   const [saveTargetId, setSaveTargetId] = useState(1);
   const [communityTargetId, setCommunityTargetId] = useState(1001);
@@ -216,6 +220,7 @@ export default function LevelEditor() {
       crumble: TileType.CRUMBLE,
       reverse: TileType.REVERSE,
       blackhole: TileType.BLACKHOLE,
+      life: TileType.LIFE_PICKUP,
     };
     return map[t] ?? TileType.FLOOR;
   }, []);
@@ -538,6 +543,8 @@ export default function LevelEditor() {
           color = '#1e1a2e';
         } else if (tile === TileType.BLACKHOLE) {
           color = '#143a22';
+        } else if (tile === TileType.LIFE_PICKUP) {
+          color = '#2e1a1a';
         } else {
           switch (tile) {
             case TileType.FLOOR: color = '#1a1a2e'; break;
@@ -557,9 +564,9 @@ export default function LevelEditor() {
         const y = r * tilePx + gap;
         const s = tilePx - gap * 2;
 
-        if (tile === TileType.KILL || tile === TileType.GOAL || tile === TileType.BLACKHOLE || isPressurePlate(tile) || isConveyor(tile) || isOneWay(tile)) {
+        if (tile === TileType.KILL || tile === TileType.GOAL || tile === TileType.BLACKHOLE || tile === TileType.LIFE_PICKUP || isPressurePlate(tile) || isConveyor(tile) || isOneWay(tile)) {
           ctx.save();
-          ctx.shadowColor = tile === TileType.KILL ? '#ff3333' : tile === TileType.GOAL ? '#4ade80' : tile === TileType.BLACKHOLE ? '#22cc66' : isConveyor(tile) ? '#66aaff' : isOneWay(tile) ? '#ffdd66' : '#55ccee';
+          ctx.shadowColor = tile === TileType.KILL ? '#ff3333' : tile === TileType.GOAL ? '#4ade80' : tile === TileType.BLACKHOLE ? '#22cc66' : tile === TileType.LIFE_PICKUP ? '#ff5064' : isConveyor(tile) ? '#66aaff' : isOneWay(tile) ? '#ffdd66' : '#55ccee';
           ctx.shadowBlur = 6;
           ctx.fillStyle = color;
           ctx.beginPath();
@@ -622,6 +629,18 @@ export default function LevelEditor() {
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
           ctx.fillText('★', cx, cy);
+        }
+
+        // Life pickup heart
+        if (tile === TileType.LIFE_PICKUP) {
+          const heartSize = tilePx * 0.5;
+          ctx.save();
+          ctx.fillStyle = 'rgba(255,80,100,0.8)';
+          ctx.font = `${heartSize}px sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('\u2764', cx, cy + 1);
+          ctx.restore();
         }
 
         // Pushable brick pattern
@@ -920,6 +939,7 @@ export default function LevelEditor() {
     setGrid(level.grid.map(row => [...row]));
     setSpawns(nextSpawns);
     setLevelName(level.name);
+    setLevelLives(level.lives ?? 1);
     setTab('publish');
     setMessage(null);
   }, []);
@@ -940,8 +960,9 @@ export default function LevelEditor() {
       height,
       grid: grid.map(row => [...row]),
       players,
+      lives: levelLives,
     };
-  }, [grid, height, levelName, spawns, width]);
+  }, [grid, height, levelLives, levelName, spawns, width]);
 
   const handleLoad = useCallback(() => {
     setMessage(null);
@@ -1082,6 +1103,19 @@ export default function LevelEditor() {
             </div>
 
             <div className="bg-white/[0.03] border border-white/10 rounded-xl p-4">
+              <h3 className="text-white/60 text-xs font-mono uppercase tracking-wider mb-3">Lives</h3>
+              <input
+                type="number"
+                min={1}
+                max={99}
+                value={levelLives}
+                onChange={e => setLevelLives(Math.max(1, Math.min(99, parseInt(e.target.value) || 1)))}
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-purple-500/50 text-center"
+              />
+              <p className="text-white/30 text-xs mt-1.5">Starting lives for this level</p>
+            </div>
+
+            <div className="bg-white/[0.03] border border-white/10 rounded-xl p-4">
               <h3 className="text-white/60 text-xs font-mono uppercase tracking-wider mb-3">Players</h3>
               <div className="grid grid-cols-1 gap-2">
                 {([0, 1, 2, 3] as const).map(i => {
@@ -1137,14 +1171,14 @@ export default function LevelEditor() {
             <div className="bg-white/[0.03] border border-white/10 rounded-xl p-4">
               <h3 className="text-white/60 text-xs font-mono uppercase tracking-wider mb-3">Tiles</h3>
               <div className="grid grid-cols-1 gap-2">
-                {(['floor', 'wall', 'goal', 'kill', 'pushable', 'plate', 'door', 'ice', 'mud', 'crumble', 'reverse', 'tswitch', 'conveyor', 'oneway', 'rotation', 'blackhole'] as Tool[]).map(t => {
+                {(['floor', 'wall', 'goal', 'kill', 'pushable', 'plate', 'door', 'ice', 'mud', 'crumble', 'reverse', 'tswitch', 'conveyor', 'oneway', 'rotation', 'blackhole', 'life'] as Tool[]).map(t => {
                   const colorMap: Record<string, string> = {
                     floor: '#1a1a2e', wall: '#050508', goal: '#1a6b3a', kill: '#8b2020',
                     pushable: '#5a4a3a', plate: '#1a2a3a', door: '#2a2040',
                     ice: '#1a2a3a', mud: '#2a1a10', crumble: '#2a2020', reverse: '#2a1a2e',
                     tswitch: '#2a2018',
                     conveyor: '#1a1a2e', oneway: '#1a1a2e', rotation: '#1e1a2e',
-                    blackhole: '#143a22',
+                    blackhole: '#143a22', life: '#2e1a1a',
                   };
                   const borderMap: Record<string, string> = {
                     wall: 'border border-white/20', plate: 'border border-cyan-500/40',
@@ -1152,7 +1186,7 @@ export default function LevelEditor() {
                     tswitch: 'border border-orange-400/40',
                     conveyor: 'border border-blue-400/40', oneway: 'border border-yellow-400/40',
                     rotation: 'border border-purple-400/40',
-                    blackhole: 'border border-green-400/40',
+                    blackhole: 'border border-green-400/40', life: 'border border-red-400/40',
                   };
                   return (
                     <button

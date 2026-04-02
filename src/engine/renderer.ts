@@ -93,6 +93,7 @@ function getTileColor(tile: number, time: number, isOccupiedGoal: boolean, activ
     case TileType.MUD: return '#2a1a10';
     case TileType.CRUMBLE: return isCrumbled ? null : '#2a2020';
     case TileType.REVERSE: return '#2a1a2e';
+    case TileType.LIFE_PICKUP: return '#1a1a2e';
     default: return null;
   }
 }
@@ -524,6 +525,27 @@ export function render(
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(cw ? '\u21BB' : '\u21BA', cx, cy + 1);
+      }
+
+      // Life pickup heart
+      if (tile === TileType.LIFE_PICKUP) {
+        const pulse = 0.7 + 0.3 * Math.sin(time * 3);
+        const heartScale = 0.9 + 0.1 * Math.sin(time * 3);
+        ctx.save();
+        ctx.translate(cx, cy + 1);
+        ctx.scale(heartScale, heartScale);
+        ctx.fillStyle = `rgba(255, 80, 100, ${pulse})`;
+        ctx.font = `${Math.max(14, s * 0.5)}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('\u2764', 0, 0);
+        ctx.restore();
+        // Subtle glow
+        const glowAlpha = 0.08 + 0.06 * Math.sin(time * 3);
+        ctx.beginPath();
+        ctx.arc(cx, cy, s * 0.35, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255, 80, 100, ${glowAlpha})`;
+        ctx.fill();
       }
 
       // Checkpoint sparkle dots

@@ -10,9 +10,11 @@ interface GameCanvasProps {
   level: LevelData;
   onLevelComplete: (completionTime: number) => void;
   onProgressUpdate?: (playersOnGoals: number) => void;
+  onGameOver?: () => void;
+  onLivesUpdate?: (lives: number, maxLives: number) => void;
 }
 
-export default function GameCanvas({ level, onLevelComplete, onProgressUpdate }: GameCanvasProps) {
+export default function GameCanvas({ level, onLevelComplete, onProgressUpdate, onGameOver, onLivesUpdate }: GameCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<GameEngine | null>(null);
@@ -40,6 +42,8 @@ export default function GameCanvas({ level, onLevelComplete, onProgressUpdate }:
     const engine = new GameEngine(canvas, level, BASE_TILE_SIZE, {
       onLevelComplete,
       onProgressUpdate,
+      onGameOver,
+      onLivesUpdate,
     });
     engineRef.current = engine;
     engine.start();
@@ -56,7 +60,7 @@ export default function GameCanvas({ level, onLevelComplete, onProgressUpdate }:
       window.removeEventListener('keydown', handleKeyDown);
       engineRef.current = null;
     };
-  }, [level, onLevelComplete, onProgressUpdate]);
+  }, [level, onLevelComplete, onProgressUpdate, onGameOver, onLivesUpdate]);
 
   return (
     <div

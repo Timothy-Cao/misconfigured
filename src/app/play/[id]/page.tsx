@@ -17,6 +17,10 @@ export default function PlayPage() {
   const [playersOnGoals, setPlayersOnGoals] = useState(0);
   const [completionTime, setCompletionTime] = useState(0);
   const [key, setKey] = useState(0);
+  const startingLives = level?.lives ?? 1;
+  const [lives, setLives] = useState(startingLives);
+  const [maxLives, setMaxLives] = useState(startingLives);
+  const [gameOver, setGameOver] = useState(false);
 
   const handleLevelComplete = useCallback((time: number) => {
     completeLevel(levelId);
@@ -28,12 +32,24 @@ export default function PlayPage() {
     setPlayersOnGoals(onGoals);
   }, []);
 
+  const handleGameOver = useCallback(() => {
+    setGameOver(true);
+  }, []);
+
+  const handleLivesUpdate = useCallback((newLives: number, newMaxLives: number) => {
+    setLives(newLives);
+    setMaxLives(newMaxLives);
+  }, []);
+
   const handleRestart = useCallback(() => {
     setLevelComplete(false);
     setPlayersOnGoals(0);
     setCompletionTime(0);
+    setLives(startingLives);
+    setMaxLives(startingLives);
+    setGameOver(false);
     setKey(k => k + 1);
-  }, []);
+  }, [startingLives]);
 
   const handleNextLevel = useCallback(() => {
     if (levelId < TOTAL_LEVELS) {
@@ -63,6 +79,8 @@ export default function PlayPage() {
           level={level}
           onLevelComplete={handleLevelComplete}
           onProgressUpdate={handleProgressUpdate}
+          onGameOver={handleGameOver}
+          onLivesUpdate={handleLivesUpdate}
         />
         <HUD
           levelId={levelId}
@@ -71,6 +89,9 @@ export default function PlayPage() {
           playersOnGoals={playersOnGoals}
           totalPlayers={level.players.length}
           completionTime={completionTime}
+          lives={lives}
+          maxLives={maxLives}
+          gameOver={gameOver}
           onRestart={handleRestart}
           onNextLevel={handleNextLevel}
         />
