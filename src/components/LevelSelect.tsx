@@ -18,7 +18,8 @@ export default function LevelSelect() {
           return (
             <div
               key={id}
-              className="aspect-square flex items-center justify-center rounded bg-white/5 text-white/20 font-mono text-lg cursor-not-allowed"
+              className="aspect-square flex items-center justify-center rounded-lg bg-white/[0.03] text-white/15 font-mono text-lg cursor-not-allowed border border-white/[0.04] select-none"
+              style={{ animationDelay: `${i * 30}ms` }}
             >
               {id}
             </div>
@@ -29,11 +30,12 @@ export default function LevelSelect() {
           <Link
             key={id}
             href={`/play/${id}`}
-            className={`aspect-square flex items-center justify-center rounded font-mono text-lg transition-colors ${
+            className={`aspect-square flex items-center justify-center rounded-lg font-mono text-lg transition-all duration-300 border select-none ${
               completed
-                ? 'bg-green-500/20 text-green-400 border border-green-500/30 hover:bg-green-500/30'
-                : 'bg-white/10 text-white border border-white/20 hover:bg-white/20'
+                ? 'bg-green-500/10 text-green-400 border-green-500/20 hover:bg-green-500/20 hover:border-green-500/40 hover:shadow-[0_0_20px_rgba(74,222,128,0.1)]'
+                : 'bg-white/[0.06] text-white/80 border-white/10 hover:bg-white/[0.12] hover:border-white/25 hover:shadow-[0_0_20px_rgba(255,255,255,0.05)]'
             }`}
+            style={{ animationDelay: `${i * 30}ms` }}
           >
             {completed ? '✓' : id}
           </Link>

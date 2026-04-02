@@ -1,26 +1,45 @@
 'use client';
 
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { GameEngine } from '@/engine/GameEngine';
 import { type LevelData } from '@/engine/types';
 
-const TILE_SIZE = 40;
+const BASE_TILE_SIZE = 40;
 
 interface GameCanvasProps {
   level: LevelData;
-  onLevelComplete: () => void;
+  onLevelComplete: (completionTime: number) => void;
+  onProgressUpdate?: (playersOnGoals: number) => void;
 }
 
-export default function GameCanvas({ level, onLevelComplete }: GameCanvasProps) {
+export default function GameCanvas({ level, onLevelComplete, onProgressUpdate }: GameCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<GameEngine | null>(null);
+  const [scale, setScale] = useState(1);
+
+  // Compute scale so the canvas fills available space without distorting
+  useEffect(() => {
+    function computeScale() {
+      const maxW = window.innerWidth * 0.9;
+      const maxH = window.innerHeight * 0.85;
+      const nativeW = level.width * BASE_TILE_SIZE;
+      const nativeH = level.height * BASE_TILE_SIZE;
+      const s = Math.min(maxW / nativeW, maxH / nativeH, 2.5); // cap at 2.5x
+      setScale(Math.max(1, s));
+    }
+    computeScale();
+    window.addEventListener('resize', computeScale);
+    return () => window.removeEventListener('resize', computeScale);
+  }, [level.width, level.height]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const engine = new GameEngine(canvas, level, TILE_SIZE, {
+    const engine = new GameEngine(canvas, level, BASE_TILE_SIZE, {
       onLevelComplete,
+      onProgressUpdate,
     });
     engineRef.current = engine;
     engine.start();
@@ -37,15 +56,27 @@ export default function GameCanvas({ level, onLevelComplete }: GameCanvasProps) 
       window.removeEventListener('keydown', handleKeyDown);
       engineRef.current = null;
     };
-  }, [level, onLevelComplete]);
+  }, [level, onLevelComplete, onProgressUpdate]);
 
   return (
-    <canvas
-      ref={canvasRef}
-      className="block"
+    <div
+      ref={wrapperRef}
+      className="block rounded-xl overflow-hidden"
       style={{
-        imageRendering: 'pixelated',
+        width: level.width * BASE_TILE_SIZE * scale,
+        height: level.height * BASE_TILE_SIZE * scale,
+        boxShadow: '0 0 60px rgba(168, 85, 247, 0.08), 0 0 120px rgba(0, 0, 0, 0.5)',
       }}
-    />
+    >
+      <canvas
+        ref={canvasRef}
+        className="block origin-top-left"
+        style={{
+          imageRendering: 'pixelated',
+          transform: `scale(${scale})`,
+          transformOrigin: 'top left',
+        }}
+      />
+    </div>
   );
 }

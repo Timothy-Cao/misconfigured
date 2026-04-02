@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__76a3e37b-c43d-4eeb-8b15-7ebe44572595__deploy_to_vercel",
+      "Bash(npx vercel:*)",
+      "Bash(npm test:*)",
+      "Bash(npm install:*)",
+      "Bash(npx vitest:*)",
+      "Bash(npm run:*)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(grep -r \"PUSHABLE\\\\|KILL\\\\|CHECKPOINT\\\\|pressurePlate\\\\|door\" /c/Users/tctct/Downloads/claude/misconfigured/src/levels/*.ts)",
+      "Bash(grep -l \"[2-5]\\\\|1[0-9]\\\\|2[0-8]\" /c/Users/tctct/Downloads/claude/misconfigured/src/levels/level-*.ts)",
+      "Bash(grep -n \"TODO\\\\|FIXME\\\\|XXX\\\\|HACK\\\\|BUG\" /c/Users/tctct/Downloads/claude/misconfigured/src/**/*.ts*)",
+      "Bash(xargs grep:*)",
+      "Bash(grep -l \"animationDelay\" src/**/*.tsx)",
+      "Bash(ls -la /c/Users/tctct/Downloads/claude/misconfigured/*.*)",
+      "Bash(wc -l src/levels/level-*.ts)",
+      "Bash(npx next:*)",
+      "Bash(ls -1 /c/Users/tctct/Downloads/claude/misconfigured/src/levels/*.ts)"
+    ]
+  }
+}

@@ -14,21 +14,32 @@ export default function PlayPage() {
   const level = getLevel(levelId);
   const { completeLevel } = useGameProgress();
   const [levelComplete, setLevelComplete] = useState(false);
-  const [key, setKey] = useState(0); // force remount on restart
+  const [playersOnGoals, setPlayersOnGoals] = useState(0);
+  const [completionTime, setCompletionTime] = useState(0);
+  const [key, setKey] = useState(0);
 
-  const handleLevelComplete = useCallback(() => {
+  const handleLevelComplete = useCallback((time: number) => {
     completeLevel(levelId);
     setLevelComplete(true);
+    setCompletionTime(time);
   }, [levelId, completeLevel]);
+
+  const handleProgressUpdate = useCallback((onGoals: number) => {
+    setPlayersOnGoals(onGoals);
+  }, []);
 
   const handleRestart = useCallback(() => {
     setLevelComplete(false);
+    setPlayersOnGoals(0);
+    setCompletionTime(0);
     setKey(k => k + 1);
   }, []);
 
   const handleNextLevel = useCallback(() => {
     if (levelId < TOTAL_LEVELS) {
       setLevelComplete(false);
+      setPlayersOnGoals(0);
+      setCompletionTime(0);
       router.push(`/play/${levelId + 1}`);
     } else {
       router.push('/levels');
@@ -37,19 +48,28 @@ export default function PlayPage() {
 
   if (!level) {
     return (
-      <main className="min-h-screen bg-black flex items-center justify-center">
-        <p className="text-white">Level not found</p>
+      <main className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
+        <p className="text-white/40 font-mono">Level not found</p>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-black flex items-center justify-center">
-      <div className="relative">
-        <GameCanvas key={key} level={level} onLevelComplete={handleLevelComplete} />
+    <main className="min-h-screen bg-[#0a0a0f] flex items-center justify-center relative overflow-hidden">
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-purple-500/[0.03] blur-[100px]" />
+      <div className="relative animate-[fadeIn_0.4s_ease-out]">
+        <GameCanvas
+          key={key}
+          level={level}
+          onLevelComplete={handleLevelComplete}
+          onProgressUpdate={handleProgressUpdate}
+        />
         <HUD
           levelId={levelId}
+          levelName={level.name}
           levelComplete={levelComplete}
+          playersOnGoals={playersOnGoals}
+          completionTime={completionTime}
           onRestart={handleRestart}
           onNextLevel={handleNextLevel}
         />

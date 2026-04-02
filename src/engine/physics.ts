@@ -1,4 +1,4 @@
-import { TileType, type TileTypeValue, type LevelData, type PlayerState, PLAYER_SIZE_RATIO } from './types';
+import { TileType, type TileTypeValue, type LevelData, type PlayerState, isDoor, doorNumber, isToggleBlock, toggleNumber, isOneWay, oneWayDirection, DIR_DX, DIR_DY } from './types';
 
 export function getTileAt(level: LevelData, col: number, row: number): TileTypeValue {
   if (row < 0 || row >= level.height || col < 0 || col >= level.width) {
@@ -7,65 +7,69 @@ export function getTileAt(level: LevelData, col: number, row: number): TileTypeV
   return level.grid[row][col] as TileTypeValue;
 }
 
-export function isWalkable(tile: TileTypeValue): boolean {
-  return tile !== TileType.VOID;
-}
-
-export function getTileAtPixel(level: LevelData, px: number, py: number, tileSize: number): TileTypeValue {
-  const col = Math.floor(px / tileSize);
-  const row = Math.floor(py / tileSize);
-  return getTileAt(level, col, row);
-}
-
-function canOccupy(level: LevelData, cx: number, cy: number, halfSize: number, tileSize: number): boolean {
-  const corners = [
-    [cx - halfSize, cy - halfSize],
-    [cx + halfSize - 0.01, cy - halfSize],
-    [cx - halfSize, cy + halfSize - 0.01],
-    [cx + halfSize - 0.01, cy + halfSize - 0.01],
-  ];
-  for (const [px, py] of corners) {
-    if (!isWalkable(getTileAtPixel(level, px, py, tileSize))) {
-      return false;
-    }
+export function isWalkable(tile: TileTypeValue, activePlates?: Set<number>, toggledSwitches?: Set<number>, crumbledTiles?: Set<string>, col?: number, row?: number): boolean {
+  if (tile === TileType.VOID) return false;
+  if (tile === TileType.PUSHABLE) return false;
+  if (isDoor(tile)) {
+    if (!activePlates) return false;
+    return activePlates.has(doorNumber(tile));
+  }
+  if (isToggleBlock(tile)) {
+    if (!toggledSwitches) return false;
+    return toggledSwitches.has(toggleNumber(tile));
+  }
+  if (tile === TileType.CRUMBLE && crumbledTiles && col !== undefined && row !== undefined) {
+    return !crumbledTiles.has(`${row},${col}`);
   }
   return true;
 }
 
-export function movePlayer(
-  player: PlayerState,
-  dx: number,
-  dy: number,
-  speed: number,
-  dt: number,
+/**
+ * Check if a player can move to target tile (grid-based).
+ * Returns true if the tile is walkable, not occupied by another player,
+ * and one-way entry rules are satisfied.
+ */
+export function canMoveTo(
   level: LevelData,
-  tileSize: number,
-): PlayerState {
-  if (!player.alive) return player;
+  targetCol: number,
+  targetRow: number,
+  fromCol: number,
+  fromRow: number,
+  selfIndex: number,
+  allPlayers: PlayerState[],
+  activePlates?: Set<number>,
+  toggledSwitches?: Set<number>,
+  crumbledTiles?: Set<string>,
+): boolean {
+  const tile = getTileAt(level, targetCol, targetRow);
 
-  const halfSize = (tileSize * PLAYER_SIZE_RATIO) / 2;
-  let { x, y } = player;
+  // Basic walkability
+  if (!isWalkable(tile, activePlates, toggledSwitches, crumbledTiles, targetCol, targetRow)) {
+    return false;
+  }
 
-  if (dx !== 0) {
-    const newX = x + dx * speed * dt;
-    if (canOccupy(level, newX, y, halfSize, tileSize)) {
-      x = newX;
+  // One-way entry check
+  if (isOneWay(tile)) {
+    const dir = oneWayDirection(tile);
+    const allowedDx = DIR_DX[dir];
+    const allowedDy = DIR_DY[dir];
+    const moveDx = targetCol - fromCol;
+    const moveDy = targetRow - fromRow;
+    // Player must be coming FROM the allowed direction
+    // dir=0 (from up): player moves down (dy=1), so allowedDy=-1, moveDy must be 1 (opposite)
+    if (moveDx !== -allowedDx || moveDy !== -allowedDy) {
+      return false;
     }
   }
 
-  if (dy !== 0) {
-    const newY = y + dy * speed * dt;
-    if (canOccupy(level, x, newY, halfSize, tileSize)) {
-      y = newY;
+  // Check if another player occupies the target tile (finished/absorbing players don't block)
+  for (let i = 0; i < allPlayers.length; i++) {
+    if (i === selfIndex || !allPlayers[i].alive || allPlayers[i].finished || allPlayers[i].absorbTimer > 0) continue;
+    // Locked-on-goal players block their tile
+    if (allPlayers[i].col === targetCol && allPlayers[i].row === targetRow) {
+      return false;
     }
   }
 
-  return { ...player, x, y };
-}
-
-export function getPlayerTile(player: PlayerState, tileSize: number): { col: number; row: number } {
-  return {
-    col: Math.floor(player.x / tileSize),
-    row: Math.floor(player.y / tileSize),
-  };
+  return true;
 }

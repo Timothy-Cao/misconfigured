@@ -25,7 +25,7 @@ import level23 from './level-23';
 import level24 from './level-24';
 import level25 from './level-25';
 
-export const levels: LevelData[] = [
+const builtInLevels: LevelData[] = [
   level01, level02, level03, level04, level05,
   level06, level07, level08, level09, level10,
   level11, level12, level13, level14, level15,
@@ -33,8 +33,32 @@ export const levels: LevelData[] = [
   level21, level22, level23, level24, level25,
 ];
 
-export function getLevel(id: number): LevelData | undefined {
-  return levels.find(l => l.id === id);
+const CUSTOM_LEVELS_KEY = 'misconfigured-custom-levels';
+
+function getCustomLevels(): Record<string, LevelData> {
+  if (typeof window === 'undefined') return {};
+  try {
+    const raw = localStorage.getItem(CUSTOM_LEVELS_KEY);
+    if (!raw) return {};
+    return JSON.parse(raw);
+  } catch {
+    return {};
+  }
 }
 
-export const TOTAL_LEVELS = levels.length;
+export function saveCustomLevel(id: number, level: LevelData): void {
+  const custom = getCustomLevels();
+  custom[String(id)] = level;
+  localStorage.setItem(CUSTOM_LEVELS_KEY, JSON.stringify(custom));
+}
+
+export const levels: LevelData[] = builtInLevels;
+
+export function getLevel(id: number): LevelData | undefined {
+  // Custom levels override built-in
+  const custom = getCustomLevels();
+  if (custom[String(id)]) return custom[String(id)];
+  return builtInLevels.find(l => l.id === id);
+}
+
+export const TOTAL_LEVELS = builtInLevels.length;

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getTileAt, isWalkable, movePlayer } from '../physics';
+import { getTileAt, isWalkable, canMoveTo } from '../physics';
 import { TileType, type LevelData, type PlayerState } from '../types';
 
 // Minimal 5x5 test level:
@@ -22,8 +22,6 @@ const testLevel: LevelData = {
     { startX: 3, startY: 3, rotation: 3 },
   ],
 };
-
-const TILE = 40;
 
 describe('getTileAt', () => {
   it('returns correct tile type for grid coordinates', () => {
@@ -50,49 +48,54 @@ describe('isWalkable', () => {
   it('void is not walkable', () => {
     expect(isWalkable(TileType.VOID)).toBe(false);
   });
+
+  it('pushable is not walkable', () => {
+    expect(isWalkable(TileType.PUSHABLE)).toBe(false);
+  });
 });
 
-describe('movePlayer', () => {
-  const makePlayer = (x: number, y: number): PlayerState => ({
-    x, y, alive: true,
-    checkpointX: x, checkpointY: y,
-    rotation: 0, color: '#e94560',
+const makePlayer = (col: number, row: number): PlayerState => ({
+  col, row, prevCol: col, prevRow: row, animProgress: 1,
+  alive: true,
+  checkpointCol: col, checkpointRow: row,
+  rotation: 0, color: '#ff9a56',
+  reversed: false, sliding: false, slideDx: 0, slideDy: 0, finished: false, lockedOnGoal: false, absorbTimer: 0,
+});
+
+describe('canMoveTo', () => {
+  it('allows movement to walkable floor tile', () => {
+    const players = [makePlayer(1, 1), makePlayer(3, 1), makePlayer(1, 3), makePlayer(3, 3)];
+    // Move from (1,1) to (2,1) — floor tile
+    expect(canMoveTo(testLevel, 2, 1, 1, 1, 0, players)).toBe(true);
   });
 
-  it('moves player by velocity * dt on open floor', () => {
-    const p = makePlayer(1.5 * TILE, 1.5 * TILE);
-    const result = movePlayer(p, 1, 0, 200, 0.016, testLevel, TILE);
-    expect(result.x).toBeGreaterThan(p.x);
-    expect(result.y).toBe(p.y);
+  it('blocks movement into void tile', () => {
+    const players = [makePlayer(1, 1), makePlayer(3, 1), makePlayer(1, 3), makePlayer(3, 3)];
+    // Move from (1,1) to (0,1) — void tile
+    expect(canMoveTo(testLevel, 0, 1, 1, 1, 0, players)).toBe(false);
   });
 
-  it('stops player at wall boundary on X axis', () => {
-    // Player near right edge of tile 3 but still valid (center at 3.5*TILE)
-    // halfSize = 14, so right edge at 140+14=154, within tile 3
-    const p = makePlayer(3.5 * TILE, 1.5 * TILE);
-    const result = movePlayer(p, 1, 0, 200, 0.5, testLevel, TILE);
-    const halfSize = TILE * 0.7 / 2;
-    // Should not enter tile 4 (void)
-    expect(result.x + halfSize).toBeLessThanOrEqual(4 * TILE);
+  it('blocks movement into tile occupied by another player', () => {
+    const players = [makePlayer(1, 1), makePlayer(2, 1), makePlayer(1, 3), makePlayer(3, 3)];
+    // Move from (1,1) to (2,1) — occupied by player 1
+    expect(canMoveTo(testLevel, 2, 1, 1, 1, 0, players)).toBe(false);
   });
 
-  it('allows Y movement when X is blocked', () => {
-    // Player at right edge of walkable area, moving right+down
-    // X should be blocked (already near wall), Y should still move
-    const halfSize = TILE * 0.7 / 2;
-    // Place player so right edge is at wall boundary (can't move right)
-    const p = makePlayer(4 * TILE - halfSize - 0.01, 1.5 * TILE);
-    const result = movePlayer(p, 1, 1, 200, 0.016, testLevel, TILE);
-    // X blocked, but Y should move
-    expect(result.x).toBeCloseTo(p.x, 0); // X barely moves or stays
-    expect(result.y).toBeGreaterThan(p.y);
+  it('allows movement to goal tile', () => {
+    const players = [makePlayer(3, 2), makePlayer(3, 1), makePlayer(1, 3), makePlayer(3, 3)];
+    // Move from (3,2) to (3,3) — goal tile, but player 3 is there
+    expect(canMoveTo(testLevel, 3, 3, 3, 2, 0, players)).toBe(false);
+    // Move player 3 away first
+    players[3] = makePlayer(1, 3);
+    players[3].col = 2; // move player 3 somewhere else
+    // Now (3,3) is free
+    expect(canMoveTo(testLevel, 3, 3, 3, 2, 0, [players[0], players[1], players[2], makePlayer(2, 3)])).toBe(true);
   });
 
-  it('does not move dead player', () => {
-    const p = makePlayer(1.5 * TILE, 1.5 * TILE);
-    p.alive = false;
-    const result = movePlayer(p, 1, 0, 200, 0.016, testLevel, TILE);
-    expect(result.x).toBe(p.x);
-    expect(result.y).toBe(p.y);
+  it('does not count dead players as obstacles', () => {
+    const players = [makePlayer(1, 1), makePlayer(2, 1), makePlayer(1, 3), makePlayer(3, 3)];
+    players[1].alive = false;
+    // Move from (1,1) to (2,1) — dead player there, should be allowed
+    expect(canMoveTo(testLevel, 2, 1, 1, 1, 0, players)).toBe(true);
   });
 });
