@@ -463,13 +463,16 @@ export function render(
         const dy = DIR_DY[dir];
         ctx.strokeStyle = 'rgba(100,200,255,0.35)';
         ctx.lineWidth = 2;
-        // Draw 3 chevron arrows moving in direction
-        for (let k = -1; k <= 1; k++) {
-          const offset = ((time * 1.5 + k * 0.33) % 1) * s * 0.8 - s * 0.4;
-          const ax = cx + dx * offset - dy * 0; // perpendicular offset = 0
-          const ay = cy + dy * offset + dx * 0;
-          const arrowLen = s * 0.15;
-          // Arrowhead pointing in direction
+        const flow = (time * 1.8) % 1;
+        const spacing = s * 0.28;
+        const travel = s * 0.56;
+        const arrowLen = s * 0.13;
+        // Draw a denser wrapped chevron stream so the belt motion loops cleanly.
+        for (let k = -2; k <= 2; k++) {
+          const offset = (k + flow) * spacing;
+          if (offset < -travel || offset > travel) continue;
+          const ax = cx + dx * offset;
+          const ay = cy + dy * offset;
           ctx.beginPath();
           ctx.moveTo(ax - dy * arrowLen - dx * arrowLen, ay + dx * arrowLen - dy * arrowLen);
           ctx.lineTo(ax + dx * arrowLen * 0.5, ay + dy * arrowLen * 0.5);
@@ -477,8 +480,6 @@ export function render(
           ctx.stroke();
         }
       }
-
-      // One-way tile — single thick arrow showing entry direction
       if (isOneWay(tile)) {
         const dir = oneWayDirection(tile);
         const dx = DIR_DX[dir];
@@ -519,14 +520,10 @@ export function render(
         const cw = rotationTileCW(tile);
         const pulse = 0.25 + 0.1 * Math.sin(time * 3);
         ctx.fillStyle = `rgba(180,120,255,${pulse})`;
-        ctx.font = iconFont;
+        ctx.font = `bold ${Math.max(16, s * 0.52)}px Arial`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(cw ? '↻' : '↺', cx, cy + 1);
-        // Label
-        ctx.fillStyle = `rgba(180,120,255,${pulse * 0.7})`;
-        ctx.font = smallFont;
-        ctx.fillText(cw ? 'CW' : 'CCW', cx, cy + s * 0.35);
+        ctx.fillText(cw ? '\u21BB' : '\u21BA', cx, cy + 1);
       }
 
       // Checkpoint sparkle dots
