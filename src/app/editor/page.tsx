@@ -20,7 +20,7 @@ export default function EditorPage() {
   }, [router]);
 
   return (
-    <main className="min-h-screen bg-[#0a0a0f] flex flex-col items-center px-4 sm:px-6 lg:px-8 pb-8 relative overflow-auto">
+    <main className="h-[100svh] bg-[#0a0a0f] flex flex-col items-center px-4 sm:px-6 lg:px-8 pb-8 relative overflow-y-auto overflow-x-hidden">
       <div className="absolute top-1/4 left-1/3 w-[460px] h-[460px] rounded-full bg-purple-500/5 blur-[110px]" />
 
       <div className="relative z-10 w-full max-w-[1440px] pt-4 sm:pt-6">
