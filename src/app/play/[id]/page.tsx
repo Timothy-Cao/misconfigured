@@ -14,7 +14,7 @@ export default function PlayPage() {
   const level = useMemo(() => getLevel(levelId), [levelId]);
   const { completeLevel } = useGameProgress();
   const [levelComplete, setLevelComplete] = useState(false);
-  const [playersOnGoals, setPlayersOnGoals] = useState(0);
+  const [settledUnits, setSettledUnits] = useState(0);
   const [completionTime, setCompletionTime] = useState(0);
   const [key, setKey] = useState(0);
   const startingLives = level?.lives ?? 1;
@@ -28,8 +28,8 @@ export default function PlayPage() {
     setCompletionTime(time);
   }, [levelId, completeLevel]);
 
-  const handleProgressUpdate = useCallback((onGoals: number) => {
-    setPlayersOnGoals(onGoals);
+  const handleProgressUpdate = useCallback((settled: number) => {
+    setSettledUnits(settled);
   }, []);
 
   const handleGameOver = useCallback(() => {
@@ -43,7 +43,7 @@ export default function PlayPage() {
 
   const handleRestart = useCallback(() => {
     setLevelComplete(false);
-    setPlayersOnGoals(0);
+    setSettledUnits(0);
     setCompletionTime(0);
     setLives(startingLives);
     setMaxLives(startingLives);
@@ -54,7 +54,7 @@ export default function PlayPage() {
   const handleNextLevel = useCallback(() => {
     if (levelId < TOTAL_LEVELS) {
       setLevelComplete(false);
-      setPlayersOnGoals(0);
+      setSettledUnits(0);
       setCompletionTime(0);
       router.push(`/play/${levelId + 1}`);
     } else {
@@ -86,8 +86,8 @@ export default function PlayPage() {
           levelId={levelId}
           levelName={level.name}
           levelComplete={levelComplete}
-          playersOnGoals={playersOnGoals}
-          totalPlayers={level.players.length}
+          settledUnits={settledUnits}
+          totalUnits={level.players.length}
           completionTime={completionTime}
           lives={lives}
           maxLives={maxLives}

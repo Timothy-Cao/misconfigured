@@ -59,7 +59,7 @@ const makePlayer = (col: number, row: number): PlayerState => ({
   alive: true,
   checkpointCol: col, checkpointRow: row,
   rotation: 0, color: '#ff9a56',
-  reversed: false, sliding: false, slideDx: 0, slideDy: 0, finished: false, lockedOnGoal: false, absorbTimer: 0, deathTimer: 0,
+  reversed: false, sliding: false, slideDx: 0, slideDy: 0, finished: false, lockedOnGoal: false, absorbTimer: 0, deathTimer: 0, stickyCharges: 0,
 });
 
 describe('canMoveTo', () => {
@@ -153,6 +153,39 @@ describe('canMoveTo', () => {
         [0, 0, 0, 0, 0],
         [0, 1, 1, 1, 0],
         [0, 1, 35, 1, 0],
+        [0, 1, 1, 1, 0],
+        [0, 0, 0, 0, 0],
+      ],
+    };
+    expect(canMoveTo(level, 2, 2, 1, 2, 0, players)).toBe(true);
+  });
+
+  it('blocks entering a color filter with the wrong identity', () => {
+    const players = [makePlayer(1, 2), makePlayer(4, 4), makePlayer(4, 3), makePlayer(3, 4)];
+    const level: LevelData = {
+      ...testLevel,
+      grid: [
+        [0, 0, 0, 0, 0],
+        [0, 1, 1, 1, 0],
+        [0, 1, 91, 1, 0],
+        [0, 1, 1, 1, 0],
+        [0, 0, 0, 0, 0],
+      ],
+    };
+    expect(canMoveTo(level, 2, 2, 1, 2, 0, players)).toBe(false);
+  });
+
+  it('allows entering a color filter with the matching identity', () => {
+    const player = makePlayer(1, 2);
+    player.rotation = 1;
+    player.color = '#4ecdc4';
+    const players = [player, makePlayer(4, 4), makePlayer(4, 3), makePlayer(3, 4)];
+    const level: LevelData = {
+      ...testLevel,
+      grid: [
+        [0, 0, 0, 0, 0],
+        [0, 1, 1, 1, 0],
+        [0, 1, 91, 1, 0],
         [0, 1, 1, 1, 0],
         [0, 0, 0, 0, 0],
       ],

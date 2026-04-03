@@ -9,7 +9,7 @@ const BASE_TILE_SIZE = 40;
 interface GameCanvasProps {
   level: LevelData;
   onLevelComplete: (completionTime: number) => void;
-  onProgressUpdate?: (playersOnGoals: number) => void;
+  onProgressUpdate?: (settledUnits: number) => void;
   onGameOver?: () => void;
   onLivesUpdate?: (lives: number, maxLives: number) => void;
 }

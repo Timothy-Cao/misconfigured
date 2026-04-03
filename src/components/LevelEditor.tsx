@@ -1,14 +1,14 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { TileType, COLORS, PLAYER_DIRECTIONS, type LevelData, type Rotation, isPressurePlate, pressurePlateNumber, pressurePlateTile, isDoor, doorNumber, doorTile, isToggleSwitch, isToggleBlock, toggleNumber, toggleSwitchTile, isConveyor, conveyorDirection, conveyorTile, isOneWay, oneWayOrientation, oneWayTile, isRotationTile, rotationTileCW, DIR_DX, DIR_DY } from '@/engine/types';
+import { TileType, COLORS, type LevelData, type Rotation, isPressurePlate, pressurePlateNumber, pressurePlateTile, isDoor, doorNumber, doorTile, isToggleSwitch, isToggleBlock, toggleNumber, toggleSwitchTile, isConveyor, conveyorDirection, conveyorTile, isOneWay, oneWayOrientation, oneWayTile, isRotationTile, rotationTileCW, isRepaintStation, repaintRotation, repaintStationTile, isColorFilter, colorFilterRotation, colorFilterTile, DIR_DX, DIR_DY } from '@/engine/types';
 import { getCommunityLevel, getCommunityLevels, getLevel, getNextCommunityLevelId, saveCommunityLevel, saveCustomLevel } from '@/levels';
 import { verifyAdminPassword } from '@/lib/admin';
 
 const MAX_SIZE = 20;
 const MIN_SIZE = 4;
 
-type Tool = 'floor' | 'wall' | 'goal' | 'kill' | 'pushable' | 'plate' | 'door' | 'ice' | 'mud' | 'crumble' | 'reverse' | 'tswitch' | 'conveyor' | 'oneway' | 'rotation' | 'blackhole' | 'life' | 'spawn0' | 'spawn1' | 'spawn2' | 'spawn3';
+type Tool = 'floor' | 'wall' | 'goal' | 'kill' | 'pushable' | 'plate' | 'door' | 'ice' | 'mud' | 'crumble' | 'reverse' | 'sticky' | 'tswitch' | 'conveyor' | 'oneway' | 'rotation' | 'repaint' | 'filter' | 'blackhole' | 'life' | 'spawn';
 type Tab = 'config' | 'blocks' | 'publish';
 type PublishScope = 'campaign' | 'community';
 
@@ -30,16 +30,16 @@ const TOOL_LABELS: Record<Tool, string> = {
   mud: 'Mud',
   crumble: 'Crumble',
   reverse: 'Reverse',
+  sticky: 'Sticky Pad',
   tswitch: 'Toggle Switch',
   conveyor: 'Conveyor',
   oneway: 'One-Way',
   rotation: 'Rotation',
+  repaint: 'Repaint',
+  filter: 'Color Filter',
   blackhole: 'Black Hole',
   life: 'Life Pickup',
-  spawn0: 'Player 1',
-  spawn1: 'Player 2',
-  spawn2: 'Player 3',
-  spawn3: 'Player 4',
+  spawn: 'Unit Spawn',
 };
 
 const TOOL_SHORTCUTS: Record<string, Tool> = {
@@ -55,15 +55,15 @@ const TOOL_SHORTCUTS: Record<string, Tool> = {
   p: 'crumble',
   a: 'blackhole',
   l: 'life',
+  x: 'sticky',
+  c: 'repaint',
+  v: 'filter',
   s: 'tswitch',
   f: 'conveyor',
   g: 'rotation',
   h: 'reverse',
   j: 'mud',
-  '1': 'spawn0',
-  '2': 'spawn1',
-  '3': 'spawn2',
-  '4': 'spawn3',
+  '1': 'spawn',
 };
 
 const SHORTCUT_DISPLAY: Partial<Record<Tool, string>> = {
@@ -78,21 +78,28 @@ const SHORTCUT_DISPLAY: Partial<Record<Tool, string>> = {
   mud: 'J',
   crumble: 'P',
   reverse: 'H',
+  sticky: 'X',
   tswitch: 'S',
   conveyor: 'F',
   oneway: 'O',
   rotation: 'G',
+  repaint: 'C',
+  filter: 'V',
   blackhole: 'A',
   life: 'L',
-  spawn0: '1',
-  spawn1: '2',
-  spawn2: '3',
-  spawn3: '4',
+  spawn: '1',
 };
 
 const SPAWN_COLORS = COLORS.players;
 
 const DIRECTION_LABELS = ['Up', 'Right', 'Down', 'Left'];
+
+const BLOCK_TOOL_GROUPS: { title: string; tools: Tool[] }[] = [
+  { title: 'Terrain', tools: ['floor', 'wall', 'goal', 'kill', 'blackhole', 'life'] },
+  { title: 'Movement', tools: ['ice', 'mud', 'sticky', 'conveyor', 'oneway', 'rotation', 'reverse'] },
+  { title: 'Logic', tools: ['pushable', 'plate', 'door', 'tswitch', 'crumble'] },
+  { title: 'Identity', tools: ['repaint', 'filter'] },
+];
 
 const ARROW_ANGLES: Record<number, number> = {
   0: -Math.PI / 2,
@@ -136,8 +143,9 @@ export default function LevelEditor() {
   const [width, setWidth] = useState(10);
   const [height, setHeight] = useState(8);
   const [grid, setGrid] = useState<number[][]>(() => createFloorGrid(10, 8));
-  const [spawns, setSpawns] = useState<(SpawnPoint | null)[]>([null, null, null, null]);
+  const [spawns, setSpawns] = useState<SpawnPoint[]>([]);
   const [tool, setTool] = useState<Tool>('wall');
+  const [spawnRotation, setSpawnRotation] = useState<Rotation>(0);
   const [tab, setTab] = useState<Tab>('blocks');
   const [levelName, setLevelName] = useState('');
   const [levelLives, setLevelLives] = useState(1);
@@ -201,11 +209,7 @@ export default function LevelEditor() {
       }
       return newGrid;
     });
-    setSpawns(prev => prev.map(s => {
-      if (!s) return null;
-      if (s.col >= newW || s.row >= newH) return null;
-      return s;
-    }));
+    setSpawns(prev => prev.filter(s => s.col < newW && s.row < newH));
     setWidth(newW);
     setHeight(newH);
   }, []);
@@ -221,6 +225,7 @@ export default function LevelEditor() {
       mud: TileType.MUD,
       crumble: TileType.CRUMBLE,
       reverse: TileType.REVERSE,
+      sticky: TileType.STICKY,
       blackhole: TileType.BLACKHOLE,
       life: TileType.LIFE_PICKUP,
     };
@@ -330,6 +335,36 @@ export default function LevelEditor() {
       return;
     }
 
+    if (tool === 'repaint') {
+      setGrid(prev => {
+        const current = prev[row][col];
+        const next = prev.map(r => [...r]);
+        if (mode === 'erase') {
+          if (isRepaintStation(current)) next[row][col] = TileType.FLOOR;
+        } else {
+          if (isRepaintStation(current)) return prev;
+          next[row][col] = repaintStationTile(0);
+        }
+        return next;
+      });
+      return;
+    }
+
+    if (tool === 'filter') {
+      setGrid(prev => {
+        const current = prev[row][col];
+        const next = prev.map(r => [...r]);
+        if (mode === 'erase') {
+          if (isColorFilter(current)) next[row][col] = TileType.FLOOR;
+        } else {
+          if (isColorFilter(current)) return prev;
+          next[row][col] = colorFilterTile(0);
+        }
+        return next;
+      });
+      return;
+    }
+
     const targetTile = getToolTile(tool);
 
     setGrid(prev => {
@@ -347,38 +382,23 @@ export default function LevelEditor() {
     });
 
     if (tool === 'wall' && mode === 'place') {
-      setSpawns(prev => prev.map(s => s && s.col === col && s.row === row ? null : s));
+      setSpawns(prev => prev.filter(s => !(s.col === col && s.row === row)));
     }
   }, [tool, width, height, getToolTile]);
 
   const handleSpawnClick = useCallback((col: number, row: number) => {
     if (col < 0 || col >= width || row < 0 || row >= height) return;
-    const idx = parseInt(tool[5]);
-
     setSpawns(prev => {
-      const existing = prev[idx];
-      if (existing && existing.col === col && existing.row === row) {
-        const next = [...prev];
-        next[idx] = null;
-        return next;
+      const existingIndex = prev.findIndex(spawn => spawn.col === col && spawn.row === row);
+      if (existingIndex >= 0) {
+        return prev.filter((_, index) => index !== existingIndex);
       }
-      const next = [...prev];
-      next[idx] = { col, row, rotation: existing?.rotation ?? PLAYER_DIRECTIONS[idx] };
-      return next;
+      return [...prev, { col, row, rotation: spawnRotation }];
     });
-  }, [tool, width, height]);
+  }, [height, spawnRotation, width]);
 
-  const cycleSpawnRotation = useCallback((idx: number) => {
-    setSpawns(prev => {
-      const current = prev[idx];
-      if (!current) return prev;
-        const next = [...prev];
-        next[idx] = {
-          ...current,
-          rotation: ((current.rotation + 1) % 4) as Rotation,
-        };
-        return next;
-      });
+  const cycleSpawnRotation = useCallback(() => {
+    setSpawnRotation(current => ((current + 1) % 4) as Rotation);
   }, []);
 
   const getCanvasCellFromClient = useCallback((clientX: number, clientY: number) => {
@@ -423,6 +443,10 @@ export default function LevelEditor() {
       mode = isOneWay(currentTile) ? 'erase' : 'place';
     } else if (tool === 'rotation') {
       mode = isRotationTile(currentTile) ? 'erase' : 'place';
+    } else if (tool === 'repaint') {
+      mode = isRepaintStation(currentTile) ? 'erase' : 'place';
+    } else if (tool === 'filter') {
+      mode = isColorFilter(currentTile) ? 'erase' : 'place';
     } else {
       const targetTile = getToolTile(tool);
       mode = currentTile === targetTile ? 'erase' : 'place';
@@ -489,6 +513,10 @@ export default function LevelEditor() {
       mode = isOneWay(currentTile) ? 'erase' : 'place';
     } else if (tool === 'rotation') {
       mode = isRotationTile(currentTile) ? 'erase' : 'place';
+    } else if (tool === 'repaint') {
+      mode = isRepaintStation(currentTile) ? 'erase' : 'place';
+    } else if (tool === 'filter') {
+      mode = isColorFilter(currentTile) ? 'erase' : 'place';
     } else {
       const targetTile = getToolTile(tool);
       mode = currentTile === targetTile ? 'erase' : 'place';
@@ -575,6 +603,18 @@ export default function LevelEditor() {
         next[row][col] = rotationTileCW(tile) ? 39 : 38; // toggle CW/CCW
         return next;
       }
+      if (isRepaintStation(tile)) {
+        const rotation = repaintRotation(tile);
+        const next = prev.map(r => [...r]);
+        next[row][col] = repaintStationTile((rotation + 1) % 4);
+        return next;
+      }
+      if (isColorFilter(tile)) {
+        const rotation = colorFilterRotation(tile);
+        const next = prev.map(r => [...r]);
+        next[row][col] = colorFilterTile((rotation + 1) % 4);
+        return next;
+      }
       return prev;
     });
   }, [getCanvasCell, width, height]);
@@ -610,6 +650,10 @@ export default function LevelEditor() {
           color = '#1a1a2e';
         } else if (isRotationTile(tile)) {
           color = '#1e1a2e';
+        } else if (isRepaintStation(tile)) {
+          color = `${COLORS.players[repaintRotation(tile)]}33`;
+        } else if (isColorFilter(tile)) {
+          color = `${COLORS.players[colorFilterRotation(tile)]}20`;
         } else if (tile === TileType.BLACKHOLE) {
           color = '#143a22';
         } else if (tile === TileType.LIFE_PICKUP) {
@@ -625,6 +669,7 @@ export default function LevelEditor() {
             case TileType.MUD: color = '#2a1a10'; break;
             case TileType.CRUMBLE: color = '#2a2020'; break;
             case TileType.REVERSE: color = '#2a1a2e'; break;
+            case TileType.STICKY: color = '#3a2818'; break;
             default: color = '#08080c'; break;
           }
         }
@@ -633,9 +678,19 @@ export default function LevelEditor() {
         const y = r * tilePx + gap;
         const s = tilePx - gap * 2;
 
-        if (tile === TileType.KILL || tile === TileType.GOAL || tile === TileType.BLACKHOLE || tile === TileType.LIFE_PICKUP || isPressurePlate(tile) || isConveyor(tile) || isOneWay(tile)) {
+        if (tile === TileType.KILL || tile === TileType.GOAL || tile === TileType.BLACKHOLE || tile === TileType.LIFE_PICKUP || tile === TileType.STICKY || isPressurePlate(tile) || isConveyor(tile) || isOneWay(tile) || isRepaintStation(tile) || isColorFilter(tile)) {
           ctx.save();
-          ctx.shadowColor = tile === TileType.KILL ? '#ff3333' : tile === TileType.GOAL ? '#4ade80' : tile === TileType.BLACKHOLE ? '#22cc66' : tile === TileType.LIFE_PICKUP ? '#ff5064' : isConveyor(tile) ? '#66aaff' : isOneWay(tile) ? '#ffdd66' : '#55ccee';
+          ctx.shadowColor =
+            tile === TileType.KILL ? '#ff3333'
+            : tile === TileType.GOAL ? '#4ade80'
+            : tile === TileType.BLACKHOLE ? '#22cc66'
+            : tile === TileType.LIFE_PICKUP ? '#ff5064'
+            : tile === TileType.STICKY ? '#e6a35a'
+            : isRepaintStation(tile) ? COLORS.players[repaintRotation(tile)]
+            : isColorFilter(tile) ? COLORS.players[colorFilterRotation(tile)]
+            : isConveyor(tile) ? '#66aaff'
+            : isOneWay(tile) ? '#ffdd66'
+            : '#55ccee';
           ctx.shadowBlur = 6;
           ctx.fillStyle = color;
           ctx.beginPath();
@@ -832,6 +887,18 @@ export default function LevelEditor() {
           ctx.fillText('⟲', cx, cy + 1);
         }
 
+        if (tile === TileType.STICKY) {
+          ctx.strokeStyle = 'rgba(255,220,160,0.45)';
+          ctx.lineWidth = 2;
+          for (let i = 0; i < 4; i++) {
+            const yy = y + s * (0.22 + i * 0.16);
+            ctx.beginPath();
+            ctx.moveTo(x + s * 0.18, yy);
+            ctx.lineTo(x + s * 0.82, yy);
+            ctx.stroke();
+          }
+        }
+
         // Toggle switch — number + circle
         if (isToggleSwitch(tile)) {
           const n = toggleNumber(tile);
@@ -940,13 +1007,39 @@ export default function LevelEditor() {
           ctx.font = `${tilePx * 0.22}px sans-serif`;
           ctx.fillText(cw ? 'CW' : 'CCW', cx, cy + s * 0.3);
         }
+
+        if (isRepaintStation(tile)) {
+          const rotation = repaintRotation(tile);
+          const stationColor = COLORS.players[rotation];
+          ctx.strokeStyle = `${stationColor}cc`;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(cx, cy, s * 0.26, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.fillStyle = `${stationColor}cc`;
+          ctx.beginPath();
+          ctx.arc(cx, cy, s * 0.12, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        if (isColorFilter(tile)) {
+          const rotation = colorFilterRotation(tile);
+          const filterColor = COLORS.players[rotation];
+          ctx.strokeStyle = `${filterColor}cc`;
+          ctx.lineWidth = 2;
+          for (let i = -1; i <= 1; i++) {
+            const xx = cx + i * s * 0.18;
+            ctx.beginPath();
+            ctx.moveTo(xx - s * 0.18, y + s * 0.2);
+            ctx.lineTo(xx + s * 0.18, y + s * 0.8);
+            ctx.stroke();
+          }
+        }
       }
     }
 
     // Spawn points
-    for (let i = 0; i < 4; i++) {
-      const sp = spawns[i];
-      if (!sp) continue;
+    for (const sp of spawns) {
       const cx = sp.col * tilePx + tilePx / 2;
       const cy = sp.row * tilePx + tilePx / 2;
       const size = tilePx * 0.6;
@@ -977,9 +1070,9 @@ export default function LevelEditor() {
   }, [grid, spawns, width, height, tilePx]);
 
   const validate = useCallback((): string | null => {
-    const validSpawns = spawns.filter(Boolean) as SpawnPoint[];
-    if (validSpawns.length < 1 || validSpawns.length > 4) {
-      return `Need between 1 and 4 spawn points (have ${validSpawns.length})`;
+    const validSpawns = spawns;
+    if (validSpawns.length < 1) {
+      return 'Need at least 1 unit spawn';
     }
 
     let goalCount = 0;
@@ -990,10 +1083,9 @@ export default function LevelEditor() {
         if (grid[r][c] === TileType.BLACKHOLE) blackholeCount++;
       }
     }
-    if (blackholeCount === 0 && goalCount !== validSpawns.length) {
-      return `Need exactly ${validSpawns.length} goal tiles or at least 1 black hole (have ${goalCount} goals)`;
+    if (goalCount + blackholeCount < validSpawns.length) {
+      return `Need at least ${validSpawns.length} total finish tiles across goals and black holes (have ${goalCount + blackholeCount})`;
     }
-    if (blackholeCount > 0 && goalCount + blackholeCount < 1) return 'Need at least 1 goal or black hole tile';
 
     for (let i = 0; i < validSpawns.length; i++) {
       const s = validSpawns[i];
@@ -1009,15 +1101,11 @@ export default function LevelEditor() {
   }, [grid, spawns, height, width]);
 
   const loadLevelIntoEditor = useCallback((level: LevelData) => {
-    const nextSpawns: (SpawnPoint | null)[] = [null, null, null, null];
-    for (let i = 0; i < Math.min(level.players.length, 4); i++) {
-      const player = level.players[i];
-      nextSpawns[i] = {
-        col: player.startX,
-        row: player.startY,
-        rotation: player.rotation,
-      };
-    }
+    const nextSpawns: SpawnPoint[] = level.players.map(player => ({
+      col: player.startX,
+      row: player.startY,
+      rotation: player.rotation,
+    }));
 
     setWidth(level.width);
     setHeight(level.height);
@@ -1030,13 +1118,11 @@ export default function LevelEditor() {
   }, []);
 
   const buildLevelData = useCallback((id: number, fallbackName: string): LevelData => {
-    const players = spawns.flatMap((spawn) => (
-      spawn ? [{
-        startX: spawn.col,
-        startY: spawn.row,
-        rotation: spawn.rotation,
-      }] : []
-    ));
+    const players = spawns.map((spawn) => ({
+      startX: spawn.col,
+      startY: spawn.row,
+      rotation: spawn.rotation,
+    }));
 
     return {
       id,
@@ -1107,18 +1193,18 @@ export default function LevelEditor() {
 
   const clearGrid = useCallback(() => {
     setGrid(createFloorGrid(width, height));
-    setSpawns([null, null, null, null]);
+    setSpawns([]);
   }, [width, height]);
 
-  const placedPlayers = spawns.filter(Boolean).length;
+  const placedPlayers = spawns.length;
   const goalCount = grid.flat().filter(t => t === TileType.GOAL).length;
   const blackholeCount = grid.flat().filter(t => t === TileType.BLACKHOLE).length;
   const editorWarnings: string[] = [];
   if (placedPlayers < 1) {
-    editorWarnings.push('Need at least one player.');
+    editorWarnings.push('Need at least one unit spawn.');
   }
-  if (blackholeCount === 0 && goalCount < placedPlayers) {
-    editorWarnings.push(`Need ${placedPlayers} regular goals unless you place at least one black hole goal.`);
+  if (goalCount + blackholeCount < placedPlayers) {
+    editorWarnings.push(`Need at least ${placedPlayers} total finish tiles across goals and black holes.`);
   }
 
   const TAB_LABELS: Record<Tab, string> = { config: 'Config', blocks: 'Blocks', publish: 'Publish' };
@@ -1201,49 +1287,37 @@ export default function LevelEditor() {
             </div>
 
             <div className="bg-white/[0.03] border border-white/10 rounded-xl p-4">
-              <h3 className="text-white/60 text-xs font-mono uppercase tracking-wider mb-3">Players</h3>
-              <div className="grid grid-cols-1 gap-2">
-                {([0, 1, 2, 3] as const).map(i => {
-                  const t = `spawn${i}` as Tool;
-                  const slot = spawns[i];
-                  return (
-                    <button
-                      key={t}
-                      onClick={() => setTool(t)}
-                      className={`text-sm px-3 py-3 rounded-xl border transition-all duration-200 text-left ${
-                        tool === t
-                          ? 'bg-white/10 border-white/30 text-white'
-                          : 'bg-white/[0.02] border-white/[0.06] text-white/65 hover:bg-white/5 hover:border-white/15'
-                      }`}
-                    >
-                      <span className="flex items-center gap-3">
-                        <span
-                          className="w-3.5 h-3.5 rounded-sm inline-block"
-                          style={{ backgroundColor: slot ? SPAWN_COLORS[slot.rotation] : 'rgba(255,255,255,0.12)' }}
-                        />
-                        <span>{TOOL_LABELS[t]}</span>
-                        <span className="ml-auto text-white/25 text-xs">{SHORTCUT_DISPLAY[t]}</span>
-                      </span>
-                      <span className="block mt-1 text-xs text-white/35">
-                        {slot
-                          ? `Placed at ${slot.col}, ${slot.row} facing ${DIRECTION_LABELS[slot.rotation]}`
-                          : 'Select, then click the map to place'}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-              <div className="grid grid-cols-2 gap-2 mt-3">
-                {([0, 1, 2, 3] as const).map(i => (
-                  <button
-                    key={`dir-${i}`}
-                    onClick={() => cycleSpawnRotation(i)}
-                    disabled={!spawns[i]}
-                    className="text-xs px-3 py-2 rounded-lg border border-white/[0.08] bg-white/[0.02] text-white/60 hover:bg-white/5 hover:border-white/15 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200"
-                  >
-                    {spawns[i] ? `Player ${i + 1}: ${DIRECTION_LABELS[spawns[i]!.rotation]}` : `Player ${i + 1}: Unset`}
-                  </button>
-                ))}
+              <h3 className="text-white/60 text-xs font-mono uppercase tracking-wider mb-3">Units</h3>
+              <button
+                onClick={() => setTool('spawn')}
+                className={`w-full text-sm px-3 py-3 rounded-xl border transition-all duration-200 text-left ${
+                  tool === 'spawn'
+                    ? 'bg-white/10 border-white/30 text-white'
+                    : 'bg-white/[0.02] border-white/[0.06] text-white/65 hover:bg-white/5 hover:border-white/15'
+                }`}
+              >
+                <span className="flex items-center gap-3">
+                  <span
+                    className="w-3.5 h-3.5 rounded-sm inline-block"
+                    style={{ backgroundColor: SPAWN_COLORS[spawnRotation] }}
+                  />
+                  <span>{TOOL_LABELS.spawn}</span>
+                  <span className="ml-auto text-white/25 text-xs">{SHORTCUT_DISPLAY.spawn}</span>
+                </span>
+                <span className="block mt-1 text-xs text-white/35">
+                  Click the map to add or remove units. Current facing: {DIRECTION_LABELS[spawnRotation]}.
+                </span>
+              </button>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  onClick={cycleSpawnRotation}
+                  className="text-xs px-3 py-2 rounded-lg border border-white/[0.08] bg-white/[0.02] text-white/60 hover:bg-white/5 hover:border-white/15 transition-all duration-200"
+                >
+                  Spawn Facing: {DIRECTION_LABELS[spawnRotation]}
+                </button>
+                <div className="text-xs px-3 py-2 rounded-lg border border-white/[0.08] bg-white/[0.02] text-white/45">
+                  Units placed: {spawns.length}
+                </div>
               </div>
             </div>
           </>
@@ -1255,45 +1329,55 @@ export default function LevelEditor() {
             {/* Tile tools */}
             <div className="bg-white/[0.03] border border-white/10 rounded-xl p-4">
               <h3 className="text-white/60 text-xs font-mono uppercase tracking-wider mb-3">Tiles</h3>
-              <div className="grid grid-flow-col auto-cols-[minmax(160px,1fr)] lg:grid-flow-row lg:auto-cols-auto lg:grid-cols-1 gap-2 overflow-x-auto lg:overflow-visible pb-1">
-                {(['floor', 'wall', 'goal', 'kill', 'pushable', 'plate', 'door', 'ice', 'mud', 'crumble', 'reverse', 'tswitch', 'conveyor', 'oneway', 'rotation', 'blackhole', 'life'] as Tool[]).map(t => {
-                  const colorMap: Record<string, string> = {
-                    floor: '#1a1a2e', wall: '#050508', goal: '#1a6b3a', kill: '#8b2020',
-                    pushable: '#5a4a3a', plate: '#1a2a3a', door: '#2a2040',
-                    ice: '#1a2a3a', mud: '#2a1a10', crumble: '#2a2020', reverse: '#2a1a2e',
-                    tswitch: '#2a2018',
-                    conveyor: '#1a1a2e', oneway: '#1a1a2e', rotation: '#1e1a2e',
-                    blackhole: '#143a22', life: '#2e1a1a',
-                  };
-                  const borderMap: Record<string, string> = {
-                    wall: 'border border-white/20', plate: 'border border-cyan-500/40',
-                    door: 'border border-purple-400/40 border-dashed', ice: 'border border-cyan-300/30',
-                    tswitch: 'border border-orange-400/40',
-                    conveyor: 'border border-blue-400/40', oneway: 'border border-yellow-400/40',
-                    rotation: 'border border-purple-400/40',
-                    blackhole: 'border border-green-400/40', life: 'border border-red-400/40',
-                  };
-                  return (
-                    <button
-                      key={t}
-                      onClick={() => setTool(t)}
-                      className={`text-sm px-3 py-3 rounded-xl border transition-all duration-200 text-left ${
-                        tool === t
-                          ? 'bg-white/10 border-white/30 text-white'
-                          : 'bg-white/[0.02] border-white/[0.06] text-white/70 hover:bg-white/5 hover:border-white/15'
-                      }`}
-                    >
-                      <span className="flex items-center gap-3">
-                        <span className={`w-3.5 h-3.5 rounded-sm inline-block ${borderMap[t] || ''}`} style={{ backgroundColor: colorMap[t] }} />
-                        <span>{TOOL_LABELS[t]}</span>
-                        <span className="ml-auto text-white/25 text-xs">{SHORTCUT_DISPLAY[t]}</span>
-                      </span>
-                    </button>
-                  );
-                })}
+              <div className="flex flex-col gap-4">
+                {BLOCK_TOOL_GROUPS.map((group) => (
+                  <div key={group.title}>
+                    <p className="mb-2 text-[11px] font-mono uppercase tracking-[0.16em] text-white/30">
+                      {group.title}
+                    </p>
+                    <div className="grid grid-flow-col auto-cols-[minmax(160px,1fr)] gap-2 overflow-x-auto pb-1 lg:grid-flow-row lg:auto-cols-auto lg:grid-cols-1 lg:overflow-visible">
+                      {group.tools.map(t => {
+                        const colorMap: Record<string, string> = {
+                          floor: '#1a1a2e', wall: '#050508', goal: '#1a6b3a', kill: '#8b2020',
+                          pushable: '#5a4a3a', plate: '#1a2a3a', door: '#2a2040',
+                          ice: '#1a2a3a', mud: '#2a1a10', crumble: '#2a2020', reverse: '#2a1a2e',
+                          sticky: '#3a2818', tswitch: '#2a2018', conveyor: '#1a1a2e', oneway: '#1a1a2e',
+                          rotation: '#1e1a2e', repaint: '#3a2432', filter: '#1f2435',
+                          blackhole: '#143a22', life: '#2e1a1a',
+                        };
+                        const borderMap: Record<string, string> = {
+                          wall: 'border border-white/20', plate: 'border border-cyan-500/40',
+                          door: 'border border-purple-400/40 border-dashed', ice: 'border border-cyan-300/30',
+                          sticky: 'border border-amber-400/40', tswitch: 'border border-orange-400/40',
+                          conveyor: 'border border-blue-400/40', oneway: 'border border-yellow-400/40',
+                          rotation: 'border border-purple-400/40', repaint: 'border border-fuchsia-400/40',
+                          filter: 'border border-sky-400/40', blackhole: 'border border-green-400/40',
+                          life: 'border border-red-400/40',
+                        };
+                        return (
+                          <button
+                            key={t}
+                            onClick={() => setTool(t)}
+                            className={`text-sm px-3 py-3 rounded-xl border transition-all duration-200 text-left ${
+                              tool === t
+                                ? 'bg-white/10 border-white/30 text-white'
+                                : 'bg-white/[0.02] border-white/[0.06] text-white/70 hover:bg-white/5 hover:border-white/15'
+                            }`}
+                          >
+                            <span className="flex items-center gap-3">
+                              <span className={`w-3.5 h-3.5 rounded-sm inline-block ${borderMap[t] || ''}`} style={{ backgroundColor: colorMap[t] }} />
+                              <span>{TOOL_LABELS[t]}</span>
+                              <span className="ml-auto text-white/25 text-xs">{SHORTCUT_DISPLAY[t]}</span>
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
               </div>
               <p className="text-white/25 text-xs mt-3 leading-relaxed">
-                Left-click or tap places/removes the selected tile. Right-click cycles tile number or direction where supported.
+                Left-click or tap places/removes the selected tile. Right-click cycles tile number, direction, or color identity where supported.
               </p>
             </div>
 

@@ -1,4 +1,4 @@
-import { TileType, COLORS, PLAYER_SIZE_RATIO, type LevelData, type GameState, isPressurePlate, pressurePlateNumber, isDoor, doorNumber, isToggleSwitch, isToggleBlock, toggleNumber, isConveyor, conveyorDirection, isOneWay, oneWayOrientation, isRotationTile, rotationTileCW, DIR_DX, DIR_DY } from './types';
+import { TileType, COLORS, PLAYER_SIZE_RATIO, type LevelData, type GameState, isPressurePlate, pressurePlateNumber, isDoor, doorNumber, isToggleSwitch, isToggleBlock, toggleNumber, isConveyor, conveyorDirection, isOneWay, oneWayOrientation, isRotationTile, rotationTileCW, isRepaintStation, repaintRotation, isColorFilter, colorFilterRotation, DIR_DX, DIR_DY } from './types';
 
 const ARROW_ANGLES: Record<number, number> = {
   0: -Math.PI / 2,
@@ -59,6 +59,15 @@ function getTileColor(tile: number, time: number, isOccupiedGoal: boolean, activ
     const pulse = 0.6 + 0.4 * Math.sin(time * 2);
     const g = Math.round(120 + 40 * pulse);
     return `rgb(20, ${g}, 50)`;
+  }
+  if (tile === TileType.STICKY) return '#3a2818';
+  if (isRepaintStation(tile)) {
+    const rotation = repaintRotation(tile);
+    return `${COLORS.players[rotation]}33`;
+  }
+  if (isColorFilter(tile)) {
+    const rotation = colorFilterRotation(tile);
+    return `${COLORS.players[rotation]}20`;
   }
   if (isConveyor(tile)) return '#1a1a2e';
   if (isOneWay(tile)) return '#1a1a2e';
@@ -223,7 +232,16 @@ export function render(
       if (!color) continue;
 
       // Glow for special tiles
-      if (tile === TileType.GOAL || tile === TileType.KILL || tile === TileType.BLACKHOLE || (isPressurePlate(tile) && activePlates.has(pressurePlateNumber(tile))) || tile === TileType.ICE) {
+      if (
+        tile === TileType.GOAL ||
+        tile === TileType.KILL ||
+        tile === TileType.BLACKHOLE ||
+        tile === TileType.ICE ||
+        tile === TileType.STICKY ||
+        isRepaintStation(tile) ||
+        isColorFilter(tile) ||
+        (isPressurePlate(tile) && activePlates.has(pressurePlateNumber(tile)))
+      ) {
         ctx.save();
         if (isOccupiedGoal) {
           ctx.shadowColor = '#88ffcc';
@@ -234,6 +252,13 @@ export function render(
         } else if (tile === TileType.ICE) {
           ctx.shadowColor = '#66ccff';
           ctx.shadowBlur = 4 + 2 * Math.sin(time * 2);
+        } else if (tile === TileType.STICKY) {
+          ctx.shadowColor = '#e6a35a';
+          ctx.shadowBlur = 8 + 2 * Math.sin(time * 2.5);
+        } else if (isRepaintStation(tile) || isColorFilter(tile)) {
+          const rotation = isRepaintStation(tile) ? repaintRotation(tile) : colorFilterRotation(tile);
+          ctx.shadowColor = COLORS.players[rotation];
+          ctx.shadowBlur = 10 + 3 * Math.sin(time * 2);
         } else if (tile === TileType.BLACKHOLE) {
           ctx.shadowColor = '#22cc66';
           ctx.shadowBlur = 12 + 6 * Math.sin(time * 2);
@@ -373,6 +398,46 @@ export function render(
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText('⟲', cx, cy + 1);
+      }
+
+      if (tile === TileType.STICKY) {
+        ctx.strokeStyle = 'rgba(255,210,150,0.3)';
+        ctx.lineWidth = 2;
+        for (let i = 0; i < 4; i++) {
+          const yy = y + s * (0.22 + i * 0.16);
+          ctx.beginPath();
+          ctx.moveTo(x + s * 0.18, yy);
+          ctx.lineTo(x + s * 0.82, yy + Math.sin(time * 2 + i) * 1.5);
+          ctx.stroke();
+        }
+      }
+
+      if (isRepaintStation(tile)) {
+        const rotation = repaintRotation(tile);
+        const stationColor = COLORS.players[rotation];
+        ctx.strokeStyle = `${stationColor}aa`;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(cx, cy, s * 0.26, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.fillStyle = `${stationColor}cc`;
+        ctx.beginPath();
+        ctx.arc(cx, cy, s * 0.12, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      if (isColorFilter(tile)) {
+        const rotation = colorFilterRotation(tile);
+        const filterColor = COLORS.players[rotation];
+        ctx.strokeStyle = `${filterColor}cc`;
+        ctx.lineWidth = 2;
+        for (let i = -1; i <= 1; i++) {
+          const xx = cx + i * s * 0.18;
+          ctx.beginPath();
+          ctx.moveTo(xx - s * 0.18, y + s * 0.2);
+          ctx.lineTo(xx + s * 0.18, y + s * 0.8);
+          ctx.stroke();
+        }
       }
 
       // Pressure plate — number

@@ -4,8 +4,10 @@ import {
   checkKillZones,
   checkCheckpoints,
   checkWinCondition,
+  updateRepaintStations,
+  updateStickyPads,
 } from '../GameEngine';
-import { type LevelData } from '../types';
+import { TileType, type LevelData } from '../types';
 
 // 5x5 test level with kill, goal, checkpoint
 const testLevel: LevelData = {
@@ -31,7 +33,7 @@ const testLevel: LevelData = {
 const TILE = 40;
 
 describe('createInitialState', () => {
-  it('creates 4 players at correct grid positions', () => {
+  it('creates all configured units at correct grid positions', () => {
     const state = createInitialState(testLevel, TILE);
     expect(state.players).toHaveLength(4);
     // Player 0 at grid (1,1)
@@ -86,6 +88,46 @@ describe('checkCheckpoints', () => {
   });
 });
 
+describe('identity and sticky tiles', () => {
+  it('repaint stations rewrite the player identity to the station color', () => {
+    const level: LevelData = {
+      ...testLevel,
+      grid: [
+        [0, 0, 0, 0, 0],
+        [0, 84, 1, 4, 0],
+        [0, 1, 2, 1, 0],
+        [0, 1, 1, 3, 0],
+        [0, 0, 0, 0, 0],
+      ],
+      players: [{ startX: 1, startY: 1, rotation: 0 }],
+    };
+    const state = createInitialState(level, TILE);
+    updateRepaintStations(state, level);
+    expect(state.players[0].rotation).toBe(1);
+    expect(state.players[0].color).toBe('#4ecdc4');
+  });
+
+  it('sticky pads arm a single skipped future input when entered', () => {
+    const level: LevelData = {
+      ...testLevel,
+      grid: [
+        [0, 0, 0, 0, 0],
+        [0, 1, 1, 4, 0],
+        [0, 1, TileType.STICKY, 1, 0],
+        [0, 1, 1, 3, 0],
+        [0, 0, 0, 0, 0],
+      ],
+      players: [{ startX: 1, startY: 1, rotation: 0 }],
+    };
+    const state = createInitialState(level, TILE);
+    const prevPositions = [{ col: 1, row: 1 }];
+    state.players[0].col = 2;
+    state.players[0].row = 2;
+    updateStickyPads(state, level, prevPositions);
+    expect(state.players[0].stickyCharges).toBe(1);
+  });
+});
+
 // Level with 4 goal tiles for win condition tests
 const fourGoalLevel: LevelData = {
   id: 0,
@@ -109,14 +151,14 @@ const fourGoalLevel: LevelData = {
 };
 
 describe('checkWinCondition', () => {
-  it('returns true when all 4 players locked on goals', () => {
+  it('returns true when all units are settled on goals', () => {
     const state = createInitialState(fourGoalLevel, TILE);
     // Move each player onto a different goal and lock them
     state.players[0].col = 1; state.players[0].row = 1; state.players[0].lockedOnGoal = true;
     state.players[1].col = 4; state.players[1].row = 1; state.players[1].lockedOnGoal = true;
     state.players[2].col = 1; state.players[2].row = 4; state.players[2].lockedOnGoal = true;
     state.players[3].col = 4; state.players[3].row = 4; state.players[3].lockedOnGoal = true;
-    expect(checkWinCondition(state, fourGoalLevel)).toBe(true);
+    expect(checkWinCondition(state)).toBe(true);
   });
 
   it('returns false when not all players are on goals', () => {
@@ -125,22 +167,21 @@ describe('checkWinCondition', () => {
     state.players[1].col = 4; state.players[1].row = 1;
     state.players[2].col = 1; state.players[2].row = 4;
     state.players[3].col = 4; state.players[3].row = 4;
-    expect(checkWinCondition(state, fourGoalLevel)).toBe(false);
+    expect(checkWinCondition(state)).toBe(false);
   });
 
-  it('returns false when goals are not all covered', () => {
+  it('returns false when any unit is still unsettled', () => {
     const state = createInitialState(testLevel, TILE);
-    // testLevel has 1 goal — can never have all 4 players on goals
     state.players[3].col = 3;
     state.players[3].row = 3;
-    expect(checkWinCondition(state, testLevel)).toBe(false);
+    expect(checkWinCondition(state)).toBe(false);
   });
 
-  it('tracks playersOnGoals count correctly', () => {
+  it('tracks settled unit count correctly', () => {
     const state = createInitialState(fourGoalLevel, TILE);
     state.players[0].col = 1; state.players[0].row = 1; state.players[0].lockedOnGoal = true;
     state.players[1].col = 4; state.players[1].row = 1; state.players[1].lockedOnGoal = true;
-    checkWinCondition(state, fourGoalLevel);
-    expect(state.playersOnGoals).toBe(2);
+    checkWinCondition(state);
+    expect(state.settledUnits).toBe(2);
   });
 });

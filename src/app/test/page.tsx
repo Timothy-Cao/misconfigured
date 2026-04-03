@@ -77,9 +77,10 @@ export default function TestPage() {
 
             <div className="mt-4 text-white/30 text-xs font-mono space-y-1">
               <p>Tile values: 0=void, 1=floor, 2=kill, 3=goal, 4=checkpoint, 5=pushable</p>
-              <p>6=ice, 7=mud, 8=crumble, 9=reverse, 80=blackhole</p>
+              <p>6=ice, 7=mud, 8=crumble, 9=reverse, 80=blackhole, 82=sticky</p>
               <p>10-18=plates, 20-28=doors, 30-33=conveyor(URDL)</p>
               <p>34/36=path vertical, 35/37=path horizontal, 38=CW, 39=CCW</p>
+              <p>83-86=repaint(URDL), 90-93=filters(URDL)</p>
               <p>60-68=toggleSw, 70-78=toggleBlk</p>
             </div>
           </div>

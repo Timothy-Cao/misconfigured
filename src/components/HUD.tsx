@@ -1,14 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import { COLORS } from '@/engine/types';
 
 interface HUDProps {
   levelId: number;
   levelName?: string;
   levelComplete: boolean;
-  playersOnGoals: number;
-  totalPlayers: number;
+  settledUnits: number;
+  totalUnits: number;
   completionTime: number;
   lives: number;
   maxLives: number;
@@ -26,7 +25,7 @@ function formatTime(seconds: number): string {
     : `${s}.${String(ms).padStart(2, '0')}s`;
 }
 
-export default function HUD({ levelId, levelName, levelComplete, playersOnGoals, totalPlayers, completionTime, lives, maxLives, gameOver, onRestart, onNextLevel }: HUDProps) {
+export default function HUD({ levelId, levelName, levelComplete, settledUnits, totalUnits, completionTime, lives, maxLives, gameOver, onRestart, onNextLevel }: HUDProps) {
   const displayName = levelName || `Level ${String(levelId).padStart(2, '0')}`;
 
   return (
@@ -53,23 +52,11 @@ export default function HUD({ levelId, levelName, levelComplete, playersOnGoals,
         </span>
 
         <div className="flex gap-2 items-center">
-            <div className="flex items-center gap-1.5">
-              <div className="flex gap-1">
-              {Array.from({ length: totalPlayers }, (_, i) => (
-                <div
-                  key={i}
-                  className="w-3 h-3 rounded-sm transition-all duration-300"
-                  style={{
-                    backgroundColor: i < playersOnGoals ? COLORS.players[i] : 'rgba(255,255,255,0.08)',
-                    boxShadow: i < playersOnGoals ? `0 0 8px ${COLORS.players[i]}60` : 'none',
-                  }}
-                />
-              ))}
-            </div>
+          <div className="flex items-center gap-1.5">
             <span className={`text-xs font-mono tracking-wider transition-colors duration-300 ${
-              playersOnGoals === totalPlayers ? 'text-green-400' : 'text-white/40'
+              settledUnits === totalUnits ? 'text-green-400' : 'text-white/40'
             }`}>
-              {playersOnGoals}/{totalPlayers}
+              Settled {settledUnits}/{totalUnits}
             </span>
           </div>
 

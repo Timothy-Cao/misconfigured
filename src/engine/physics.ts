@@ -1,4 +1,4 @@
-import { TileType, type TileTypeValue, type LevelData, type PlayerState, isDoor, doorNumber, isToggleBlock, toggleNumber, isOneWay, oneWayOrientation } from './types';
+import { TileType, type TileTypeValue, type LevelData, type PlayerState, isDoor, doorNumber, isToggleBlock, toggleNumber, isOneWay, oneWayOrientation, isColorFilter, colorFilterRotation } from './types';
 
 export function getTileAt(level: LevelData, col: number, row: number): TileTypeValue {
   if (row < 0 || row >= level.height || col < 0 || col >= level.width) {
@@ -47,6 +47,10 @@ export function canMoveTo(
 
   // Basic walkability
   if (!isWalkable(tile, activePlates, toggledSwitches, crumbledTiles, targetCol, targetRow)) {
+    return false;
+  }
+
+  if (isColorFilter(tile) && allPlayers[selfIndex].rotation !== colorFilterRotation(tile)) {
     return false;
   }
 

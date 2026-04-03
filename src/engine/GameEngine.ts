@@ -1,18 +1,8 @@
-import { type LevelData, type GameState, type PlayerState, type PushableBlock, COLORS, TileType, STEP_INTERVAL, ANIM_DURATION, isPressurePlate, pressurePlateNumber, isToggleSwitch, toggleNumber, isConveyor, conveyorDirection, isRotationTile, rotationTileCW, DIR_DX, DIR_DY, type Rotation } from './types';
+import { type LevelData, type GameState, type PlayerState, type PushableBlock, COLORS, TileType, STEP_INTERVAL, ANIM_DURATION, isPressurePlate, pressurePlateNumber, isToggleSwitch, toggleNumber, isConveyor, conveyorDirection, isRotationTile, rotationTileCW, isRepaintStation, repaintRotation, DIR_DX, DIR_DY, type Rotation } from './types';
 
 import { InputManager, remapInput } from './input';
 import { getTileAt, isWalkable, canMoveTo } from './physics';
 import { render } from './renderer';
-
-export function countGoals(level: LevelData): number {
-  let count = 0;
-  for (let row = 0; row < level.height; row++) {
-    for (let col = 0; col < level.width; col++) {
-      if (level.grid[row][col] === TileType.GOAL) count++;
-    }
-  }
-  return count;
-}
 
 function collectPushableBlocks(level: LevelData): PushableBlock[] {
   const blocks: PushableBlock[] = [];
@@ -46,6 +36,7 @@ export function createInitialState(level: LevelData, tileSize: number): GameStat
     lockedOnGoal: false,
     absorbTimer: 0,
     deathTimer: 0,
+    stickyCharges: 0,
   }));
 
   const startingLives = level.lives ?? 1;
@@ -55,8 +46,7 @@ export function createInitialState(level: LevelData, tileSize: number): GameStat
     levelComplete: false,
     tileSize,
     time: 0,
-    playersOnGoals: 0,
-    totalGoals: countGoals(level),
+    settledUnits: 0,
     completionTime: 0,
     occupiedGoals: new Set(),
     pushableBlocks: collectPushableBlocks(level),
@@ -114,8 +104,37 @@ function resolveDeaths(state: GameState): boolean {
     player.deathTimer = 0;
     player.lockedOnGoal = false;
     player.absorbTimer = 0;
+    player.stickyCharges = 0;
   }
   return lifeLost;
+}
+
+function setPlayerIdentity(player: PlayerState, rotation: Rotation): void {
+  player.rotation = rotation;
+  player.color = COLORS.players[rotation];
+}
+
+export function updateRepaintStations(state: GameState, level: LevelData): void {
+  for (const player of state.players) {
+    if (!player.alive || player.finished || player.deathTimer > 0) continue;
+    const tile = level.grid[player.row]?.[player.col];
+    if (tile !== undefined && isRepaintStation(tile)) {
+      setPlayerIdentity(player, repaintRotation(tile));
+    }
+  }
+}
+
+export function updateStickyPads(state: GameState, level: LevelData, prevPositions: { col: number; row: number }[]): void {
+  for (let i = 0; i < state.players.length; i++) {
+    const player = state.players[i];
+    if (!player.alive || player.finished || player.deathTimer > 0) continue;
+    const prev = prevPositions[i];
+    const tile = level.grid[player.row]?.[player.col];
+    const enteredTile = (prev.col !== player.col || prev.row !== player.row) && tile === TileType.STICKY;
+    if (enteredTile) {
+      player.stickyCharges = 1;
+    }
+  }
 }
 
 function checkLifePickups(state: GameState, level: LevelData): boolean {
@@ -264,11 +283,10 @@ function updateRotationTiles(state: GameState, level: LevelData): void {
 
     const cw = rotationTileCW(tile);
     if (cw) {
-      player.rotation = ((player.rotation + 1) % 4) as Rotation;
+      setPlayerIdentity(player, ((player.rotation + 1) % 4) as Rotation);
     } else {
-      player.rotation = ((player.rotation + 3) % 4) as Rotation;
+      setPlayerIdentity(player, ((player.rotation + 3) % 4) as Rotation);
     }
-    player.color = COLORS.players[player.rotation];
     rotationCooldown.add(key);
   }
 
@@ -281,16 +299,7 @@ function updateRotationTiles(state: GameState, level: LevelData): void {
   }
 }
 
-export function checkWinCondition(state: GameState, level: LevelData): boolean {
-  const goals: { col: number; row: number }[] = [];
-  for (let row = 0; row < level.height; row++) {
-    for (let col = 0; col < level.width; col++) {
-      if (level.grid[row][col] === TileType.GOAL) {
-        goals.push({ col, row });
-      }
-    }
-  }
-
+export function checkWinCondition(state: GameState): boolean {
   let playersSettled = 0;
   const occupied = new Set<string>();
 
@@ -305,18 +314,12 @@ export function checkWinCondition(state: GameState, level: LevelData): boolean {
       occupied.add(`${p.row},${p.col}`);
       continue;
     }
-    // Still absorbing doesn't count yet
-    if (p.absorbTimer > 0 || p.deathTimer > 0) continue;
-    const isOnGoal = goals.some(g => g.col === p.col && g.row === p.row);
-    if (isOnGoal) {
-      occupied.add(`${p.row},${p.col}`);
-    }
   }
 
-  state.playersOnGoals = playersSettled;
+  state.settledUnits = playersSettled;
   state.occupiedGoals = occupied;
 
-  return playersSettled === state.players.length;
+  return state.players.length > 0 && playersSettled === state.players.length;
 }
 
 function tryPushBlock(
@@ -401,7 +404,7 @@ function stepPlayer(
 
 export interface GameEngineCallbacks {
   onLevelComplete?: (completionTime: number) => void;
-  onProgressUpdate?: (playersOnGoals: number) => void;
+  onProgressUpdate?: (settledUnits: number) => void;
   onGameOver?: () => void;
   onLivesUpdate?: (lives: number, maxLives: number) => void;
 }
@@ -550,6 +553,13 @@ export class GameEngine {
 
       const hasInput = move.dx !== 0 || move.dy !== 0;
 
+      if (player.stickyCharges > 0 && hasInput) {
+        player.stickyCharges--;
+        this.stepTimers[i] = 0;
+        this.firstStep[i] = true;
+        continue;
+      }
+
       if (hasInput) {
         if (swipeInput) {
           const sdx = move.dx !== 0 ? (move.dx > 0 ? 1 : -1) : 0;
@@ -642,6 +652,8 @@ export class GameEngine {
     // Update tile-based effects
     updateReverseTiles(this.state, this.level);
     updateRotationTiles(this.state, this.level);
+    updateRepaintStations(this.state, this.level);
+    updateStickyPads(this.state, this.level, prevPositions);
     updateCrumbleTiles(this.state, this.level, prevPositions);
     checkCheckpoints(this.state, this.level);
     checkKillZones(this.state, this.level);
@@ -664,12 +676,12 @@ export class GameEngine {
 
     // Only check win after all player animations have finished
     const allAnimsDone = this.state.players.every(p => p.animProgress >= 1);
-    if (allAnimsDone && !this.state.gameOver && checkWinCondition(this.state, this.level)) {
+    if (allAnimsDone && !this.state.gameOver && checkWinCondition(this.state)) {
       this.state.levelComplete = true;
       this.state.completionTime = this.elapsed;
       this.callbacks.onLevelComplete?.(this.elapsed);
     }
 
-    this.callbacks.onProgressUpdate?.(this.state.playersOnGoals);
+    this.callbacks.onProgressUpdate?.(this.state.settledUnits);
   }
 }

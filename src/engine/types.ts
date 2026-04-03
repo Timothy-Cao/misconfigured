@@ -19,6 +19,9 @@ export const TileType = {
   // Toggle switches: 60-68, Toggle blocks: 70-78 (numbered 1-9)
   BLACKHOLE: 80,
   LIFE_PICKUP: 81,
+  STICKY: 82,
+  // Repaint stations: 83-86 (target identity/color = 0..3)
+  // Color filters: 90-93 (allowed identity/color = 0..3)
 } as const;
 
 export type TileTypeValue = number;
@@ -66,6 +69,16 @@ export function toggleNumber(tile: number): number { return isToggleSwitch(tile)
 export function toggleSwitchTile(n: number): number { return n + 59; }
 export function toggleBlockTile(n: number): number { return n + 69; }
 
+// Repaint station helpers
+export function isRepaintStation(tile: number): boolean { return tile >= 83 && tile <= 86; }
+export function repaintRotation(tile: number): Rotation { return (tile - 83) as Rotation; }
+export function repaintStationTile(rotation: number): number { return rotation + 83; }
+
+// Color filter helpers
+export function isColorFilter(tile: number): boolean { return tile >= 90 && tile <= 93; }
+export function colorFilterRotation(tile: number): Rotation { return (tile - 90) as Rotation; }
+export function colorFilterTile(rotation: number): number { return rotation + 90; }
+
 // Direction vectors for conveyor/one-way (0=up, 1=right, 2=down, 3=left)
 export const DIR_DX = [0, 1, 0, -1] as const;
 export const DIR_DY = [-1, 0, 1, 0] as const;
@@ -108,6 +121,7 @@ export interface PlayerState {
   lockedOnGoal: boolean; // true when locked onto a regular goal
   absorbTimer: number; // 0..1 animation progress for black hole absorption
   deathTimer: number; // 0..1 animation progress for kill-tile death before respawn
+  stickyCharges: number; // number of future global inputs this player must skip
 }
 
 export interface PushableBlock {
@@ -121,8 +135,7 @@ export interface GameState {
   levelComplete: boolean;
   tileSize: number;
   time: number;
-  playersOnGoals: number;
-  totalGoals: number;
+  settledUnits: number;
   completionTime: number;
   occupiedGoals: Set<string>;
   pushableBlocks: PushableBlock[];
@@ -160,10 +173,6 @@ export const COLORS = {
   players: ['#ff9a56', '#4ecdc4', '#3b82f6', '#a855f7'] as const,
   gridLine: 'rgba(0,0,0,0.08)',
 } as const;
-
-// Fixed direction per player index (color = direction identity)
-// Orange=Up, Cyan=Right, Blue=Down, Purple=Left
-export const PLAYER_DIRECTIONS: readonly Rotation[] = [0, 1, 2, 3] as const;
 
 // Gameplay constants
 export const PLAYER_SIZE_RATIO = 0.85;
