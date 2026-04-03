@@ -1227,7 +1227,7 @@ export default function LevelEditor() {
     if (publishScope === 'campaign') {
       const levelData = buildLevelData(saveTargetId, `Level ${saveTargetId}`);
       saveCustomLevel(saveTargetId, levelData);
-      setMessage({ text: `Saved to Level ${saveTargetId}!`, type: 'success' });
+      setMessage({ text: `Saved local campaign override for Level ${saveTargetId} in this browser.`, type: 'success' });
       return;
     }
 
@@ -1236,7 +1236,7 @@ export default function LevelEditor() {
       await saveCommunityLevelToApi(levelData, password);
       saveCommunityLevel(communityTargetId, levelData);
       await refreshCommunityLevels();
-      setMessage({ text: `Saved to Community ${communityTargetId}!`, type: 'success' });
+      setMessage({ text: `Saved Community ${communityTargetId} to the server and synced local backup.`, type: 'success' });
     } catch (error) {
       const text = error instanceof Error ? error.message : 'Failed to save community level.';
       setMessage({ text, type: 'error' });
