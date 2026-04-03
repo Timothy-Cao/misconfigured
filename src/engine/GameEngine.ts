@@ -459,6 +459,9 @@ export class GameEngine {
   /** Conveyor ticks start after the first counted move and repeat every cooldown interval */
   private conveyorTicksArmed: boolean = false;
   private conveyorTickRemaining: number = INPUT_COOLDOWN;
+  /** After running out of moves, only fail once the board has remained unchanged for a full beat */
+  private outOfMovesStillnessTime: number = 0;
+  private outOfMovesSnapshot: string | null = null;
 
   constructor(
     canvas: HTMLCanvasElement,
@@ -501,6 +504,8 @@ export class GameEngine {
     this.queuedManualInput = null;
     this.conveyorTicksArmed = false;
     this.conveyorTickRemaining = INPUT_COOLDOWN;
+    this.outOfMovesStillnessTime = 0;
+    this.outOfMovesSnapshot = null;
     this.input.reset();
     toggleCooldown.clear();
     rotationCooldown.clear();
@@ -858,10 +863,29 @@ export class GameEngine {
     }
 
     if (
+      this.state.outOfMoves &&
+      !this.state.levelComplete &&
+      !this.state.gameOver &&
+      allAnimsDone
+    ) {
+      const currentSnapshot = this.getMoveTrackingSnapshot();
+      if (currentSnapshot !== this.outOfMovesSnapshot) {
+        this.outOfMovesSnapshot = currentSnapshot;
+        this.outOfMovesStillnessTime = 0;
+      } else {
+        this.outOfMovesStillnessTime += dt;
+      }
+    } else {
+      this.outOfMovesSnapshot = null;
+      this.outOfMovesStillnessTime = 0;
+    }
+
+    if (
       allAnimsDone &&
       !this.state.levelComplete &&
       !this.state.gameOver &&
-      this.state.outOfMoves
+      this.state.outOfMoves &&
+      this.outOfMovesStillnessTime >= INPUT_COOLDOWN
     ) {
       this.state.gameOver = true;
       this.state.gameOverReason = 'moves';

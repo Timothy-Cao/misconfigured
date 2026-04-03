@@ -232,8 +232,57 @@ describe('move limits', () => {
     expect(getState().gameOver).toBe(false);
 
     update(0.2);
+    expect(getState().gameOver).toBe(false);
+
+    update(0.3);
+    expect(getState().gameOver).toBe(false);
+
+    update(0.2);
     expect(getState().gameOver).toBe(true);
     expect(getState().gameOverReason).toBe('moves');
+  });
+
+  it('lets conveyor-driven board motion resolve before ending the round out of moves', () => {
+    const level: LevelData = {
+      id: 101,
+      name: 'move-limit-conveyor-settle',
+      width: 6,
+      height: 5,
+      grid: [
+        [0, 0, 0, 0, 0, 0],
+        [0, 1, 31, 3, 0, 0],
+        [0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0],
+      ],
+      players: [{ startX: 1, startY: 1, rotation: 0 }],
+      maxMoves: 1,
+    };
+
+    const canvas = document.createElement('canvas');
+    vi.spyOn(canvas, 'getContext').mockReturnValue({} as CanvasRenderingContext2D);
+    const engine = new GameEngine(canvas, level, TILE, {});
+    const enqueueManualInput = (engine as unknown as { enqueueManualInput: (input: { kind: 'key'; key: 'W' | 'A' | 'S' | 'D' }) => void }).enqueueManualInput.bind(engine);
+    const update = (engine as unknown as { update: (dt: number) => void }).update.bind(engine);
+    const getState = () => (engine as unknown as { state: ReturnType<typeof createInitialState> }).state;
+
+    enqueueManualInput({ kind: 'key', key: 'D' });
+    update(0.5);
+    expect(getState().movesUsed).toBe(1);
+    expect(getState().outOfMoves).toBe(true);
+    expect(getState().players[0].col).toBe(2);
+    expect(getState().gameOver).toBe(false);
+
+    update(0.1);
+    expect(getState().gameOver).toBe(false);
+
+    update(0.4);
+    expect(getState().players[0].col).toBe(3);
+    expect(getState().gameOver).toBe(false);
+
+    update(0.1);
+    expect(getState().levelComplete).toBe(true);
+    expect(getState().gameOver).toBe(false);
   });
 
   it('does not accept or buffer new manual input until the previous motion is settled', () => {
