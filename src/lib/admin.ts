@@ -1,4 +1,5 @@
-const ADMIN_PASSWORD_HASH = 'c11b328fc4309ef6478beb387eb5c8348661075ccdffda64d6e9627788f2171c';
+const ADMIN_PASSWORD_HASH = '37a31372023fde4f1b5994decd7491fcd18c5064f3ce7c22bf8703698fd070df';
+const COMMUNITY_PASSWORD_HASH = 'c0218b24549fb5c2bdd1390fb8d73051bce7c91c5c67a4656d0e387a22348e50';
 
 async function sha256(text: string): Promise<string> {
   const encoder = new TextEncoder();
@@ -10,4 +11,8 @@ async function sha256(text: string): Promise<string> {
 
 export async function verifyAdminPassword(password: string): Promise<boolean> {
   return (await sha256(password)) === ADMIN_PASSWORD_HASH;
+}
+
+export async function verifyCommunityPassword(password: string): Promise<boolean> {
+  return (await sha256(password)) === COMMUNITY_PASSWORD_HASH;
 }

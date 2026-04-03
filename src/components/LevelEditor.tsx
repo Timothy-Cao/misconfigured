@@ -4,7 +4,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import GameCanvas from '@/components/GameCanvas';
 import { TileType, COLORS, type LevelData, type Rotation, isPressurePlate, pressurePlateNumber, pressurePlateTile, isDoor, doorNumber, doorTile, isToggleSwitch, isToggleBlock, toggleNumber, toggleSwitchTile, isConveyor, conveyorDirection, conveyorTile, isOneWay, oneWayOrientation, oneWayTile, isRotationTile, rotationTileCW, isRepaintStation, repaintRotation, repaintStationTile, isColorFilter, colorFilterRotation, colorFilterTile, DIR_DX, DIR_DY } from '@/engine/types';
 import { getCommunityLevel, getCommunityLevels, getLevel, getNextCommunityLevelId, saveCommunityLevel, saveCustomLevel } from '@/levels';
-import { verifyAdminPassword } from '@/lib/admin';
+import { verifyAdminPassword, verifyCommunityPassword } from '@/lib/admin';
 
 const MAX_SIZE = 20;
 const MIN_SIZE = 4;
@@ -1199,9 +1199,14 @@ export default function LevelEditor() {
       return;
     }
 
-    const isValidPassword = await verifyAdminPassword(password);
+    const isValidPassword = publishScope === 'campaign'
+      ? await verifyAdminPassword(password)
+      : await verifyCommunityPassword(password);
     if (!isValidPassword) {
-      setMessage({ text: 'Invalid admin password', type: 'error' });
+      setMessage({
+        text: publishScope === 'campaign' ? 'Invalid admin password' : 'Invalid community password',
+        type: 'error',
+      });
       return;
     }
 
@@ -1523,13 +1528,15 @@ export default function LevelEditor() {
               Load Into Editor
             </button>
             <label className="block mb-3">
-              <span className="text-white/40 text-xs">Admin Password</span>
+              <span className="text-white/40 text-xs">
+                {publishScope === 'campaign' ? 'Admin Password' : 'Community Password'}
+              </span>
               <input
                 type="password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-white text-sm mt-1 focus:outline-none focus:border-purple-500/50"
-                placeholder="Enter password"
+                placeholder={publishScope === 'campaign' ? 'Enter admin password' : 'Enter community password'}
               />
             </label>
             <button
