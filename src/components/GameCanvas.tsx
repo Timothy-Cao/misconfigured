@@ -12,14 +12,41 @@ interface GameCanvasProps {
   onProgressUpdate?: (settledUnits: number) => void;
   onGameOver?: () => void;
   onLivesUpdate?: (lives: number, maxLives: number) => void;
+  autoRestartOnGameOver?: boolean;
 }
 
-export default function GameCanvas({ level, onLevelComplete, onProgressUpdate, onGameOver, onLivesUpdate }: GameCanvasProps) {
+export default function GameCanvas({
+  level,
+  onLevelComplete,
+  onProgressUpdate,
+  onGameOver,
+  onLivesUpdate,
+  autoRestartOnGameOver = true,
+}: GameCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<GameEngine | null>(null);
   const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
+  const clearTimeoutRef = useRef<number | null>(null);
+  const restartTimeoutRef = useRef<number | null>(null);
+  const restartHideTimeoutRef = useRef<number | null>(null);
   const [scale, setScale] = useState(1);
+  const [showClearFlash, setShowClearFlash] = useState(false);
+  const [showRestartFlash, setShowRestartFlash] = useState(false);
+
+  useEffect(() => {
+    return () => {
+      if (clearTimeoutRef.current !== null) {
+        window.clearTimeout(clearTimeoutRef.current);
+      }
+      if (restartTimeoutRef.current !== null) {
+        window.clearTimeout(restartTimeoutRef.current);
+      }
+      if (restartHideTimeoutRef.current !== null) {
+        window.clearTimeout(restartHideTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Compute scale so the canvas fills available space without distorting
   useEffect(() => {
@@ -41,9 +68,46 @@ export default function GameCanvas({ level, onLevelComplete, onProgressUpdate, o
     if (!canvas) return;
 
     const engine = new GameEngine(canvas, level, BASE_TILE_SIZE, {
-      onLevelComplete,
+      onLevelComplete: (completionTime) => {
+        setShowClearFlash(true);
+        if (clearTimeoutRef.current !== null) {
+          window.clearTimeout(clearTimeoutRef.current);
+        }
+        clearTimeoutRef.current = window.setTimeout(() => {
+          setShowClearFlash(false);
+          clearTimeoutRef.current = null;
+        }, 900);
+        onLevelComplete(completionTime);
+      },
       onProgressUpdate,
-      onGameOver,
+      onGameOver: () => {
+        if (!autoRestartOnGameOver) {
+          onGameOver?.();
+          return;
+        }
+
+        setShowRestartFlash(true);
+        if (restartTimeoutRef.current !== null) {
+          window.clearTimeout(restartTimeoutRef.current);
+        }
+        if (restartHideTimeoutRef.current !== null) {
+          window.clearTimeout(restartHideTimeoutRef.current);
+        }
+
+        restartTimeoutRef.current = window.setTimeout(() => {
+          engine.restart();
+          onProgressUpdate?.(0);
+          const startingLives = level.lives ?? 1;
+          onLivesUpdate?.(startingLives, startingLives);
+          setShowRestartFlash(false);
+          restartTimeoutRef.current = null;
+        }, 500);
+
+        restartHideTimeoutRef.current = window.setTimeout(() => {
+          setShowRestartFlash(false);
+          restartHideTimeoutRef.current = null;
+        }, 500);
+      },
       onLivesUpdate,
     });
     engineRef.current = engine;
@@ -61,7 +125,7 @@ export default function GameCanvas({ level, onLevelComplete, onProgressUpdate, o
       window.removeEventListener('keydown', handleKeyDown);
       engineRef.current = null;
     };
-  }, [level, onLevelComplete, onProgressUpdate, onGameOver, onLivesUpdate]);
+  }, [autoRestartOnGameOver, level, onLevelComplete, onProgressUpdate, onGameOver, onLivesUpdate]);
 
   const handleTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
     if (event.touches.length !== 1) return;
@@ -98,7 +162,7 @@ export default function GameCanvas({ level, onLevelComplete, onProgressUpdate, o
   return (
     <div
       ref={wrapperRef}
-      className="block rounded-xl overflow-hidden"
+      className="relative block rounded-xl overflow-hidden"
       style={{
         width: level.width * BASE_TILE_SIZE * scale,
         height: level.height * BASE_TILE_SIZE * scale,
@@ -117,6 +181,29 @@ export default function GameCanvas({ level, onLevelComplete, onProgressUpdate, o
           transformOrigin: 'top left',
         }}
       />
+      {showClearFlash && (
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/15">
+          <div className="animate-[fadeIn_0.18s_ease-out]">
+            <div className="rounded-2xl border border-green-300/20 bg-black/45 px-8 py-5 backdrop-blur-sm shadow-[0_0_30px_rgba(74,222,128,0.18)]">
+              <div className="text-center text-4xl sm:text-5xl font-black tracking-wide text-transparent bg-gradient-to-r from-green-300 to-cyan-300 bg-clip-text">
+                Clear!
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {showRestartFlash && (
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/30 animate-[fadeIn_0.15s_ease-out]">
+          <div className="text-center animate-[fadeIn_0.15s_ease-out]">
+            <div className="text-sm font-mono uppercase tracking-[0.35em] text-white/45">
+              Restarting
+            </div>
+            <div className="mt-2 text-2xl sm:text-3xl font-black text-white/90">
+              {level.name}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -131,10 +131,10 @@ export default function HUD({ levelId, levelName, levelComplete, settledUnits, t
       {levelComplete && (
         <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center animate-[fadeIn_0.4s_ease-out]">
           <div className="text-center animate-[fadeInUp_0.5s_ease-out_0.1s_both]">
-            <div className="text-green-400 text-sm font-mono tracking-widest uppercase mb-2 animate-[fadeInUp_0.5s_ease-out_0.2s_both]">
-              Complete
+            <div className="text-5xl font-black bg-gradient-to-r from-green-300 to-cyan-300 bg-clip-text text-transparent mb-2 animate-[fadeInUp_0.5s_ease-out_0.2s_both]">
+              Clear!
             </div>
-            <h2 className="text-4xl font-black bg-gradient-to-r from-green-300 to-cyan-300 bg-clip-text text-transparent mb-2">
+            <h2 className="text-xl font-mono text-white/55 mb-3">
               {displayName}
             </h2>
             <p className="text-white/50 font-mono text-lg mb-8 animate-[fadeInUp_0.5s_ease-out_0.25s_both]">

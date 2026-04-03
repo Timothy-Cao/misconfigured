@@ -20,7 +20,6 @@ export default function PlayPage() {
   const startingLives = level?.lives ?? 1;
   const [lives, setLives] = useState(startingLives);
   const [maxLives, setMaxLives] = useState(startingLives);
-  const [gameOver, setGameOver] = useState(false);
 
   const handleLevelComplete = useCallback((time: number) => {
     completeLevel(levelId);
@@ -30,10 +29,6 @@ export default function PlayPage() {
 
   const handleProgressUpdate = useCallback((settled: number) => {
     setSettledUnits(settled);
-  }, []);
-
-  const handleGameOver = useCallback(() => {
-    setGameOver(true);
   }, []);
 
   const handleLivesUpdate = useCallback((newLives: number, newMaxLives: number) => {
@@ -47,7 +42,6 @@ export default function PlayPage() {
     setCompletionTime(0);
     setLives(startingLives);
     setMaxLives(startingLives);
-    setGameOver(false);
     setKey(k => k + 1);
   }, [startingLives]);
 
@@ -79,7 +73,6 @@ export default function PlayPage() {
           level={level}
           onLevelComplete={handleLevelComplete}
           onProgressUpdate={handleProgressUpdate}
-          onGameOver={handleGameOver}
           onLivesUpdate={handleLivesUpdate}
         />
         <HUD
@@ -91,7 +84,7 @@ export default function PlayPage() {
           completionTime={completionTime}
           lives={lives}
           maxLives={maxLives}
-          gameOver={gameOver}
+          gameOver={false}
           onRestart={handleRestart}
           onNextLevel={handleNextLevel}
         />
