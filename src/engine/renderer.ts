@@ -99,7 +99,6 @@ function getTileColor(tile: number, time: number, isOccupiedGoal: boolean, activ
     }
     case TileType.PUSHABLE: return '#5a4a3a';
     case TileType.ICE: return '#1a2a3a';
-    case TileType.MUD: return '#2a1a10';
     case TileType.CRUMBLE: return isCrumbled ? null : '#2a2020';
     case TileType.REVERSE: return '#2a1a2e';
     case TileType.LIFE_PICKUP: return '#1a1a2e';
@@ -350,25 +349,6 @@ export function render(
       }
 
       // Mud — wavy lines
-      if (tile === TileType.MUD) {
-        ctx.strokeStyle = 'rgba(120,80,40,0.3)';
-        ctx.lineWidth = 1;
-        for (let i = 0; i < 3; i++) {
-          const ly = y + s * 0.25 + i * s * 0.25;
-          ctx.beginPath();
-          for (let px = 0; px <= s; px += 2) {
-            const wy = ly + Math.sin((px + time * 20) * 0.15) * 2;
-            if (px === 0) ctx.moveTo(x + px, wy);
-            else ctx.lineTo(x + px, wy);
-          }
-          ctx.stroke();
-        }
-        ctx.fillStyle = 'rgba(255,255,255,0.15)';
-        ctx.font = smallFont;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('~', cx, cy);
-      }
 
       // Crumble — cracked lines (before it crumbles)
       if (tile === TileType.CRUMBLE && !isCrumbled) {

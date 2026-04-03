@@ -3,15 +3,15 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import GameCanvas from '@/components/GameCanvas';
 import { TileType, COLORS, type LevelData, type Rotation, isPressurePlate, pressurePlateNumber, pressurePlateTile, isDoor, doorNumber, doorTile, isToggleSwitch, isToggleBlock, toggleNumber, toggleSwitchTile, isConveyor, conveyorDirection, conveyorTile, isOneWay, oneWayOrientation, oneWayTile, isRotationTile, rotationTileCW, isRepaintStation, repaintRotation, repaintStationTile, isColorFilter, colorFilterRotation, colorFilterTile, DIR_DX, DIR_DY } from '@/engine/types';
-import { exportLocalLevelBackup, getCommunityLevel, getCommunityLevels, getLevel, getNextCommunityLevelId, importLocalLevelBackup, saveCommunityLevel, saveCustomLevel } from '@/levels';
+import { deleteCommunityLevel, exportLocalLevelBackup, getCommunityLevel, getCommunityLevels, getLevel, getNextCommunityLevelId, importLocalLevelBackup, saveCommunityLevel, saveCustomLevel } from '@/levels';
 import { fetchCampaignOverrideFromApi, saveCampaignOverrideToApi } from '@/lib/campaign-api';
-import { fetchCommunityLevelFromApi, fetchCommunityLevelsFromApi, saveCommunityLevelToApi } from '@/lib/community-api';
+import { deleteCommunityLevelFromApi, fetchCommunityLevelFromApi, fetchCommunityLevelsFromApi, saveCommunityLevelToApi } from '@/lib/community-api';
 import { verifyAdminPassword, verifyCommunityPassword } from '@/lib/admin';
 
 const MAX_SIZE = 20;
 const MIN_SIZE = 4;
 
-type Tool = 'floor' | 'wall' | 'goal' | 'kill' | 'pushable' | 'plate' | 'door' | 'ice' | 'mud' | 'crumble' | 'reverse' | 'sticky' | 'tswitch' | 'conveyor' | 'oneway' | 'rotation' | 'repaint' | 'filter' | 'blackhole' | 'life' | 'spawn';
+type Tool = 'floor' | 'wall' | 'goal' | 'kill' | 'pushable' | 'plate' | 'door' | 'ice' | 'crumble' | 'reverse' | 'sticky' | 'tswitch' | 'conveyor' | 'oneway' | 'rotation' | 'repaint' | 'filter' | 'blackhole' | 'life' | 'spawn';
 type Tab = 'config' | 'blocks' | 'publish';
 type PublishScope = 'campaign' | 'community';
 
@@ -30,7 +30,6 @@ const TOOL_LABELS: Record<Tool, string> = {
   plate: 'Pressure Plate',
   door: 'Door',
   ice: 'Ice',
-  mud: 'Mud',
   crumble: 'Crumble',
   reverse: 'Reverse',
   sticky: 'Sticky Pad',
@@ -65,7 +64,6 @@ const TOOL_SHORTCUTS: Record<string, Tool> = {
   f: 'conveyor',
   g: 'rotation',
   h: 'reverse',
-  j: 'mud',
   '1': 'spawn',
 };
 
@@ -78,7 +76,6 @@ const SHORTCUT_DISPLAY: Partial<Record<Tool, string>> = {
   plate: 'Y',
   door: 'U',
   ice: 'I',
-  mud: 'J',
   crumble: 'P',
   reverse: 'H',
   sticky: 'X',
@@ -99,7 +96,7 @@ const DIRECTION_LABELS = ['Up', 'Right', 'Down', 'Left'];
 
 const BLOCK_TOOL_GROUPS: { title: string; tools: Tool[] }[] = [
   { title: 'Terrain', tools: ['floor', 'wall', 'goal', 'kill', 'blackhole', 'life'] },
-  { title: 'Movement', tools: ['ice', 'mud', 'sticky', 'conveyor', 'oneway', 'rotation', 'reverse'] },
+  { title: 'Movement', tools: ['ice', 'sticky', 'conveyor', 'oneway', 'rotation', 'reverse'] },
   { title: 'Logic', tools: ['pushable', 'plate', 'door', 'tswitch', 'crumble'] },
   { title: 'Identity', tools: ['repaint', 'filter'] },
 ];
@@ -160,6 +157,7 @@ export default function LevelEditor() {
     return levels.length > 0 ? getNextCommunityLevelId() : 1001;
   });
   const [password, setPassword] = useState('');
+  const [confirmDeleteCommunityId, setConfirmDeleteCommunityId] = useState<number | null>(null);
   const [exportText, setExportText] = useState('');
   const [importText, setImportText] = useState('');
   const [message, setMessage] = useState<{ text: string; type: 'error' | 'success' } | null>(null);
@@ -206,6 +204,12 @@ export default function LevelEditor() {
     refreshCommunityLevels();
   }, [refreshCommunityLevels]);
 
+  useEffect(() => {
+    if (publishScope !== 'community' || confirmDeleteCommunityId !== communityTargetId) {
+      setConfirmDeleteCommunityId(null);
+    }
+  }, [communityTargetId, confirmDeleteCommunityId, publishScope]);
+
   // Keyboard shortcuts
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
@@ -247,7 +251,6 @@ export default function LevelEditor() {
       kill: TileType.KILL,
       pushable: TileType.PUSHABLE,
       ice: TileType.ICE,
-      mud: TileType.MUD,
       crumble: TileType.CRUMBLE,
       reverse: TileType.REVERSE,
       sticky: TileType.STICKY,
@@ -708,7 +711,6 @@ export default function LevelEditor() {
             case TileType.CHECKPOINT: color = '#8b7a1a'; break;
             case TileType.PUSHABLE: color = '#5a4a3a'; break;
             case TileType.ICE: color = '#1a2a3a'; break;
-            case TileType.MUD: color = '#2a1a10'; break;
             case TileType.CRUMBLE: color = '#2a2020'; break;
             case TileType.REVERSE: color = '#2a1a2e'; break;
             case TileType.STICKY: color = '#3a2818'; break;
@@ -900,13 +902,6 @@ export default function LevelEditor() {
         }
 
         // Mud — tilde
-        if (tile === TileType.MUD) {
-          ctx.fillStyle = 'rgba(255,255,255,0.3)';
-          ctx.font = `${tilePx * 0.35}px sans-serif`;
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText('~', cx, cy);
-        }
 
         // Crumble — crack lines
         if (tile === TileType.CRUMBLE) {
@@ -1207,6 +1202,7 @@ export default function LevelEditor() {
 
   const handleSave = useCallback(async () => {
     setMessage(null);
+    setConfirmDeleteCommunityId(null);
 
     const error = validate();
     if (error) {
@@ -1249,6 +1245,46 @@ export default function LevelEditor() {
       setMessage({ text, type: 'error' });
     }
   }, [buildLevelData, communityTargetId, password, publishScope, refreshCommunityLevels, saveTargetId, validate]);
+
+  const handleDeleteCommunity = useCallback(async () => {
+    setMessage(null);
+
+    if (publishScope !== 'community') {
+      setMessage({ text: 'Community deletion is only available for community slots.', type: 'error' });
+      return;
+    }
+
+    if (communityTargetId === 1001) {
+      setMessage({ text: 'The built-in community level cannot be deleted.', type: 'error' });
+      return;
+    }
+
+    const isValidPassword = await verifyCommunityPassword(password);
+    if (!isValidPassword) {
+      setMessage({ text: 'Invalid community password', type: 'error' });
+      return;
+    }
+
+    if (confirmDeleteCommunityId !== communityTargetId) {
+      setConfirmDeleteCommunityId(communityTargetId);
+      setMessage({
+        text: `Press delete again to confirm removing Community ${communityTargetId}.`,
+        type: 'error',
+      });
+      return;
+    }
+
+    try {
+      await deleteCommunityLevelFromApi(communityTargetId, password);
+      deleteCommunityLevel(communityTargetId);
+      await refreshCommunityLevels();
+      setConfirmDeleteCommunityId(null);
+      setMessage({ text: `Deleted Community ${communityTargetId} from the server and local backup.`, type: 'success' });
+    } catch (error) {
+      const text = error instanceof Error ? error.message : 'Failed to delete community level.';
+      setMessage({ text, type: 'error' });
+    }
+  }, [communityTargetId, confirmDeleteCommunityId, password, publishScope, refreshCommunityLevels]);
 
   const handleExportLevels = useCallback(() => {
     const backup = exportLocalLevelBackup();
@@ -1477,7 +1513,7 @@ export default function LevelEditor() {
                         const colorMap: Record<string, string> = {
                           floor: '#1a1a2e', wall: '#050508', goal: '#1a6b3a', kill: '#8b2020',
                           pushable: '#5a4a3a', plate: '#1a2a3a', door: '#2a2040',
-                          ice: '#1a2a3a', mud: '#2a1a10', crumble: '#2a2020', reverse: '#2a1a2e',
+                          ice: '#1a2a3a', crumble: '#2a2020', reverse: '#2a1a2e',
                           sticky: '#3a2818', tswitch: '#2a2018', conveyor: '#1a1a2e', oneway: '#1a1a2e',
                           rotation: '#1e1a2e', repaint: '#3a2432', filter: '#1f2435',
                           blackhole: '#143a22', life: '#2e1a1a',
@@ -1607,6 +1643,20 @@ export default function LevelEditor() {
             >
               {publishScope === 'campaign' ? 'Save Campaign Override To Server' : 'Save Community Level To Server'}
             </button>
+            {publishScope === 'community' && (
+              <button
+                onClick={handleDeleteCommunity}
+                className={`w-full text-sm px-3 py-2 mt-2 rounded-lg border transition-all duration-200 ${
+                  confirmDeleteCommunityId === communityTargetId
+                    ? 'bg-red-500/20 border-red-500/40 text-red-200 hover:bg-red-500/30 hover:border-red-500/50'
+                    : 'bg-white/5 border-white/10 text-white/65 hover:bg-white/10 hover:border-white/20'
+                }`}
+              >
+                {confirmDeleteCommunityId === communityTargetId
+                  ? `Confirm Delete Community ${communityTargetId}`
+                  : `Delete Community ${communityTargetId}`}
+              </button>
+            )}
             <div className="mt-4 border-t border-white/10 pt-4">
               <h4 className="text-white/55 text-xs font-mono uppercase tracking-wider mb-3">Backup</h4>
               <button

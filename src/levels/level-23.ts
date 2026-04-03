@@ -2,7 +2,7 @@ import { type LevelData } from '@/engine/types';
 
 const level: LevelData = {
   id: 23,
-  name: 'Level 23',
+  name: 'Open Slot 23',
   width: 12,
   height: 10,
   grid: [
@@ -19,9 +19,6 @@ const level: LevelData = {
   ],
   players: [
     { startX: 1, startY: 1, rotation: 0 },
-    { startX: 10, startY: 1, rotation: 1 },
-    { startX: 1, startY: 8, rotation: 2 },
-    { startX: 10, startY: 8, rotation: 3 },
   ],
   lives: 1,
 };

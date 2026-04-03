@@ -4,13 +4,17 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { type LevelData } from '@/engine/types';
-import { fetchCommunityLevelsFromApi } from '@/lib/community-api';
+import { deleteCommunityLevelFromApi, fetchCommunityLevelsFromApi } from '@/lib/community-api';
 import { COMMUNITY_LEVEL_START_ID } from '@/levels';
 
 export default function CommunityPage() {
   const router = useRouter();
   const [levels, setLevels] = useState<LevelData[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteMessage, setDeleteMessage] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const nextCommunityLevelId = useMemo(() => {
     if (levels.length === 0) return COMMUNITY_LEVEL_START_ID;
     return Math.max(COMMUNITY_LEVEL_START_ID, ...levels.map(level => level.id)) + 1;
@@ -47,6 +51,34 @@ export default function CommunityPage() {
       cancelled = true;
     };
   }, []);
+
+  async function reloadLevels() {
+    const nextLevels = await fetchCommunityLevelsFromApi();
+    setLevels(nextLevels);
+  }
+
+  async function handleDelete(levelId: number) {
+    setDeleteMessage(null);
+
+    if (deleteTargetId !== levelId) {
+      setDeleteTargetId(levelId);
+      setDeletePassword('');
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      await deleteCommunityLevelFromApi(levelId, deletePassword);
+      await reloadLevels();
+      setDeleteTargetId(null);
+      setDeletePassword('');
+      setDeleteMessage(`Deleted Community ${levelId}.`);
+    } catch (error) {
+      setDeleteMessage(error instanceof Error ? error.message : 'Failed to delete community level.');
+    } finally {
+      setIsDeleting(false);
+    }
+  }
 
   return (
     <main className="min-h-screen bg-[#0a0a0f] flex flex-col items-center p-6 sm:p-8 lg:p-10 relative overflow-hidden">
@@ -99,6 +131,12 @@ export default function CommunityPage() {
             </p>
           )}
 
+          {deleteMessage && (
+            <p className="mb-4 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white/75">
+              {deleteMessage}
+            </p>
+          )}
+
           {levels.length > 0 ? (
             <div className="grid gap-3">
               {levels.map(level => (
@@ -112,13 +150,48 @@ export default function CommunityPage() {
                       Community {level.id} - {level.width}x{level.height}
                     </p>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-col items-stretch gap-2 sm:items-end">
+                    {deleteTargetId === level.id && (
+                      <div className="flex flex-col gap-2 rounded-xl border border-red-400/20 bg-red-500/10 p-3 sm:min-w-72">
+                        <p className="text-xs text-red-200/85">
+                          Confirm deletion for Community {level.id}. Enter the community password, then press Delete again.
+                        </p>
+                        <input
+                          type="password"
+                          value={deletePassword}
+                          onChange={(event) => setDeletePassword(event.target.value)}
+                          className="rounded-lg border border-white/10 bg-[#12121a] px-3 py-2 text-sm text-white focus:outline-none focus:border-red-400/40"
+                          placeholder="Community password"
+                        />
+                        <button
+                          onClick={() => {
+                            setDeleteTargetId(null);
+                            setDeletePassword('');
+                            setDeleteMessage(null);
+                          }}
+                          className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-white/60 hover:bg-white/[0.08] hover:text-white transition-all duration-200"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    )}
+                    <div className="flex gap-2">
                     <Link
                       href={`/play/${level.id}`}
                       className="inline-flex items-center justify-center px-4 py-2 rounded-xl border border-cyan-400/30 bg-cyan-500/15 text-cyan-200 hover:bg-cyan-500/25 transition-all duration-200 text-sm sm:text-base"
                     >
                       Play
                     </Link>
+                    {level.id !== COMMUNITY_LEVEL_START_ID && (
+                      <button
+                        onClick={() => void handleDelete(level.id)}
+                        disabled={isDeleting && deleteTargetId === level.id}
+                        className="inline-flex items-center justify-center px-4 py-2 rounded-xl border border-red-400/25 bg-red-500/10 text-red-200 hover:bg-red-500/20 transition-all duration-200 text-sm sm:text-base disabled:opacity-60"
+                      >
+                        {deleteTargetId === level.id ? 'Confirm Delete' : 'Delete'}
+                      </button>
+                    )}
+                    </div>
                   </div>
                 </div>
               ))}

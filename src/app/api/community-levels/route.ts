@@ -1,7 +1,7 @@
 import communityLevel1001 from '@/levels/community-1001';
 import { type LevelData } from '@/engine/types';
 import { verifyCommunityPassword } from '@/lib/admin';
-import { listCommunityLevelsFromSupabase, upsertCommunityLevelInSupabase } from '@/lib/supabase-community';
+import { deleteCommunityLevelFromSupabase, listCommunityLevelsFromSupabase, upsertCommunityLevelInSupabase } from '@/lib/supabase-community';
 
 export const dynamic = 'force-dynamic';
 
@@ -52,6 +52,32 @@ export async function POST(request: Request) {
     return Response.json({ level: savedLevel });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to save community level.';
+    return Response.json({ error: message }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const { id, password } = await request.json() as { id?: number; password?: string };
+
+    if (!Number.isFinite(id)) {
+      return Response.json({ error: 'Missing community level id.' }, { status: 400 });
+    }
+
+    const numericId = Number(id);
+
+    if (numericId === communityLevel1001.id) {
+      return Response.json({ error: 'The built-in community level cannot be deleted.' }, { status: 400 });
+    }
+
+    if (!(await verifyCommunityPassword(password ?? ''))) {
+      return Response.json({ error: 'Invalid community password.' }, { status: 401 });
+    }
+
+    await deleteCommunityLevelFromSupabase(numericId);
+    return Response.json({ ok: true });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to delete community level.';
     return Response.json({ error: message }, { status: 500 });
   }
 }

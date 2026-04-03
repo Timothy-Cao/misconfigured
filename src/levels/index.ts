@@ -100,6 +100,12 @@ export function saveCommunityLevel(id: number, level: LevelData): void {
   localStorage.setItem(COMMUNITY_LEVELS_KEY, JSON.stringify(community));
 }
 
+export function deleteCommunityLevel(id: number): void {
+  const community = getCommunityLevelsRecord();
+  delete community[String(id)];
+  localStorage.setItem(COMMUNITY_LEVELS_KEY, JSON.stringify(community));
+}
+
 export function exportLocalLevelBackup(): LocalLevelBackup {
   return {
     version: LEVEL_BACKUP_VERSION,

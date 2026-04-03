@@ -26,6 +26,10 @@ export default function GameCanvas({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<GameEngine | null>(null);
+  const onLevelCompleteRef = useRef(onLevelComplete);
+  const onProgressUpdateRef = useRef(onProgressUpdate);
+  const onGameOverRef = useRef(onGameOver);
+  const onLivesUpdateRef = useRef(onLivesUpdate);
   const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
   const clearTimeoutRef = useRef<number | null>(null);
   const restartHideTimeoutRef = useRef<number | null>(null);
@@ -33,6 +37,22 @@ export default function GameCanvas({
   const [showClearFlash, setShowClearFlash] = useState(false);
   const [showRestartFlash, setShowRestartFlash] = useState(false);
   const [restartFlashKey, setRestartFlashKey] = useState(0);
+
+  useEffect(() => {
+    onLevelCompleteRef.current = onLevelComplete;
+  }, [onLevelComplete]);
+
+  useEffect(() => {
+    onProgressUpdateRef.current = onProgressUpdate;
+  }, [onProgressUpdate]);
+
+  useEffect(() => {
+    onGameOverRef.current = onGameOver;
+  }, [onGameOver]);
+
+  useEffect(() => {
+    onLivesUpdateRef.current = onLivesUpdate;
+  }, [onLivesUpdate]);
 
   useEffect(() => {
     return () => {
@@ -74,19 +94,19 @@ export default function GameCanvas({
           setShowClearFlash(false);
           clearTimeoutRef.current = null;
         }, 900);
-        onLevelComplete(completionTime);
+        onLevelCompleteRef.current(completionTime);
       },
-      onProgressUpdate,
+      onProgressUpdate: onProgressUpdateRef.current,
       onGameOver: () => {
         if (!autoRestartOnGameOver) {
-          onGameOver?.();
+          onGameOverRef.current?.();
           return;
         }
 
         engine.restart();
-        onProgressUpdate?.(0);
+        onProgressUpdateRef.current?.(0);
         const startingLives = level.lives ?? 1;
-        onLivesUpdate?.(startingLives, startingLives);
+        onLivesUpdateRef.current?.(startingLives, startingLives);
 
         setShowRestartFlash(true);
         setRestartFlashKey(current => current + 1);
@@ -99,7 +119,7 @@ export default function GameCanvas({
           restartHideTimeoutRef.current = null;
         }, 3000);
       },
-      onLivesUpdate,
+      onLivesUpdate: (lives, maxLives) => onLivesUpdateRef.current?.(lives, maxLives),
     });
     engineRef.current = engine;
     engine.start();
@@ -116,7 +136,7 @@ export default function GameCanvas({
       window.removeEventListener('keydown', handleKeyDown);
       engineRef.current = null;
     };
-  }, [autoRestartOnGameOver, level, onLevelComplete, onProgressUpdate, onGameOver, onLivesUpdate]);
+  }, [autoRestartOnGameOver, level]);
 
   const handleTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
     if (event.touches.length !== 1) return;

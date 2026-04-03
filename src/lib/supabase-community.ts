@@ -98,3 +98,12 @@ export async function upsertCommunityLevelInSupabase(level: LevelData): Promise<
 
   return mapRowToLevel(row);
 }
+
+export async function deleteCommunityLevelFromSupabase(id: number): Promise<void> {
+  await supabaseRequest(`/rest/v1/community_levels?id=eq.${id}`, {
+    method: 'DELETE',
+    headers: {
+      Prefer: 'return=minimal',
+    },
+  });
+}

@@ -41,3 +41,18 @@ export async function saveCommunityLevelToApi(level: LevelData, password: string
 
   return data.level;
 }
+
+export async function deleteCommunityLevelFromApi(id: number, password: string): Promise<void> {
+  const response = await fetch(`/api/community-levels/${id}`, {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ password }),
+  });
+
+  const data = await response.json() as { error?: string };
+  if (!response.ok) {
+    throw new Error(data.error || 'Failed to delete community level.');
+  }
+}

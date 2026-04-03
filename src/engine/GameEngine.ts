@@ -114,15 +114,6 @@ function setPlayerIdentity(player: PlayerState, rotation: Rotation): void {
   player.color = COLORS.players[rotation];
 }
 
-function getMoveInterval(player: PlayerState, level: LevelData, firstStep: boolean): number {
-  const tile = level.grid[player.row]?.[player.col];
-  if (tile === TileType.MUD) {
-    return STEP_INTERVAL * 2;
-  }
-
-  return firstStep ? 0 : STEP_INTERVAL;
-}
-
 export function updateRepaintStations(state: GameState, level: LevelData): void {
   for (const player of state.players) {
     if (!player.alive || player.finished || player.deathTimer > 0) continue;
@@ -609,7 +600,7 @@ export class GameEngine {
         }
 
         this.stepTimers[i] += dt;
-        const interval = getMoveInterval(player, this.level, this.firstStep[i]);
+        const interval = this.firstStep[i] ? 0 : STEP_INTERVAL;
         if (this.stepTimers[i] >= interval) {
           this.stepTimers[i] -= Math.max(interval, STEP_INTERVAL);
           // Normalize to single axis (prefer horizontal if both pressed)
