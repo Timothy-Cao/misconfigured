@@ -194,6 +194,7 @@ export default function LevelEditor() {
   // Keyboard shortcuts
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
+      if (previewLevel) return;
       // Don't trigger shortcuts when typing in inputs
       const tag = (e.target as HTMLElement)?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
@@ -206,7 +207,7 @@ export default function LevelEditor() {
     }
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, []);
+  }, [previewLevel]);
 
   const resizeGrid = useCallback((newW: number, newH: number) => {
     setGrid(prev => {
@@ -1291,7 +1292,9 @@ export default function LevelEditor() {
   return (
     <div className="flex flex-col lg:flex-row gap-6 items-start justify-center">
       {/* Sidebar */}
-      <div className="order-2 lg:order-1 flex flex-col gap-4 w-full lg:w-72 shrink-0">
+      <div className={`order-2 lg:order-1 flex flex-col gap-4 w-full lg:w-72 shrink-0 transition-opacity duration-200 ${
+        previewLevel ? 'opacity-45 pointer-events-none select-none' : ''
+      }`}>
         {/* Tab bar */}
         <div className="flex rounded-xl overflow-hidden border border-white/10">
           {(['config', 'blocks', 'publish'] as Tab[]).map(t => (
