@@ -401,6 +401,19 @@ export default function LevelEditor() {
     setSpawnRotation(current => ((current + 1) % 4) as Rotation);
   }, []);
 
+  const cycleSpawnAt = useCallback((col: number, row: number) => {
+    let changed = false;
+    setSpawns(prev => prev.map(spawn => {
+      if (spawn.col !== col || spawn.row !== row) return spawn;
+      changed = true;
+      return {
+        ...spawn,
+        rotation: ((spawn.rotation + 1) % 4) as Rotation,
+      };
+    }));
+    return changed;
+  }, []);
+
   const getCanvasCellFromClient = useCallback((clientX: number, clientY: number) => {
     const canvas = canvasRef.current;
     if (!canvas) return null;
@@ -561,6 +574,10 @@ export default function LevelEditor() {
 
     if (col < 0 || col >= width || row < 0 || row >= height) return;
 
+    if (cycleSpawnAt(col, row)) {
+      return;
+    }
+
     setGrid(prev => {
       const tile = prev[row][col];
       if (isDoor(tile)) {
@@ -617,7 +634,7 @@ export default function LevelEditor() {
       }
       return prev;
     });
-  }, [getCanvasCell, width, height]);
+  }, [cycleSpawnAt, getCanvasCell, width, height]);
 
   // Render the editor canvas
   useEffect(() => {
@@ -1305,7 +1322,7 @@ export default function LevelEditor() {
                   <span className="ml-auto text-white/25 text-xs">{SHORTCUT_DISPLAY.spawn}</span>
                 </span>
                 <span className="block mt-1 text-xs text-white/35">
-                  Click the map to add or remove units. Current facing: {DIRECTION_LABELS[spawnRotation]}.
+                  Click to add or remove units. Right-click a placed unit to cycle its color. Current facing: {DIRECTION_LABELS[spawnRotation]}.
                 </span>
               </button>
               <div className="mt-3 flex flex-wrap gap-2">
