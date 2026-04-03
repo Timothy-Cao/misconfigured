@@ -7,6 +7,7 @@ import HUD from '@/components/HUD';
 import { COMMUNITY_LEVEL_START_ID, getLevel, TOTAL_LEVELS } from '@/levels';
 import { useGameProgress } from '@/hooks/useGameProgress';
 import { type LevelData } from '@/engine/types';
+import { fetchCampaignOverrideFromApi } from '@/lib/campaign-api';
 import { fetchCommunityLevelFromApi } from '@/lib/community-api';
 
 export default function PlayPage() {
@@ -29,20 +30,20 @@ export default function PlayPage() {
     let cancelled = false;
 
     async function loadLevel() {
-      if (levelId < COMMUNITY_LEVEL_START_ID) {
-        setRemoteLevel(undefined);
-        setLoadError(null);
-        return;
-      }
-
       setRemoteLevel(undefined);
       setLoadError(null);
 
       try {
-        const nextLevel = await fetchCommunityLevelFromApi(levelId);
+        const nextLevel = levelId < COMMUNITY_LEVEL_START_ID
+          ? await fetchCampaignOverrideFromApi(levelId)
+          : await fetchCommunityLevelFromApi(levelId);
         if (cancelled) return;
         setRemoteLevel(nextLevel);
-        setLoadError(nextLevel ? null : 'Level not found');
+        if (levelId < COMMUNITY_LEVEL_START_ID) {
+          setLoadError(null);
+        } else {
+          setLoadError(nextLevel ? null : 'Level not found');
+        }
       } catch (error) {
         if (cancelled) return;
         setLoadError(error instanceof Error ? error.message : 'Failed to load level.');

@@ -4,6 +4,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import GameCanvas from '@/components/GameCanvas';
 import { TileType, COLORS, type LevelData, type Rotation, isPressurePlate, pressurePlateNumber, pressurePlateTile, isDoor, doorNumber, doorTile, isToggleSwitch, isToggleBlock, toggleNumber, toggleSwitchTile, isConveyor, conveyorDirection, conveyorTile, isOneWay, oneWayOrientation, oneWayTile, isRotationTile, rotationTileCW, isRepaintStation, repaintRotation, repaintStationTile, isColorFilter, colorFilterRotation, colorFilterTile, DIR_DX, DIR_DY } from '@/engine/types';
 import { exportLocalLevelBackup, getCommunityLevel, getCommunityLevels, getLevel, getNextCommunityLevelId, importLocalLevelBackup, saveCommunityLevel, saveCustomLevel } from '@/levels';
+import { fetchCampaignOverrideFromApi, saveCampaignOverrideToApi } from '@/lib/campaign-api';
 import { fetchCommunityLevelFromApi, fetchCommunityLevelsFromApi, saveCommunityLevelToApi } from '@/lib/community-api';
 import { verifyAdminPassword, verifyCommunityPassword } from '@/lib/admin';
 
@@ -1180,7 +1181,7 @@ export default function LevelEditor() {
     setMessage(null);
 
     const sourceLevel = publishScope === 'campaign'
-      ? getLevel(saveTargetId)
+      ? await fetchCampaignOverrideFromApi(saveTargetId).catch(() => undefined) ?? getLevel(saveTargetId)
       : await fetchCommunityLevelFromApi(communityTargetId).catch(() => getCommunityLevel(communityTargetId));
 
     if (!sourceLevel) {
@@ -1226,8 +1227,14 @@ export default function LevelEditor() {
 
     if (publishScope === 'campaign') {
       const levelData = buildLevelData(saveTargetId, `Level ${saveTargetId}`);
-      saveCustomLevel(saveTargetId, levelData);
-      setMessage({ text: `Saved local campaign override for Level ${saveTargetId} in this browser.`, type: 'success' });
+      try {
+        await saveCampaignOverrideToApi(saveTargetId, levelData, password);
+        saveCustomLevel(saveTargetId, levelData);
+        setMessage({ text: `Saved campaign override for Level ${saveTargetId} to the server and synced local backup.`, type: 'success' });
+      } catch (error) {
+        const text = error instanceof Error ? error.message : 'Failed to save campaign override.';
+        setMessage({ text, type: 'error' });
+      }
       return;
     }
 
@@ -1541,7 +1548,7 @@ export default function LevelEditor() {
                 : 'border-cyan-400/20 bg-cyan-500/10 text-cyan-200/80'
             }`}>
               {publishScope === 'campaign'
-                ? 'Campaign saves are local-only browser overrides. They do not save to the server or appear in other browsers/devices.'
+                ? 'Campaign saves use the admin password and write a shared server override, then keep a local backup in this browser.'
                 : 'Community saves are server-backed. A successful save here should appear in other browsers/devices.'}
             </div>
             {publishScope === 'campaign' ? (
@@ -1598,7 +1605,7 @@ export default function LevelEditor() {
               onClick={handleSave}
               className="w-full text-sm px-3 py-2 bg-purple-500/20 border border-purple-500/30 rounded-lg text-purple-300 hover:bg-purple-500/30 hover:border-purple-500/50 transition-all duration-200"
             >
-              {publishScope === 'campaign' ? 'Save Local Campaign Override' : 'Save Community Level To Server'}
+              {publishScope === 'campaign' ? 'Save Campaign Override To Server' : 'Save Community Level To Server'}
             </button>
             <div className="mt-4 border-t border-white/10 pt-4">
               <h4 className="text-white/55 text-xs font-mono uppercase tracking-wider mb-3">Backup</h4>
