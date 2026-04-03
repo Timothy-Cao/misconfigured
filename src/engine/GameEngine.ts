@@ -1,6 +1,6 @@
-import { type LevelData, type GameState, type PlayerState, type PushableBlock, COLORS, TileType, STEP_INTERVAL, ANIM_DURATION, isPressurePlate, pressurePlateNumber, isToggleSwitch, toggleNumber, isConveyor, conveyorDirection, isRotationTile, rotationTileCW, isRepaintStation, repaintRotation, DIR_DX, DIR_DY, type Rotation } from './types';
+import { type LevelData, type GameState, type PlayerState, type PushableBlock, COLORS, TileType, STEP_INTERVAL, ANIM_DURATION, INPUT_COOLDOWN, isPressurePlate, pressurePlateNumber, isToggleSwitch, toggleNumber, isConveyor, conveyorDirection, isRotationTile, rotationTileCW, isRepaintStation, repaintRotation, DIR_DX, DIR_DY, type Rotation } from './types';
 
-import { InputManager, remapInput } from './input';
+import { InputManager, remapInput, type BufferedAction } from './input';
 import { getTileAt, isWalkable, canMoveTo } from './physics';
 import { render } from './renderer';
 
@@ -48,6 +48,10 @@ export function createInitialState(level: LevelData, tileSize: number): GameStat
     time: 0,
     settledUnits: 0,
     completionTime: 0,
+    movesUsed: 0,
+    maxMoves: level.maxMoves && level.maxMoves > 0 ? level.maxMoves : null,
+    outOfMoves: false,
+    gameOverReason: null,
     occupiedGoals: new Set(),
     pushableBlocks: collectPushableBlocks(level),
     activePlates: new Set(),
@@ -88,6 +92,7 @@ function resolveDeaths(state: GameState): boolean {
 
     if (state.livesRemaining <= 0) {
       state.gameOver = true;
+      state.gameOverReason = 'lives';
       // Don't respawn — leave the player in death state
       player.deathTimer = 1;
       continue;
@@ -405,8 +410,9 @@ function stepPlayer(
 export interface GameEngineCallbacks {
   onLevelComplete?: (completionTime: number) => void;
   onProgressUpdate?: (settledUnits: number) => void;
-  onGameOver?: () => void;
+  onGameOver?: (reason: 'lives' | 'moves') => void;
   onLivesUpdate?: (lives: number, maxLives: number) => void;
+  onMovesUpdate?: (movesUsed: number, maxMoves: number | null) => void;
 }
 
 interface PendingMove {
@@ -416,6 +422,10 @@ interface PendingMove {
   source: 'input' | 'swipe' | 'slide' | 'conveyor';
   order: number;
 }
+
+type QueuedManualInput =
+  | { kind: 'key'; key: BufferedAction }
+  | { kind: 'swipe'; dx: number; dy: number };
 
 function comparePendingMoves(a: PendingMove, b: PendingMove, state: GameState): number {
   if (a.dx === b.dx && a.dy === b.dy) {
@@ -442,10 +452,13 @@ export class GameEngine {
   private originalGrid: number[][];
   /** Time since last step for each player (for hold-to-walk) */
   private stepTimers: number[];
-  /** Whether each player has taken their first step (for initial delay) */
-  private firstStep: boolean[];
-  /** One-shot mobile swipe input consumed on the next update */
-  private queuedSwipe: { dx: number; dy: number } | null = null;
+  /** Manual input cooldown so movement stays deliberate instead of spammy */
+  private inputCooldownRemaining: number = 0;
+  /** Up to one buffered follow-up manual input beyond the next accepted action */
+  private queuedManualInputs: QueuedManualInput[] = [];
+  /** Conveyor ticks start after the first counted move and repeat every cooldown interval */
+  private conveyorTicksArmed: boolean = false;
+  private conveyorTickRemaining: number = INPUT_COOLDOWN;
 
   constructor(
     canvas: HTMLCanvasElement,
@@ -460,7 +473,6 @@ export class GameEngine {
     this.input = new InputManager();
     this.callbacks = callbacks;
     this.stepTimers = Array(level.players.length).fill(0);
-    this.firstStep = Array(level.players.length).fill(true);
 
     canvas.width = level.width * tileSize;
     canvas.height = level.height * tileSize;
@@ -485,15 +497,32 @@ export class GameEngine {
     this.state = createInitialState(this.level, this.state.tileSize);
     this.elapsed = 0;
     this.stepTimers = Array(this.state.players.length).fill(0);
-    this.firstStep = Array(this.state.players.length).fill(true);
-    this.queuedSwipe = null;
+    this.inputCooldownRemaining = 0;
+    this.queuedManualInputs = [];
+    this.conveyorTicksArmed = false;
+    this.conveyorTickRemaining = INPUT_COOLDOWN;
+    this.input.reset();
     toggleCooldown.clear();
     rotationCooldown.clear();
   }
 
   queueSwipe(dx: number, dy: number): void {
     if (dx === 0 && dy === 0) return;
-    this.queuedSwipe = { dx, dy };
+    this.enqueueManualInput({ kind: 'swipe', dx, dy });
+  }
+
+  private enqueueManualInput(input: QueuedManualInput): void {
+    if (this.queuedManualInputs.length === 0) {
+      this.queuedManualInputs.push(input);
+      return;
+    }
+
+    if (this.queuedManualInputs.length === 1) {
+      this.queuedManualInputs.push(input);
+      return;
+    }
+
+    this.queuedManualInputs[1] = input;
   }
 
   private loop = (now: number): void => {
@@ -510,11 +539,58 @@ export class GameEngine {
     this.animationId = requestAnimationFrame(this.loop);
   };
 
+  private getMoveTrackingSnapshot(): string {
+    const players = this.state.players.map(player => [
+      player.col,
+      player.row,
+      player.rotation,
+      player.alive ? 1 : 0,
+      player.reversed ? 1 : 0,
+      player.sliding ? 1 : 0,
+      player.slideDx,
+      player.slideDy,
+      player.finished ? 1 : 0,
+      player.lockedOnGoal ? 1 : 0,
+      player.absorbTimer > 0 ? 1 : 0,
+      player.deathTimer > 0 ? 1 : 0,
+      player.stickyCharges,
+      player.checkpointCol,
+      player.checkpointRow,
+    ]);
+    const blocks = this.state.pushableBlocks.map(block => [block.col, block.row, block.underTile]);
+    return JSON.stringify({
+      players,
+      blocks,
+      activePlates: Array.from(this.state.activePlates).sort((a, b) => a - b),
+      crumbledTiles: Array.from(this.state.crumbledTiles).sort(),
+      toggledSwitches: Array.from(this.state.toggledSwitches).sort((a, b) => a - b),
+      livesRemaining: this.state.livesRemaining,
+      maxLives: this.state.maxLives,
+      collectedLifeTiles: Array.from(this.state.collectedLifeTiles).sort(),
+    });
+  }
+
   private update(dt: number): void {
-    const keys = this.input.getKeys();
-    const swipeInput = this.queuedSwipe;
-    this.queuedSwipe = null;
+    this.inputCooldownRemaining = Math.max(0, this.inputCooldownRemaining - dt);
+    if (this.conveyorTicksArmed) {
+      this.conveyorTickRemaining = Math.max(0, this.conveyorTickRemaining - dt);
+    }
+    let nextKey: BufferedAction | null;
+    while ((nextKey = this.input.consumeAction()) !== null) {
+      this.enqueueManualInput({ kind: 'key', key: nextKey });
+    }
+    const acceptedManualInput = !this.state.outOfMoves && this.inputCooldownRemaining <= 0
+      ? (this.queuedManualInputs.shift() ?? null)
+      : null;
+    if (acceptedManualInput) {
+      this.inputCooldownRemaining = INPUT_COOLDOWN;
+    }
+    if (this.state.outOfMoves) {
+      this.queuedManualInputs = [];
+    }
     const pendingMoves: PendingMove[] = [];
+    const moveSnapshotBefore = acceptedManualInput ? this.getMoveTrackingSnapshot() : null;
+    const movedThisUpdate = new Set<number>();
 
     // Update pressure plates and toggles BEFORE movement
     updatePressurePlates(this.state, this.level);
@@ -557,17 +633,28 @@ export class GameEngine {
         continue;
       }
 
-      let move = swipeInput
-        ? remapInput(
-            {
-              w: swipeInput.dy < 0,
-              a: swipeInput.dx < 0,
-              s: swipeInput.dy > 0,
-              d: swipeInput.dx > 0,
-            },
-            player.rotation,
-          )
-        : remapInput(keys, player.rotation);
+      let move = { dx: 0, dy: 0 };
+      if (acceptedManualInput?.kind === 'swipe') {
+        move = remapInput(
+          {
+            w: acceptedManualInput.dy < 0,
+            a: acceptedManualInput.dx < 0,
+            s: acceptedManualInput.dy > 0,
+            d: acceptedManualInput.dx > 0,
+          },
+          player.rotation,
+        );
+      } else if (acceptedManualInput?.kind === 'key') {
+        move = remapInput(
+          {
+            w: acceptedManualInput.key === 'W',
+            a: acceptedManualInput.key === 'A',
+            s: acceptedManualInput.key === 'S',
+            d: acceptedManualInput.key === 'D',
+          },
+          player.rotation,
+        );
+      }
 
       // Reverse controls if on reverse tile
       if (player.reversed) {
@@ -575,69 +662,24 @@ export class GameEngine {
       }
 
       const hasInput = move.dx !== 0 || move.dy !== 0;
-      let queuedMoveThisTick = false;
-
       if (player.stickyCharges > 0 && hasInput) {
         player.stickyCharges--;
         this.stepTimers[i] = 0;
-        this.firstStep[i] = true;
         continue;
       }
 
       if (hasInput) {
-        if (swipeInput) {
-          const sdx = move.dx !== 0 ? (move.dx > 0 ? 1 : -1) : 0;
-          const sdy = move.dy !== 0 ? (move.dy > 0 ? 1 : -1) : 0;
-          pendingMoves.push({
-            index: i,
-            dx: sdx,
-            dy: sdy,
-            source: 'swipe',
-            order: pendingMoves.length,
-          });
-          queuedMoveThisTick = true;
-          continue;
-        }
+        const sdx = move.dx !== 0 ? (move.dx > 0 ? 1 : -1) : 0;
+        let sdy = move.dy !== 0 ? (move.dy > 0 ? 1 : -1) : 0;
+        if (sdx !== 0 && sdy !== 0) sdy = 0;
 
-        this.stepTimers[i] += dt;
-        const interval = this.firstStep[i] ? 0 : STEP_INTERVAL;
-        if (this.stepTimers[i] >= interval) {
-          this.stepTimers[i] -= Math.max(interval, STEP_INTERVAL);
-          // Normalize to single axis (prefer horizontal if both pressed)
-          const sdx = move.dx !== 0 ? (move.dx > 0 ? 1 : -1) : 0;
-          let sdy = move.dy !== 0 ? (move.dy > 0 ? 1 : -1) : 0;
-          if (sdx !== 0 && sdy !== 0) sdy = 0;
-
-          pendingMoves.push({
-            index: i,
-            dx: sdx,
-            dy: sdy,
-            source: 'input',
-            order: pendingMoves.length,
-          });
-          queuedMoveThisTick = true;
-        }
-      } else {
-        this.stepTimers[i] = 0;
-        this.firstStep[i] = true;
-      }
-
-      // Conveyor belt push (one step per interval, separate from player input)
-      const convTile = this.level.grid[player.row]?.[player.col];
-      if (!queuedMoveThisTick && convTile !== undefined && isConveyor(convTile) && !player.sliding) {
-        // Conveyors push continuously — use a sub-timer approach
-        // We'll just push once per step interval if not already stepping
-        // For simplicity, push if the player's animation is complete
-        if (player.animProgress >= 1) {
-          const dir = conveyorDirection(convTile);
-          pendingMoves.push({
-            index: i,
-            dx: DIR_DX[dir],
-            dy: DIR_DY[dir],
-            source: 'conveyor',
-            order: pendingMoves.length,
-          });
-        }
+        pendingMoves.push({
+          index: i,
+          dx: sdx,
+          dy: sdy,
+          source: acceptedManualInput?.kind === 'swipe' ? 'swipe' : 'input',
+          order: pendingMoves.length,
+        });
       }
     }
 
@@ -659,16 +701,67 @@ export class GameEngine {
         continue;
       }
 
-      if (pending.source === 'input' || pending.source === 'swipe') {
-        this.firstStep[pending.index] = false;
-      }
-
+      movedThisUpdate.add(pending.index);
       const newTile = this.level.grid[player.row]?.[player.col];
       if ((pending.source === 'input' || pending.source === 'swipe') && newTile === TileType.ICE) {
         player.sliding = true;
         player.slideDx = pending.dx;
         player.slideDy = pending.dy;
         this.stepTimers[pending.index] = 0;
+      }
+    }
+
+    if (this.conveyorTicksArmed && this.conveyorTickRemaining <= 0) {
+      const conveyorMoves: PendingMove[] = [];
+      for (let i = 0; i < this.state.players.length; i++) {
+        const player = this.state.players[i];
+        if (
+          movedThisUpdate.has(i) ||
+          !player ||
+          !player.alive ||
+          player.finished ||
+          player.lockedOnGoal ||
+          player.absorbTimer > 0 ||
+          player.deathTimer > 0 ||
+          player.sliding ||
+          player.animProgress < 1
+        ) {
+          continue;
+        }
+
+        const convTile = this.level.grid[player.row]?.[player.col];
+        if (convTile !== undefined && isConveyor(convTile)) {
+          const dir = conveyorDirection(convTile);
+          conveyorMoves.push({
+            index: i,
+            dx: DIR_DX[dir],
+            dy: DIR_DY[dir],
+            source: 'conveyor',
+            order: conveyorMoves.length,
+          });
+        }
+      }
+
+      conveyorMoves.sort((a, b) => comparePendingMoves(a, b, this.state));
+
+      for (const pending of conveyorMoves) {
+        const player = this.state.players[pending.index];
+        if (!player || !player.alive || player.finished || player.lockedOnGoal || player.absorbTimer > 0 || player.deathTimer > 0) {
+          continue;
+        }
+
+        const moved = stepPlayer(player, pending.dx, pending.dy, pending.index, this.state, this.level);
+        if (!moved) {
+          continue;
+        }
+
+        const newTile = this.level.grid[player.row]?.[player.col];
+        if (newTile === TileType.ICE) {
+          player.sliding = true;
+          player.slideDx = pending.dx;
+          player.slideDy = pending.dy;
+          this.stepTimers[pending.index] = 0;
+        }
       }
     }
 
@@ -715,7 +808,7 @@ export class GameEngine {
     if (lifeLost) {
       this.callbacks.onLivesUpdate?.(this.state.livesRemaining, this.state.maxLives);
       if (this.state.gameOver) {
-        this.callbacks.onGameOver?.();
+        this.callbacks.onGameOver?.('lives');
       }
     }
 
@@ -728,12 +821,36 @@ export class GameEngine {
     // Re-update pressure plates after movement
     updatePressurePlates(this.state, this.level);
 
+    const manualMoveChangedState = acceptedManualInput && moveSnapshotBefore !== this.getMoveTrackingSnapshot();
+    if (manualMoveChangedState) {
+      this.state.movesUsed += 1;
+      this.callbacks.onMovesUpdate?.(this.state.movesUsed, this.state.maxMoves);
+      this.conveyorTicksArmed = true;
+      this.conveyorTickRemaining = INPUT_COOLDOWN;
+      if (this.state.maxMoves !== null && this.state.movesUsed >= this.state.maxMoves) {
+        this.state.outOfMoves = true;
+      }
+    } else if (this.conveyorTicksArmed && this.conveyorTickRemaining <= 0) {
+      this.conveyorTickRemaining = INPUT_COOLDOWN;
+    }
+
     // Only check win after all player animations have finished
     const allAnimsDone = this.state.players.every(p => p.animProgress >= 1);
     if (allAnimsDone && !this.state.gameOver && checkWinCondition(this.state)) {
       this.state.levelComplete = true;
       this.state.completionTime = this.elapsed;
       this.callbacks.onLevelComplete?.(this.elapsed);
+    }
+
+    if (
+      allAnimsDone &&
+      !this.state.levelComplete &&
+      !this.state.gameOver &&
+      this.state.outOfMoves
+    ) {
+      this.state.gameOver = true;
+      this.state.gameOverReason = 'moves';
+      this.callbacks.onGameOver?.('moves');
     }
 
     this.callbacks.onProgressUpdate?.(this.state.settledUnits);

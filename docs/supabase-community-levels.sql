@@ -6,6 +6,7 @@ create table if not exists public.community_levels (
   grid jsonb not null,
   players jsonb not null,
   lives integer not null default 1,
+  max_moves integer,
   created_at timestamptz not null default timezone('utc'::text, now()),
   updated_at timestamptz not null default timezone('utc'::text, now())
 );
@@ -37,6 +38,7 @@ create table if not exists public.campaign_overrides (
   grid jsonb not null,
   players jsonb not null,
   lives integer not null default 1,
+  max_moves integer,
   created_at timestamptz not null default timezone('utc'::text, now()),
   updated_at timestamptz not null default timezone('utc'::text, now())
 );

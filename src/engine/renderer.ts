@@ -182,7 +182,6 @@ export function render(
   const iconFont = `${tileSize * 0.4}px sans-serif`;
   const plateFont = `bold ${tileSize * 0.45}px monospace`;
   const doorFont = `bold ${tileSize * 0.4}px monospace`;
-  const smallFont = `${tileSize * 0.3}px sans-serif`;
 
   ctx.fillStyle = '#0a0a0f';
   ctx.fillRect(0, 0, width, height);

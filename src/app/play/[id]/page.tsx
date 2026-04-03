@@ -29,6 +29,10 @@ export default function PlayPage() {
   const [key, setKey] = useState(0);
   const [lives, setLives] = useState(1);
   const [maxLives, setMaxLives] = useState(1);
+  const [movesUsed, setMovesUsed] = useState(0);
+  const [maxMoves, setMaxMoves] = useState<number | null>(null);
+  const [gameOver, setGameOver] = useState(false);
+  const [gameOverReason, setGameOverReason] = useState<'lives' | 'moves' | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -42,7 +46,15 @@ export default function PlayPage() {
           ? await fetchCampaignOverrideFromApi(levelId)
           : await fetchCommunityLevelFromApi(levelId);
         if (cancelled) return;
+        const resolvedLevel = levelId < COMMUNITY_LEVEL_START_ID ? (nextLevel ?? localLevel) : nextLevel;
+        const startingLives = resolvedLevel?.lives ?? 1;
         setRemoteLevel(nextLevel ?? null);
+        setLives(startingLives);
+        setMaxLives(startingLives);
+        setMovesUsed(0);
+        setMaxMoves(resolvedLevel?.maxMoves ?? null);
+        setGameOver(false);
+        setGameOverReason(null);
         if (levelId < COMMUNITY_LEVEL_START_ID) {
           setLoadError(null);
         } else {
@@ -58,13 +70,7 @@ export default function PlayPage() {
     return () => {
       cancelled = true;
     };
-  }, [levelId]);
-
-  useEffect(() => {
-    const startingLives = level?.lives ?? 1;
-    setLives(startingLives);
-    setMaxLives(startingLives);
-  }, [level]);
+  }, [levelId, localLevel]);
 
   const handleLevelComplete = useCallback((time: number) => {
     completeLevel(levelId);
@@ -81,6 +87,16 @@ export default function PlayPage() {
     setMaxLives(newMaxLives);
   }, []);
 
+  const handleMovesUpdate = useCallback((nextMovesUsed: number, nextMaxMoves: number | null) => {
+    setMovesUsed(nextMovesUsed);
+    setMaxMoves(nextMaxMoves);
+  }, []);
+
+  const handleGameOver = useCallback((reason: 'lives' | 'moves') => {
+    setGameOver(true);
+    setGameOverReason(reason);
+  }, []);
+
   const handleRestart = useCallback(() => {
     const startingLives = level?.lives ?? 1;
     setLevelComplete(false);
@@ -88,6 +104,10 @@ export default function PlayPage() {
     setCompletionTime(0);
     setLives(startingLives);
     setMaxLives(startingLives);
+    setMovesUsed(0);
+    setMaxMoves(level?.maxMoves ?? null);
+    setGameOver(false);
+    setGameOverReason(null);
     setKey(k => k + 1);
   }, [level]);
 
@@ -96,6 +116,10 @@ export default function PlayPage() {
       setLevelComplete(false);
       setSettledUnits(0);
       setCompletionTime(0);
+      setMovesUsed(0);
+      setMaxMoves(null);
+      setGameOver(false);
+      setGameOverReason(null);
       router.push(`/play/${levelId + 1}`);
     } else {
       router.push('/levels');
@@ -121,7 +145,11 @@ export default function PlayPage() {
           level={level}
           onLevelComplete={handleLevelComplete}
           onProgressUpdate={handleProgressUpdate}
+          onGameOver={handleGameOver}
           onLivesUpdate={handleLivesUpdate}
+          onMovesUpdate={handleMovesUpdate}
+          autoRestartOnGameOver={false}
+          captureGlobalMobileSwipes
         />
         <HUD
           levelId={levelId}
@@ -132,7 +160,10 @@ export default function PlayPage() {
           completionTime={completionTime}
           lives={lives}
           maxLives={maxLives}
-          gameOver={false}
+          movesUsed={movesUsed}
+          maxMoves={maxMoves}
+          gameOver={gameOver}
+          gameOverReason={gameOverReason}
           onRestart={handleRestart}
           onNextLevel={handleNextLevel}
         />

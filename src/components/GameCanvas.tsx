@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
 import { GameEngine } from '@/engine/GameEngine';
 import { type LevelData } from '@/engine/types';
 
@@ -10,9 +10,11 @@ interface GameCanvasProps {
   level: LevelData;
   onLevelComplete: (completionTime: number) => void;
   onProgressUpdate?: (settledUnits: number) => void;
-  onGameOver?: () => void;
+  onGameOver?: (reason: 'lives' | 'moves') => void;
   onLivesUpdate?: (lives: number, maxLives: number) => void;
+  onMovesUpdate?: (movesUsed: number, maxMoves: number | null) => void;
   autoRestartOnGameOver?: boolean;
+  captureGlobalMobileSwipes?: boolean;
 }
 
 export default function GameCanvas({
@@ -21,7 +23,9 @@ export default function GameCanvas({
   onProgressUpdate,
   onGameOver,
   onLivesUpdate,
+  onMovesUpdate,
   autoRestartOnGameOver = true,
+  captureGlobalMobileSwipes = false,
 }: GameCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -30,6 +34,7 @@ export default function GameCanvas({
   const onProgressUpdateRef = useRef(onProgressUpdate);
   const onGameOverRef = useRef(onGameOver);
   const onLivesUpdateRef = useRef(onLivesUpdate);
+  const onMovesUpdateRef = useRef(onMovesUpdate);
   const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
   const clearTimeoutRef = useRef<number | null>(null);
   const restartHideTimeoutRef = useRef<number | null>(null);
@@ -37,6 +42,40 @@ export default function GameCanvas({
   const [showClearFlash, setShowClearFlash] = useState(false);
   const [showRestartFlash, setShowRestartFlash] = useState(false);
   const [restartFlashKey, setRestartFlashKey] = useState(0);
+
+  const queueSwipeFromDelta = useCallback((dx: number, dy: number) => {
+    if (Math.abs(dx) > Math.abs(dy)) {
+      engineRef.current?.queueSwipe(dx > 0 ? 1 : -1, 0);
+    } else {
+      engineRef.current?.queueSwipe(0, dy > 0 ? 1 : -1);
+    }
+  }, []);
+
+  const recordTouchStart = useCallback((x: number, y: number) => {
+    touchStartRef.current = {
+      x,
+      y,
+      time: performance.now(),
+    };
+  }, []);
+
+  const handleTouchFinish = useCallback((x: number, y: number) => {
+    const start = touchStartRef.current;
+    touchStartRef.current = null;
+    if (!start) return false;
+
+    const dx = x - start.x;
+    const dy = y - start.y;
+    const elapsed = performance.now() - start.time;
+    const distance = Math.hypot(dx, dy);
+
+    if (elapsed > 320 || distance < 24) {
+      return false;
+    }
+
+    queueSwipeFromDelta(dx, dy);
+    return true;
+  }, [queueSwipeFromDelta]);
 
   useEffect(() => {
     onLevelCompleteRef.current = onLevelComplete;
@@ -55,6 +94,10 @@ export default function GameCanvas({
   }, [onLivesUpdate]);
 
   useEffect(() => {
+    onMovesUpdateRef.current = onMovesUpdate;
+  }, [onMovesUpdate]);
+
+  useEffect(() => {
     return () => {
       if (clearTimeoutRef.current !== null) {
         window.clearTimeout(clearTimeoutRef.current);
@@ -64,6 +107,61 @@ export default function GameCanvas({
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (!captureGlobalMobileSwipes) {
+      return;
+    }
+
+    const isProbablyMobile =
+      window.matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0;
+
+    if (!isProbablyMobile) {
+      return;
+    }
+
+    const isInteractiveTarget = (target: EventTarget | null) =>
+      target instanceof Element &&
+      Boolean(
+        target.closest('button, a, input, select, textarea, label, [role="button"], [data-no-global-swipe]')
+      );
+
+    const onTouchStart = (event: TouchEvent) => {
+      if (event.touches.length !== 1 || isInteractiveTarget(event.target)) {
+        return;
+      }
+
+      const touch = event.touches[0];
+      recordTouchStart(touch.clientX, touch.clientY);
+    };
+
+    const onTouchEnd = (event: TouchEvent) => {
+      if (event.changedTouches.length !== 1 || isInteractiveTarget(event.target)) {
+        touchStartRef.current = null;
+        return;
+      }
+
+      const touch = event.changedTouches[0];
+      const handled = handleTouchFinish(touch.clientX, touch.clientY);
+      if (handled) {
+        event.preventDefault();
+      }
+    };
+
+    const onTouchCancel = () => {
+      touchStartRef.current = null;
+    };
+
+    window.addEventListener('touchstart', onTouchStart, { passive: true });
+    window.addEventListener('touchend', onTouchEnd, { passive: false });
+    window.addEventListener('touchcancel', onTouchCancel);
+
+    return () => {
+      window.removeEventListener('touchstart', onTouchStart);
+      window.removeEventListener('touchend', onTouchEnd);
+      window.removeEventListener('touchcancel', onTouchCancel);
+    };
+  }, [captureGlobalMobileSwipes, handleTouchFinish, recordTouchStart]);
 
   // Compute scale so the canvas fills available space without distorting
   useEffect(() => {
@@ -97,9 +195,9 @@ export default function GameCanvas({
         onLevelCompleteRef.current(completionTime);
       },
       onProgressUpdate: onProgressUpdateRef.current,
-      onGameOver: () => {
+      onGameOver: (reason) => {
         if (!autoRestartOnGameOver) {
-          onGameOverRef.current?.();
+          onGameOverRef.current?.(reason);
           return;
         }
 
@@ -107,6 +205,7 @@ export default function GameCanvas({
         onProgressUpdateRef.current?.(0);
         const startingLives = level.lives ?? 1;
         onLivesUpdateRef.current?.(startingLives, startingLives);
+        onMovesUpdateRef.current?.(0, level.maxMoves ?? null);
 
         setShowRestartFlash(true);
         setRestartFlashKey(current => current + 1);
@@ -120,13 +219,19 @@ export default function GameCanvas({
         }, 3000);
       },
       onLivesUpdate: (lives, maxLives) => onLivesUpdateRef.current?.(lives, maxLives),
+      onMovesUpdate: (movesUsed, maxMoves) => onMovesUpdateRef.current?.(movesUsed, maxMoves),
     });
     engineRef.current = engine;
     engine.start();
+    onMovesUpdateRef.current?.(0, level.maxMoves ?? null);
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key.toLowerCase() === 'r') {
         engine.restart();
+        onProgressUpdateRef.current?.(0);
+        const startingLives = level.lives ?? 1;
+        onLivesUpdateRef.current?.(startingLives, startingLives);
+        onMovesUpdateRef.current?.(0, level.maxMoves ?? null);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -141,32 +246,16 @@ export default function GameCanvas({
   const handleTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
     if (event.touches.length !== 1) return;
     const touch = event.touches[0];
-    touchStartRef.current = {
-      x: touch.clientX,
-      y: touch.clientY,
-      time: performance.now(),
-    };
+    recordTouchStart(touch.clientX, touch.clientY);
   };
 
   const handleTouchEnd = (event: React.TouchEvent<HTMLDivElement>) => {
-    const start = touchStartRef.current;
-    touchStartRef.current = null;
-    if (!start || event.changedTouches.length !== 1) return;
+    if (event.changedTouches.length !== 1) return;
 
     const touch = event.changedTouches[0];
-    const dx = touch.clientX - start.x;
-    const dy = touch.clientY - start.y;
-    const elapsed = performance.now() - start.time;
-    const distance = Math.hypot(dx, dy);
-
-    if (elapsed > 320 || distance < 24) return;
-
-    event.preventDefault();
-
-    if (Math.abs(dx) > Math.abs(dy)) {
-      engineRef.current?.queueSwipe(dx > 0 ? 1 : -1, 0);
-    } else {
-      engineRef.current?.queueSwipe(0, dy > 0 ? 1 : -1);
+    const handled = handleTouchFinish(touch.clientX, touch.clientY);
+    if (handled) {
+      event.preventDefault();
     }
   };
 
@@ -180,8 +269,8 @@ export default function GameCanvas({
         boxShadow: '0 0 60px rgba(168, 85, 247, 0.08), 0 0 120px rgba(0, 0, 0, 0.5)',
         touchAction: 'none',
       }}
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
+      onTouchStart={captureGlobalMobileSwipes ? undefined : handleTouchStart}
+      onTouchEnd={captureGlobalMobileSwipes ? undefined : handleTouchEnd}
     >
       <canvas
         ref={canvasRef}

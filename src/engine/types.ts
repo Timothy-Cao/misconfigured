@@ -100,6 +100,7 @@ export interface LevelData {
   grid: number[][]; // TileTypeValue[][]
   players: PlayerStart[];
   lives?: number; // starting lives for the level (default: 1)
+  maxMoves?: number; // maximum counted manual moves for the level; omitted means unlimited
 }
 
 export interface PlayerState {
@@ -137,6 +138,10 @@ export interface GameState {
   time: number;
   settledUnits: number;
   completionTime: number;
+  movesUsed: number;
+  maxMoves: number | null;
+  outOfMoves: boolean;
+  gameOverReason: 'lives' | 'moves' | null;
   occupiedGoals: Set<string>;
   pushableBlocks: PushableBlock[];
   /** Set of plate numbers (1-9) that currently have a player on them */
@@ -179,3 +184,4 @@ export const PLAYER_SIZE_RATIO = 0.85;
 export const STEP_INTERVAL = 0.12; // seconds between grid steps when holding a key
 export const ANIM_DURATION = 0.1; // seconds for move animation
 export const TELEPORT_CHARGE_TIME = 1.0; // seconds to charge teleport
+export const INPUT_COOLDOWN = 0.5; // seconds between accepted manual inputs

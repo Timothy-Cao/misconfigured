@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   createInitialState,
   checkKillZones,
@@ -6,6 +6,7 @@ import {
   checkWinCondition,
   updateRepaintStations,
   updateStickyPads,
+  GameEngine,
 } from '../GameEngine';
 import { TileType, type LevelData } from '../types';
 
@@ -43,6 +44,14 @@ describe('createInitialState', () => {
     expect(state.players[0].color).toBe('#ff9a56');
     expect(state.players[0].alive).toBe(true);
     expect(state.players[0].animProgress).toBe(1);
+  });
+
+  it('initializes move limit tracking from the level data', () => {
+    const state = createInitialState({ ...testLevel, maxMoves: 7 }, TILE);
+    expect(state.movesUsed).toBe(0);
+    expect(state.maxMoves).toBe(7);
+    expect(state.outOfMoves).toBe(false);
+    expect(state.gameOverReason).toBeNull();
   });
 });
 
@@ -183,5 +192,47 @@ describe('checkWinCondition', () => {
     state.players[1].col = 4; state.players[1].row = 1; state.players[1].lockedOnGoal = true;
     checkWinCondition(state);
     expect(state.settledUnits).toBe(2);
+  });
+});
+
+describe('move limits', () => {
+  it('counts only manual inputs that change gameplay state', () => {
+    const level: LevelData = {
+      id: 99,
+      name: 'move-limit-test',
+      width: 5,
+      height: 5,
+      grid: [
+        [0, 0, 0, 0, 0],
+        [0, 1, 1, 1, 0],
+        [0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0],
+      ],
+      players: [{ startX: 1, startY: 1, rotation: 0 }],
+      maxMoves: 1,
+    };
+
+    const canvas = document.createElement('canvas');
+    vi.spyOn(canvas, 'getContext').mockReturnValue({} as CanvasRenderingContext2D);
+    const engine = new GameEngine(canvas, level, TILE, {});
+    const enqueueManualInput = (engine as unknown as { enqueueManualInput: (input: { kind: 'key'; key: 'W' | 'A' | 'S' | 'D' }) => void }).enqueueManualInput.bind(engine);
+    const update = (engine as unknown as { update: (dt: number) => void }).update.bind(engine);
+    const getState = () => (engine as unknown as { state: ReturnType<typeof createInitialState> }).state;
+
+    enqueueManualInput({ kind: 'key', key: 'W' });
+    update(0.016);
+    expect(getState().movesUsed).toBe(0);
+    expect(getState().gameOver).toBe(false);
+
+    enqueueManualInput({ kind: 'key', key: 'D' });
+    update(0.6);
+    expect(getState().movesUsed).toBe(1);
+    expect(getState().outOfMoves).toBe(true);
+    expect(getState().gameOver).toBe(false);
+
+    update(0.2);
+    expect(getState().gameOver).toBe(true);
+    expect(getState().gameOverReason).toBe('moves');
   });
 });

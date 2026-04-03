@@ -1,44 +1,42 @@
-import { describe, it, expect } from 'vitest';
-import { remapInput } from '../input';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { InputManager } from '../input';
 
-describe('remapInput', () => {
-  it('rotation 0: W=up, A=left, S=down, D=right', () => {
-    expect(remapInput({ w: true, a: false, s: false, d: false }, 0)).toEqual({ dx: 0, dy: -1 });
-    expect(remapInput({ w: false, a: true, s: false, d: false }, 0)).toEqual({ dx: -1, dy: 0 });
-    expect(remapInput({ w: false, a: false, s: true, d: false }, 0)).toEqual({ dx: 0, dy: 1 });
-    expect(remapInput({ w: false, a: false, s: false, d: true }, 0)).toEqual({ dx: 1, dy: 0 });
+describe('InputManager buffering', () => {
+  let manager: InputManager;
+
+  beforeEach(() => {
+    manager = new InputManager();
+    manager.attach();
   });
 
-  it('rotation 1 (90° CW): W=right, A=up, S=left, D=down', () => {
-    expect(remapInput({ w: true, a: false, s: false, d: false }, 1)).toEqual({ dx: 1, dy: 0 });
-    expect(remapInput({ w: false, a: true, s: false, d: false }, 1)).toEqual({ dx: 0, dy: -1 });
-    expect(remapInput({ w: false, a: false, s: true, d: false }, 1)).toEqual({ dx: -1, dy: 0 });
-    expect(remapInput({ w: false, a: false, s: false, d: true }, 1)).toEqual({ dx: 0, dy: 1 });
+  afterEach(() => {
+    manager.detach();
   });
 
-  it('rotation 2 (180°): W=down, A=right, S=up, D=left', () => {
-    expect(remapInput({ w: true, a: false, s: false, d: false }, 2)).toEqual({ dx: 0, dy: 1 });
-    expect(remapInput({ w: false, a: true, s: false, d: false }, 2)).toEqual({ dx: 1, dy: 0 });
-    expect(remapInput({ w: false, a: false, s: true, d: false }, 2)).toEqual({ dx: 0, dy: -1 });
-    expect(remapInput({ w: false, a: false, s: false, d: true }, 2)).toEqual({ dx: -1, dy: 0 });
+  it('queues manual inputs in order', () => {
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'w' }));
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'a' }));
+
+    expect(manager.consumeAction()).toBe('W');
+    expect(manager.consumeAction()).toBe('A');
+    expect(manager.consumeAction()).toBeNull();
   });
 
-  it('rotation 3 (270° CW): W=left, A=down, S=right, D=up', () => {
-    expect(remapInput({ w: true, a: false, s: false, d: false }, 3)).toEqual({ dx: -1, dy: 0 });
-    expect(remapInput({ w: false, a: true, s: false, d: false }, 3)).toEqual({ dx: 0, dy: 1 });
-    expect(remapInput({ w: false, a: false, s: true, d: false }, 3)).toEqual({ dx: 1, dy: 0 });
-    expect(remapInput({ w: false, a: false, s: false, d: true }, 3)).toEqual({ dx: 0, dy: -1 });
+  it('keeps only one buffered follow-up input beyond the next action', () => {
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'w' }));
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'a' }));
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'd' }));
+
+    expect(manager.consumeAction()).toBe('W');
+    expect(manager.consumeAction()).toBe('D');
+    expect(manager.consumeAction()).toBeNull();
   });
 
-  it('diagonal: W+D with rotation 0 = up-right', () => {
-    expect(remapInput({ w: true, a: false, s: false, d: true }, 0)).toEqual({ dx: 1, dy: -1 });
-  });
+  it('ignores auto-repeat keydown events', () => {
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'w' }));
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'w', repeat: true }));
 
-  it('opposing keys cancel: W+S = no movement', () => {
-    expect(remapInput({ w: true, a: false, s: true, d: false }, 0)).toEqual({ dx: 0, dy: 0 });
-  });
-
-  it('no keys = no movement', () => {
-    expect(remapInput({ w: false, a: false, s: false, d: false }, 0)).toEqual({ dx: 0, dy: 0 });
+    expect(manager.consumeAction()).toBe('W');
+    expect(manager.consumeAction()).toBeNull();
   });
 });

@@ -149,6 +149,7 @@ export default function LevelEditor() {
   const [tab, setTab] = useState<Tab>('blocks');
   const [levelName, setLevelName] = useState('');
   const [levelLives, setLevelLives] = useState(1);
+  const [levelMaxMoves, setLevelMaxMoves] = useState(0);
   const [publishScope, setPublishScope] = useState<PublishScope>('campaign');
   const [saveTargetId, setSaveTargetId] = useState(1);
   const [communityLevels, setCommunityLevels] = useState<LevelData[]>(() => getCommunityLevels());
@@ -169,8 +170,11 @@ export default function LevelEditor() {
   const [previewCompletionTime, setPreviewCompletionTime] = useState(0);
   const [previewLives, setPreviewLives] = useState(levelLives);
   const [previewMaxLives, setPreviewMaxLives] = useState(levelLives);
+  const [previewMovesUsed, setPreviewMovesUsed] = useState(0);
+  const [previewMoveLimit, setPreviewMoveLimit] = useState<number | null>(null);
   const [previewComplete, setPreviewComplete] = useState(false);
   const [previewGameOver, setPreviewGameOver] = useState(false);
+  const [previewGameOverReason, setPreviewGameOverReason] = useState<'lives' | 'moves' | null>(null);
   const paintModeRef = useRef<'place' | 'erase'>('place');
   const lastPaintedRef = useRef<string>('');
   const [tilePx, setTilePx] = useState(32);
@@ -203,12 +207,6 @@ export default function LevelEditor() {
   useEffect(() => {
     refreshCommunityLevels();
   }, [refreshCommunityLevels]);
-
-  useEffect(() => {
-    if (publishScope !== 'community' || confirmDeleteCommunityId !== communityTargetId) {
-      setConfirmDeleteCommunityId(null);
-    }
-  }, [communityTargetId, confirmDeleteCommunityId, publishScope]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -1150,6 +1148,7 @@ export default function LevelEditor() {
     setSpawns(nextSpawns);
     setLevelName(level.name);
     setLevelLives(level.lives ?? 1);
+    setLevelMaxMoves(level.maxMoves ?? 0);
     setTab('publish');
     setMessage(null);
   }, []);
@@ -1169,8 +1168,9 @@ export default function LevelEditor() {
       grid: grid.map(row => [...row]),
       players,
       lives: levelLives,
+      maxMoves: levelMaxMoves > 0 ? levelMaxMoves : undefined,
     };
-  }, [grid, height, levelLives, levelName, spawns, width]);
+  }, [grid, height, levelLives, levelMaxMoves, levelName, spawns, width]);
 
   const handleLoad = useCallback(async () => {
     setMessage(null);
@@ -1317,6 +1317,9 @@ export default function LevelEditor() {
     setPreviewComplete(false);
     setPreviewGameOver(false);
     setPreviewCompletionTime(0);
+    setPreviewMovesUsed(0);
+    setPreviewMoveLimit(null);
+    setPreviewGameOverReason(null);
   }, []);
 
   const startPreview = useCallback(() => {
@@ -1334,8 +1337,11 @@ export default function LevelEditor() {
     setPreviewCompletionTime(0);
     setPreviewLives(level.lives ?? 1);
     setPreviewMaxLives(level.lives ?? 1);
+    setPreviewMovesUsed(0);
+    setPreviewMoveLimit(level.maxMoves ?? null);
     setPreviewComplete(false);
     setPreviewGameOver(false);
+    setPreviewGameOverReason(null);
   }, [buildLevelData, validate]);
 
   const clearGrid = useCallback(() => {
@@ -1460,6 +1466,19 @@ export default function LevelEditor() {
             </div>
 
             <div className="bg-white/[0.03] border border-white/10 rounded-xl p-4">
+              <h3 className="text-white/60 text-xs font-mono uppercase tracking-wider mb-3">Move Limit</h3>
+              <input
+                type="number"
+                min={0}
+                max={999}
+                value={levelMaxMoves}
+                onChange={e => setLevelMaxMoves(Math.max(0, Math.min(999, parseInt(e.target.value) || 0)))}
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-purple-500/50 text-center"
+              />
+              <p className="text-white/30 text-xs mt-1.5">0 means unlimited. Only manual inputs that change gameplay state are counted.</p>
+            </div>
+
+            <div className="bg-white/[0.03] border border-white/10 rounded-xl p-4">
               <h3 className="text-white/60 text-xs font-mono uppercase tracking-wider mb-3">Units</h3>
               <button
                 onClick={() => setTool('spawn')}
@@ -1571,7 +1590,10 @@ export default function LevelEditor() {
               <span className="text-white/40 text-xs">Destination</span>
               <select
                 value={publishScope}
-                onChange={e => setPublishScope(e.target.value as PublishScope)}
+                onChange={e => {
+                  setPublishScope(e.target.value as PublishScope);
+                  setConfirmDeleteCommunityId(null);
+                }}
                 className="w-full bg-[#12121a] border border-white/10 rounded-lg px-3 py-1.5 text-white text-sm mt-1 focus:outline-none focus:border-purple-500/50 [&>option]:bg-[#12121a] [&>option]:text-white"
               >
                 <option value="campaign">Campaign Levels</option>
@@ -1608,7 +1630,10 @@ export default function LevelEditor() {
                     type="number"
                     min={1001}
                     value={communityTargetId}
-                    onChange={e => setCommunityTargetId(Math.max(1001, parseInt(e.target.value) || 1001))}
+                    onChange={e => {
+                      setCommunityTargetId(Math.max(1001, parseInt(e.target.value) || 1001));
+                      setConfirmDeleteCommunityId(null);
+                    }}
                     className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-white text-sm mt-1 focus:outline-none focus:border-purple-500/50"
                   />
                 </label>
@@ -1745,6 +1770,13 @@ export default function LevelEditor() {
                   }`}>
                     Lives {previewLives}/{previewMaxLives}
                   </span>
+                  {previewMoveLimit !== null && (
+                    <span className={`rounded-lg border px-3 py-2 text-xs font-mono ${
+                      previewMovesUsed >= previewMoveLimit ? 'border-amber-400/30 bg-amber-500/10 text-amber-200' : 'border-white/10 bg-white/[0.02] text-white/55'
+                    }`}>
+                      Moves {previewMovesUsed}/{previewMoveLimit}
+                    </span>
+                  )}
                   <button
                     onClick={startPreview}
                     className="text-xs px-3 py-2 rounded-lg border border-white/10 bg-white/[0.02] text-white/70 hover:bg-white/8 hover:border-white/20 transition-all duration-200"
@@ -1783,11 +1815,19 @@ export default function LevelEditor() {
                     setPreviewCompletionTime(completionTime);
                   }}
                   onProgressUpdate={setPreviewSettledUnits}
-                  onGameOver={() => setPreviewGameOver(true)}
+                  onGameOver={(reason) => {
+                    setPreviewGameOver(true);
+                    setPreviewGameOverReason(reason);
+                  }}
                   onLivesUpdate={(lives, maxLives) => {
                     setPreviewLives(lives);
                     setPreviewMaxLives(maxLives);
                   }}
+                  onMovesUpdate={(movesUsed, maxMoves) => {
+                    setPreviewMovesUsed(movesUsed);
+                    setPreviewMoveLimit(maxMoves);
+                  }}
+                  autoRestartOnGameOver={false}
                 />
               </div>
             ) : (
@@ -1819,7 +1859,9 @@ export default function LevelEditor() {
           {previewLevel && previewGameOver && !previewComplete && (
             <div className="mt-3 rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-3">
               <p className="text-sm text-red-200/90">
-                Out of lives in playtest. Restart the test or return to editing.
+                {previewGameOverReason === 'moves'
+                  ? 'Out of moves in playtest. Restart the test or return to editing.'
+                  : 'Out of lives in playtest. Restart the test or return to editing.'}
               </p>
             </div>
           )}

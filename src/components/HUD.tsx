@@ -11,7 +11,10 @@ interface HUDProps {
   completionTime: number;
   lives: number;
   maxLives: number;
+  movesUsed: number;
+  maxMoves: number | null;
   gameOver: boolean;
+  gameOverReason: 'lives' | 'moves' | null;
   onRestart: () => void;
   onNextLevel: () => void;
 }
@@ -25,7 +28,7 @@ function formatTime(seconds: number): string {
     : `${s}.${String(ms).padStart(2, '0')}s`;
 }
 
-export default function HUD({ levelId, levelName, levelComplete, settledUnits, totalUnits, completionTime, lives, maxLives, gameOver, onRestart, onNextLevel }: HUDProps) {
+export default function HUD({ levelId, levelName, levelComplete, settledUnits, totalUnits, completionTime, lives, maxLives, movesUsed, maxMoves, gameOver, gameOverReason, onRestart, onNextLevel }: HUDProps) {
   const displayName = levelName || `Level ${String(levelId).padStart(2, '0')}`;
 
   return (
@@ -59,6 +62,16 @@ export default function HUD({ levelId, levelName, levelComplete, settledUnits, t
               Settled {settledUnits}/{totalUnits}
             </span>
           </div>
+
+          {maxMoves !== null && (
+            <div className="flex items-center gap-1.5">
+              <span className={`text-xs font-mono tracking-wider transition-colors duration-300 ${
+                movesUsed >= maxMoves ? 'text-red-400' : 'text-white/40'
+              }`}>
+                Moves {movesUsed}/{maxMoves}
+              </span>
+            </div>
+          )}
 
           {/* Lives display */}
           <div className="flex items-center gap-1">
@@ -104,7 +117,7 @@ export default function HUD({ levelId, levelName, levelComplete, settledUnits, t
               Game Over
             </div>
             <h2 className="text-4xl font-black bg-gradient-to-r from-red-400 to-orange-400 bg-clip-text text-transparent mb-2">
-              No Lives Left
+              {gameOverReason === 'moves' ? 'Out of Moves' : 'No Lives Left'}
             </h2>
             <p className="text-white/40 font-mono text-sm mb-8 animate-[fadeInUp_0.5s_ease-out_0.25s_both]">
               {displayName}

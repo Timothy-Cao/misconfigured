@@ -8,6 +8,7 @@ interface CampaignOverrideRow {
   grid: number[][];
   players: LevelData['players'];
   lives: number | null;
+  max_moves: number | null;
 }
 
 function getSupabaseConfig() {
@@ -21,6 +22,10 @@ function getSupabaseConfig() {
   return { url, serviceRoleKey };
 }
 
+function isMissingMaxMovesColumn(error: unknown): boolean {
+  return error instanceof Error && /max_moves/i.test(error.message) && /column/i.test(error.message);
+}
+
 function mapRowToLevel(row: CampaignOverrideRow): LevelData {
   return {
     id: row.id,
@@ -30,6 +35,7 @@ function mapRowToLevel(row: CampaignOverrideRow): LevelData {
     grid: row.grid.map(r => [...r]),
     players: row.players.map(player => ({ ...player })),
     lives: row.lives ?? 1,
+    maxMoves: row.max_moves && row.max_moves > 0 ? row.max_moves : undefined,
   };
 }
 
@@ -55,36 +61,74 @@ async function supabaseRequest(path: string, init: RequestInit = {}) {
 }
 
 export async function getCampaignOverrideFromSupabase(id: number): Promise<LevelData | undefined> {
-  const response = await supabaseRequest(
-    `/rest/v1/campaign_overrides?select=id,name,width,height,grid,players,lives&id=eq.${id}&limit=1`,
-  );
-  const rows = (await response.json()) as CampaignOverrideRow[];
-  const row = rows[0];
-  return row ? mapRowToLevel(row) : undefined;
+  try {
+    const response = await supabaseRequest(
+      `/rest/v1/campaign_overrides?select=id,name,width,height,grid,players,lives,max_moves&id=eq.${id}&limit=1`,
+    );
+    const rows = (await response.json()) as CampaignOverrideRow[];
+    const row = rows[0];
+    return row ? mapRowToLevel(row) : undefined;
+  } catch (error) {
+    if (!isMissingMaxMovesColumn(error)) throw error;
+    const response = await supabaseRequest(
+      `/rest/v1/campaign_overrides?select=id,name,width,height,grid,players,lives&id=eq.${id}&limit=1`,
+    );
+    const rows = (await response.json()) as CampaignOverrideRow[];
+    const row = rows[0];
+    return row ? mapRowToLevel(row) : undefined;
+  }
 }
 
 export async function upsertCampaignOverrideInSupabase(level: LevelData): Promise<LevelData> {
-  const response = await supabaseRequest('/rest/v1/campaign_overrides', {
-    method: 'POST',
-    headers: {
-      Prefer: 'resolution=merge-duplicates,return=representation',
-    },
-    body: JSON.stringify({
-      id: level.id,
-      name: level.name,
-      width: level.width,
-      height: level.height,
-      grid: level.grid,
-      players: level.players,
-      lives: level.lives ?? 1,
-    }),
-  });
+  try {
+    const response = await supabaseRequest('/rest/v1/campaign_overrides', {
+      method: 'POST',
+      headers: {
+        Prefer: 'resolution=merge-duplicates,return=representation',
+      },
+      body: JSON.stringify({
+        id: level.id,
+        name: level.name,
+        width: level.width,
+        height: level.height,
+        grid: level.grid,
+        players: level.players,
+        lives: level.lives ?? 1,
+        max_moves: level.maxMoves ?? null,
+      }),
+    });
 
-  const rows = (await response.json()) as CampaignOverrideRow[];
-  const row = rows[0];
-  if (!row) {
-    throw new Error('Supabase did not return the saved campaign override.');
+    const rows = (await response.json()) as CampaignOverrideRow[];
+    const row = rows[0];
+    if (!row) {
+      throw new Error('Supabase did not return the saved campaign override.');
+    }
+
+    return mapRowToLevel(row);
+  } catch (error) {
+    if (!isMissingMaxMovesColumn(error)) throw error;
+    const response = await supabaseRequest('/rest/v1/campaign_overrides', {
+      method: 'POST',
+      headers: {
+        Prefer: 'resolution=merge-duplicates,return=representation',
+      },
+      body: JSON.stringify({
+        id: level.id,
+        name: level.name,
+        width: level.width,
+        height: level.height,
+        grid: level.grid,
+        players: level.players,
+        lives: level.lives ?? 1,
+      }),
+    });
+
+    const rows = (await response.json()) as CampaignOverrideRow[];
+    const row = rows[0];
+    if (!row) {
+      throw new Error('Supabase did not return the saved campaign override.');
+    }
+
+    return mapRowToLevel(row);
   }
-
-  return mapRowToLevel(row);
 }

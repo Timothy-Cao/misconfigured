@@ -1,5 +1,7 @@
 import { type Rotation, type MoveVector } from './types';
 
+export type BufferedAction = 'W' | 'A' | 'S' | 'D';
+
 export interface KeyState {
   w: boolean;
   a: boolean;
@@ -41,21 +43,32 @@ export function remapInput(keys: KeyState, rotation: Rotation): MoveVector {
  * Tracks currently pressed keys. Attach to window keydown/keyup.
  */
 export class InputManager {
-  private keys: KeyState = { w: false, a: false, s: false, d: false };
+  private queue: BufferedAction[] = [];
 
   private onKeyDown = (e: KeyboardEvent) => {
     const key = e.key.toLowerCase();
-    if (key in this.keys) {
-      this.keys[key as keyof KeyState] = true;
+    if (key === 'w' || key === 'a' || key === 's' || key === 'd') {
+      if (e.repeat) return;
+      this.enqueue(key.toUpperCase() as BufferedAction);
     }
   };
 
-  private onKeyUp = (e: KeyboardEvent) => {
-    const key = e.key.toLowerCase();
-    if (key in this.keys) {
-      this.keys[key as keyof KeyState] = false;
+  private onKeyUp = () => {};
+
+  private enqueue(action: BufferedAction) {
+    if (this.queue.length === 0) {
+      this.queue.push(action);
+      return;
     }
-  };
+
+    if (this.queue.length === 1) {
+      this.queue.push(action);
+      return;
+    }
+
+    // Keep only a single buffered follow-up action.
+    this.queue[1] = action;
+  }
 
   attach() {
     window.addEventListener('keydown', this.onKeyDown);
@@ -67,11 +80,11 @@ export class InputManager {
     window.removeEventListener('keyup', this.onKeyUp);
   }
 
-  getKeys(): KeyState {
-    return { ...this.keys };
+  consumeAction(): BufferedAction | null {
+    return this.queue.shift() ?? null;
   }
 
   reset() {
-    this.keys = { w: false, a: false, s: false, d: false };
+    this.queue = [];
   }
 }
