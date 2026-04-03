@@ -39,6 +39,14 @@ const CUSTOM_LEVELS_KEY = `misconfigured-custom-levels-v${CAMPAIGN_OVERRIDE_VERS
 const COMMUNITY_LEVELS_KEY = 'misconfigured-community-levels';
 export const COMMUNITY_LEVEL_START_ID = 1001;
 const builtInCommunityLevels: LevelData[] = [communityLevel1001];
+const LEVEL_BACKUP_VERSION = 1;
+
+export interface LocalLevelBackup {
+  version: number;
+  exportedAt: string;
+  campaignOverrides: Record<string, LevelData>;
+  communityLevels: Record<string, LevelData>;
+}
 
 function cloneLevel(level: LevelData): LevelData {
   return {
@@ -90,6 +98,51 @@ export function saveCommunityLevel(id: number, level: LevelData): void {
   const community = getCommunityLevelsRecord();
   community[String(id)] = cloneLevel(level);
   localStorage.setItem(COMMUNITY_LEVELS_KEY, JSON.stringify(community));
+}
+
+export function exportLocalLevelBackup(): LocalLevelBackup {
+  return {
+    version: LEVEL_BACKUP_VERSION,
+    exportedAt: new Date().toISOString(),
+    campaignOverrides: Object.fromEntries(
+      Object.entries(getCustomLevels()).map(([id, level]) => [id, cloneLevel(level)]),
+    ),
+    communityLevels: Object.fromEntries(
+      Object.entries(getCommunityLevelsRecord()).map(([id, level]) => [id, cloneLevel(level)]),
+    ),
+  };
+}
+
+export function importLocalLevelBackup(rawBackup: unknown): { campaignCount: number; communityCount: number } {
+  if (!rawBackup || typeof rawBackup !== 'object') {
+    throw new Error('Backup payload must be an object.');
+  }
+
+  const backup = rawBackup as Partial<LocalLevelBackup>;
+  const campaignOverrides = backup.campaignOverrides;
+  const communityLevels = backup.communityLevels;
+
+  if (!campaignOverrides || typeof campaignOverrides !== 'object') {
+    throw new Error('Backup is missing campaign overrides.');
+  }
+  if (!communityLevels || typeof communityLevels !== 'object') {
+    throw new Error('Backup is missing community levels.');
+  }
+
+  const nextCampaignOverrides = Object.fromEntries(
+    Object.entries(campaignOverrides).map(([id, level]) => [id, cloneLevel(level as LevelData)]),
+  );
+  const nextCommunityLevels = Object.fromEntries(
+    Object.entries(communityLevels).map(([id, level]) => [id, cloneLevel(level as LevelData)]),
+  );
+
+  localStorage.setItem(CUSTOM_LEVELS_KEY, JSON.stringify(nextCampaignOverrides));
+  localStorage.setItem(COMMUNITY_LEVELS_KEY, JSON.stringify(nextCommunityLevels));
+
+  return {
+    campaignCount: Object.keys(nextCampaignOverrides).length,
+    communityCount: Object.keys(nextCommunityLevels).length,
+  };
 }
 
 export function getCommunityLevels(): LevelData[] {

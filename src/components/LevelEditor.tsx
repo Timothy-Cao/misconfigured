@@ -3,7 +3,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import GameCanvas from '@/components/GameCanvas';
 import { TileType, COLORS, type LevelData, type Rotation, isPressurePlate, pressurePlateNumber, pressurePlateTile, isDoor, doorNumber, doorTile, isToggleSwitch, isToggleBlock, toggleNumber, toggleSwitchTile, isConveyor, conveyorDirection, conveyorTile, isOneWay, oneWayOrientation, oneWayTile, isRotationTile, rotationTileCW, isRepaintStation, repaintRotation, repaintStationTile, isColorFilter, colorFilterRotation, colorFilterTile, DIR_DX, DIR_DY } from '@/engine/types';
-import { getCommunityLevel, getCommunityLevels, getLevel, getNextCommunityLevelId, saveCommunityLevel, saveCustomLevel } from '@/levels';
+import { exportLocalLevelBackup, getCommunityLevel, getCommunityLevels, getLevel, getNextCommunityLevelId, importLocalLevelBackup, saveCommunityLevel, saveCustomLevel } from '@/levels';
 import { verifyAdminPassword, verifyCommunityPassword } from '@/lib/admin';
 
 const MAX_SIZE = 20;
@@ -158,6 +158,8 @@ export default function LevelEditor() {
     return levels.length > 0 ? getNextCommunityLevelId() : 1001;
   });
   const [password, setPassword] = useState('');
+  const [exportText, setExportText] = useState('');
+  const [importText, setImportText] = useState('');
   const [message, setMessage] = useState<{ text: string; type: 'error' | 'success' } | null>(null);
   const [isPainting, setIsPainting] = useState(false);
   const [mobileCanvasMode, setMobileCanvasMode] = useState<'paint' | 'pan'>('paint');
@@ -1223,6 +1225,32 @@ export default function LevelEditor() {
     setMessage({ text: `Saved to Community ${communityTargetId}!`, type: 'success' });
   }, [buildLevelData, communityTargetId, password, publishScope, refreshCommunityLevels, saveTargetId, validate]);
 
+  const handleExportLevels = useCallback(() => {
+    const backup = exportLocalLevelBackup();
+    const serialized = JSON.stringify(backup, null, 2);
+    setExportText(serialized);
+    setMessage({
+      text: `Exported ${Object.keys(backup.campaignOverrides).length} campaign override(s) and ${Object.keys(backup.communityLevels).length} community level(s).`,
+      type: 'success',
+    });
+  }, []);
+
+  const handleImportLevels = useCallback(() => {
+    setMessage(null);
+    try {
+      const parsed = JSON.parse(importText);
+      const result = importLocalLevelBackup(parsed);
+      refreshCommunityLevels();
+      setMessage({
+        text: `Imported ${result.campaignCount} campaign override(s) and ${result.communityCount} community level(s).`,
+        type: 'success',
+      });
+    } catch (error) {
+      const text = error instanceof Error ? error.message : 'Import failed.';
+      setMessage({ text, type: 'error' });
+    }
+  }, [importText, refreshCommunityLevels]);
+
   const stopPreview = useCallback(() => {
     setPreviewLevel(null);
     setPreviewComplete(false);
@@ -1545,6 +1573,33 @@ export default function LevelEditor() {
             >
               {publishScope === 'campaign' ? 'Save Campaign Override' : 'Save Community Level'}
             </button>
+            <div className="mt-4 border-t border-white/10 pt-4">
+              <h4 className="text-white/55 text-xs font-mono uppercase tracking-wider mb-3">Backup</h4>
+              <button
+                onClick={handleExportLevels}
+                className="w-full text-sm px-3 py-2 mb-2 bg-white/5 border border-white/10 rounded-lg text-white/70 hover:bg-white/10 hover:border-white/20 transition-all duration-200"
+              >
+                Export Local Saved Levels
+              </button>
+              <textarea
+                value={exportText}
+                readOnly
+                className="w-full min-h-32 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white/80 text-xs mt-1 mb-3 focus:outline-none"
+                placeholder="Exported local levels will appear here as JSON."
+              />
+              <textarea
+                value={importText}
+                onChange={e => setImportText(e.target.value)}
+                className="w-full min-h-32 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white/80 text-xs mt-1 focus:outline-none focus:border-cyan-400/40"
+                placeholder="Paste exported JSON here to restore local saved levels."
+              />
+              <button
+                onClick={handleImportLevels}
+                className="w-full text-sm px-3 py-2 mt-2 bg-cyan-500/15 border border-cyan-400/25 rounded-lg text-cyan-200 hover:bg-cyan-500/25 hover:border-cyan-400/40 transition-all duration-200"
+              >
+                Import Local Saved Levels
+              </button>
+            </div>
             {message && (
               <p className={`text-xs mt-2 ${message.type === 'error' ? 'text-red-400' : 'text-green-400'}`}>
                 {message.text}
