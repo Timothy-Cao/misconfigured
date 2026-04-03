@@ -1,29 +1,29 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import AuthControls from '@/components/AuthControls';
 import { type LevelData } from '@/engine/types';
-import { deleteCommunityLevelFromApi, fetchCommunityLevelsFromApi } from '@/lib/community-api';
-import { COMMUNITY_LEVEL_START_ID } from '@/levels';
+import { fetchCommunityLevelsFromApi } from '@/lib/community-api';
 
 export default function CommunityPage() {
   const router = useRouter();
   const [levels, setLevels] = useState<LevelData[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
-  const [deletePassword, setDeletePassword] = useState('');
-  const [deleteMessage, setDeleteMessage] = useState<string | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const nextCommunityLevelId = useMemo(() => {
-    if (levels.length === 0) return COMMUNITY_LEVEL_START_ID;
-    return Math.max(COMMUNITY_LEVEL_START_ID, ...levels.map(level => level.id)) + 1;
-  }, [levels]);
 
   useEffect(() => {
+    function goBackOrHome() {
+      if (window.history.length > 1) {
+        router.back();
+        return;
+      }
+      router.push('/');
+    }
+
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') {
-        router.push('/');
+        goBackOrHome();
       }
     }
 
@@ -52,34 +52,6 @@ export default function CommunityPage() {
     };
   }, []);
 
-  async function reloadLevels() {
-    const nextLevels = await fetchCommunityLevelsFromApi();
-    setLevels(nextLevels);
-  }
-
-  async function handleDelete(levelId: number) {
-    setDeleteMessage(null);
-
-    if (deleteTargetId !== levelId) {
-      setDeleteTargetId(levelId);
-      setDeletePassword('');
-      return;
-    }
-
-    setIsDeleting(true);
-    try {
-      await deleteCommunityLevelFromApi(levelId, deletePassword);
-      await reloadLevels();
-      setDeleteTargetId(null);
-      setDeletePassword('');
-      setDeleteMessage(`Deleted Community ${levelId}.`);
-    } catch (error) {
-      setDeleteMessage(error instanceof Error ? error.message : 'Failed to delete community level.');
-    } finally {
-      setIsDeleting(false);
-    }
-  }
-
   return (
     <main className="min-h-screen bg-[#0a0a0f] flex flex-col items-center p-6 sm:p-8 lg:p-10 relative overflow-hidden">
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[500px] h-[500px] rounded-full bg-cyan-500/5 blur-[110px]" />
@@ -92,23 +64,32 @@ export default function CommunityPage() {
                 Community Levels
               </h1>
               <p className="text-white/35 text-sm sm:text-base mt-1">
-                Community play is open. Server-backed community publishing is enabled when the Supabase table is configured.
+                Browse published player-made maps and built-in inspiration pieces. Manage your own private and published maps from My Maps.
               </p>
-              <p className="text-white/20 text-xs sm:text-sm mt-2">Press Esc to return to the title.</p>
+              <p className="text-white/20 text-xs sm:text-sm mt-2">Press Esc to go back.</p>
             </div>
-            <div className="flex gap-3">
-              <Link
-                href="/editor"
-                className="inline-flex items-center justify-center px-4 py-2.5 rounded-xl border border-white/10 bg-white/[0.04] text-white/75 hover:text-white hover:border-white/20 hover:bg-white/[0.08] transition-all duration-200"
-              >
-                Open Editor
-              </Link>
-              <Link
-                href="/"
-                className="inline-flex items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm sm:text-base text-white/75 hover:text-white hover:border-white/20 hover:bg-white/[0.08] transition-all duration-300"
-              >
-                Back to Title
-              </Link>
+            <div className="flex flex-col items-stretch gap-3 sm:items-end">
+              <AuthControls className="justify-start sm:justify-end" />
+              <div className="flex flex-wrap gap-3">
+                <Link
+                  href="/my-maps"
+                  className="inline-flex items-center justify-center px-4 py-2.5 rounded-xl border border-cyan-400/20 bg-cyan-500/10 text-cyan-100 hover:bg-cyan-500/20 transition-all duration-200"
+                >
+                  My Maps
+                </Link>
+                <Link
+                  href="/editor"
+                  className="inline-flex items-center justify-center px-4 py-2.5 rounded-xl border border-white/10 bg-white/[0.04] text-white/75 hover:text-white hover:border-white/20 hover:bg-white/[0.08] transition-all duration-200"
+                >
+                  Open Editor
+                </Link>
+                <Link
+                  href="/"
+                  className="inline-flex items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm sm:text-base text-white/75 hover:text-white hover:border-white/20 hover:bg-white/[0.08] transition-all duration-300"
+                >
+                  Home
+                </Link>
+              </div>
             </div>
           </div>
         </div>
@@ -120,20 +101,12 @@ export default function CommunityPage() {
                 ? `${levels.length} community level${levels.length === 1 ? '' : 's'} available`
                 : 'No community levels saved yet'}
             </p>
-            <p className="text-white/25 text-xs sm:text-sm">
-              Next suggested slot: {nextCommunityLevelId}
-            </p>
+            <p className="text-white/25 text-xs sm:text-sm">Published maps only. Use My Maps to manage your own levels.</p>
           </div>
 
           {loadError && (
             <p className="mb-4 rounded-xl border border-amber-400/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-200/90">
               {loadError}
-            </p>
-          )}
-
-          {deleteMessage && (
-            <p className="mb-4 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white/75">
-              {deleteMessage}
             </p>
           )}
 
@@ -151,30 +124,6 @@ export default function CommunityPage() {
                     </p>
                   </div>
                   <div className="flex flex-col items-stretch gap-2 sm:items-end">
-                    {deleteTargetId === level.id && (
-                      <div className="flex flex-col gap-2 rounded-xl border border-red-400/20 bg-red-500/10 p-3 sm:min-w-72">
-                        <p className="text-xs text-red-200/85">
-                          Confirm deletion for Community {level.id}. Enter the community password, then press Delete again.
-                        </p>
-                        <input
-                          type="password"
-                          value={deletePassword}
-                          onChange={(event) => setDeletePassword(event.target.value)}
-                          className="rounded-lg border border-white/10 bg-[#12121a] px-3 py-2 text-sm text-white focus:outline-none focus:border-red-400/40"
-                          placeholder="Community password"
-                        />
-                        <button
-                          onClick={() => {
-                            setDeleteTargetId(null);
-                            setDeletePassword('');
-                            setDeleteMessage(null);
-                          }}
-                          className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-white/60 hover:bg-white/[0.08] hover:text-white transition-all duration-200"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    )}
                     <div className="flex gap-2">
                     <Link
                       href={`/play/${level.id}`}
@@ -182,15 +131,6 @@ export default function CommunityPage() {
                     >
                       Play
                     </Link>
-                    {level.id !== COMMUNITY_LEVEL_START_ID && (
-                      <button
-                        onClick={() => void handleDelete(level.id)}
-                        disabled={isDeleting && deleteTargetId === level.id}
-                        className="inline-flex items-center justify-center px-4 py-2 rounded-xl border border-red-400/25 bg-red-500/10 text-red-200 hover:bg-red-500/20 transition-all duration-200 text-sm sm:text-base disabled:opacity-60"
-                      >
-                        {deleteTargetId === level.id ? 'Confirm Delete' : 'Delete'}
-                      </button>
-                    )}
                     </div>
                   </div>
                 </div>
@@ -198,7 +138,7 @@ export default function CommunityPage() {
             </div>
           ) : (
             <p className="text-white/30 text-sm sm:text-base">
-              Save a level to a community slot from the editor publish tab to populate this page.
+              Publish one of your cloud maps from the editor or My Maps to populate this page.
             </p>
           )}
         </div>

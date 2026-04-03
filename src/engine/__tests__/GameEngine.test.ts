@@ -326,3 +326,42 @@ describe('move limits', () => {
     expect(getState().movesUsed).toBe(2);
   });
 });
+
+describe('black hole settling', () => {
+  it('still accepts manual input for remaining units after one unit finishes in a black hole', () => {
+    const level: LevelData = {
+      id: 102,
+      name: 'black-hole-continue',
+      width: 6,
+      height: 6,
+      grid: [
+        [0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0],
+        [0, 0, TileType.BLACKHOLE, 0, 0, 0],
+        [0, 0, 1, 1, 0, 0],
+        [0, 0, 1, 1, 0, 0],
+        [0, 0, 0, 0, 0, 0],
+      ],
+      players: [
+        { startX: 2, startY: 3, rotation: 0 },
+        { startX: 3, startY: 4, rotation: 0 },
+      ],
+    };
+
+    const canvas = document.createElement('canvas');
+    vi.spyOn(canvas, 'getContext').mockReturnValue({} as CanvasRenderingContext2D);
+    const engine = new GameEngine(canvas, level, TILE, {});
+    const enqueueManualInput = (engine as unknown as { enqueueManualInput: (input: { kind: 'key'; key: 'W' | 'A' | 'S' | 'D' }) => void }).enqueueManualInput.bind(engine);
+    const update = (engine as unknown as { update: (dt: number) => void }).update.bind(engine);
+    const getState = () => (engine as unknown as { state: ReturnType<typeof createInitialState> }).state;
+
+    enqueueManualInput({ kind: 'key', key: 'W' });
+    update(0.5);
+    update(0.6);
+    expect(getState().players[0].finished).toBe(true);
+
+    enqueueManualInput({ kind: 'key', key: 'W' });
+    update(0.5);
+    expect(getState().players[1].row).toBe(3);
+  });
+});

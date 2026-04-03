@@ -126,18 +126,64 @@ export default function PlayPage() {
     }
   }, [levelId, router]);
 
+  useEffect(() => {
+    function goBack() {
+      if (window.history.length > 1) {
+        router.back();
+        return;
+      }
+      router.push(levelId >= COMMUNITY_LEVEL_START_ID ? '/community' : '/levels');
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        goBack();
+        return;
+      }
+
+      if (!levelComplete) {
+        return;
+      }
+
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        handleNextLevel();
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleNextLevel, levelComplete, levelId, router]);
+
   if (!level) {
     return (
-      <main className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
-        <p className="text-white/40 font-mono">
-          {isRemoteLoading ? 'Loading level...' : (loadError ?? 'Level not found')}
-        </p>
+      <main className="min-h-screen bg-[#0a0a0f] flex items-center justify-center px-6">
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-6 py-6 text-center">
+          <p className="text-white/40 font-mono">
+            {isRemoteLoading ? 'Loading level...' : (loadError ?? 'Level not found')}
+          </p>
+          {!isRemoteLoading && (
+            <button
+              onClick={() => {
+                if (window.history.length > 1) {
+                  router.back();
+                  return;
+                }
+                router.push(levelId >= COMMUNITY_LEVEL_START_ID ? '/community' : '/levels');
+              }}
+              className="mt-4 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-white/70 hover:bg-white/[0.08] hover:text-white transition-all duration-200"
+            >
+              Go Back
+            </button>
+          )}
+        </div>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-[#0a0a0f] flex items-center justify-center relative overflow-hidden">
+    <main className="min-h-screen bg-[#0a0a0f] flex items-center justify-center relative overflow-hidden px-3 pb-4 pt-32 sm:px-4 sm:pt-20">
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-purple-500/[0.03] blur-[100px]" />
       <div className="relative animate-[fadeIn_0.4s_ease-out]">
         <GameCanvas

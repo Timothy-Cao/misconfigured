@@ -1,4 +1,4 @@
-import { verifyAdminPassword } from '@/lib/admin';
+import { getCurrentAuthUser } from '@/lib/auth';
 import { getCampaignOverrideFromSupabase, upsertCampaignOverrideInSupabase } from '@/lib/supabase-campaign';
 import { type LevelData } from '@/engine/types';
 
@@ -34,13 +34,14 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   }
 
   try {
-    const { level, password } = await request.json() as { level?: LevelData; password?: string };
-    if (!level || typeof level !== 'object') {
-      return Response.json({ error: 'Missing level payload.' }, { status: 400 });
+    const user = await getCurrentAuthUser();
+    if (!user?.isAdmin) {
+      return Response.json({ error: 'Admin sign-in required to edit campaign levels.' }, { status: 401 });
     }
 
-    if (!(await verifyAdminPassword(password ?? ''))) {
-      return Response.json({ error: 'Invalid admin password.' }, { status: 401 });
+    const { level } = await request.json() as { level?: LevelData };
+    if (!level || typeof level !== 'object') {
+      return Response.json({ error: 'Missing level payload.' }, { status: 400 });
     }
 
     const savedLevel = await upsertCampaignOverrideInSupabase({ ...level, id: numericId });

@@ -3,10 +3,11 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import GameCanvas from '@/components/GameCanvas';
 import { TileType, COLORS, type LevelData, type Rotation, isPressurePlate, pressurePlateNumber, pressurePlateTile, isDoor, doorNumber, doorTile, isToggleSwitch, isToggleBlock, toggleNumber, toggleSwitchTile, isConveyor, conveyorDirection, conveyorTile, isOneWay, oneWayOrientation, oneWayTile, isRotationTile, rotationTileCW, isRepaintStation, repaintRotation, repaintStationTile, isColorFilter, colorFilterRotation, colorFilterTile, DIR_DX, DIR_DY } from '@/engine/types';
-import { deleteCommunityLevel, exportLocalLevelBackup, getCommunityLevel, getCommunityLevels, getLevel, getNextCommunityLevelId, importLocalLevelBackup, saveCommunityLevel, saveCustomLevel } from '@/levels';
+import { exportLocalLevelBackup, getLevel, importLocalLevelBackup, saveCustomLevel } from '@/levels';
 import { fetchCampaignOverrideFromApi, saveCampaignOverrideToApi } from '@/lib/campaign-api';
-import { deleteCommunityLevelFromApi, fetchCommunityLevelFromApi, fetchCommunityLevelsFromApi, saveCommunityLevelToApi } from '@/lib/community-api';
-import { verifyAdminPassword, verifyCommunityPassword } from '@/lib/admin';
+import { deleteOwnedCommunityLevelFromApi, fetchCommunityLevelFromApi, fetchOwnedCloudLevelsFromApi, saveOwnedCommunityLevelToApi } from '@/lib/community-api';
+import { getSupabaseBrowserClient } from '@/lib/supabase/browser';
+import { type OwnedCloudLevelSummary } from '@/lib/auth';
 
 const MAX_SIZE = 20;
 const MIN_SIZE = 4;
@@ -152,12 +153,10 @@ export default function LevelEditor() {
   const [levelMaxMoves, setLevelMaxMoves] = useState(0);
   const [publishScope, setPublishScope] = useState<PublishScope>('campaign');
   const [saveTargetId, setSaveTargetId] = useState(1);
-  const [communityLevels, setCommunityLevels] = useState<LevelData[]>(() => getCommunityLevels());
-  const [communityTargetId, setCommunityTargetId] = useState(() => {
-    const levels = getCommunityLevels();
-    return levels.length > 0 ? getNextCommunityLevelId() : 1001;
-  });
-  const [password, setPassword] = useState('');
+  const [cloudLevels, setCloudLevels] = useState<OwnedCloudLevelSummary[]>([]);
+  const [cloudTargetId, setCloudTargetId] = useState<number | null>(null);
+  const [cloudPublished, setCloudPublished] = useState(false);
+  const [cloudSignedIn, setCloudSignedIn] = useState(false);
   const [confirmDeleteCommunityId, setConfirmDeleteCommunityId] = useState<number | null>(null);
   const [exportText, setExportText] = useState('');
   const [importText, setImportText] = useState('');
@@ -180,6 +179,7 @@ export default function LevelEditor() {
   const [tilePx, setTilePx] = useState(32);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const touchPaintModeRef = useRef<'place' | 'erase'>('place');
+  const loadedCloudQueryIdRef = useRef<number | null>(null);
 
   useEffect(() => {
     function update() { setTilePx(computeTilePx(width, height)); }
@@ -188,25 +188,78 @@ export default function LevelEditor() {
     return () => window.removeEventListener('resize', update);
   }, [width, height]);
 
-  const refreshCommunityLevels = useCallback(() => {
-    return fetchCommunityLevelsFromApi()
-      .then(levels => {
-        setCommunityLevels(levels);
-        setCommunityTargetId(current => {
-          if (levels.some(level => level.id === current)) return current;
-          if (levels.length === 0) return 1001;
-          return Math.max(1001, ...levels.map(level => level.id)) + 1;
-        });
-      })
-      .catch(() => {
-        const levels = getCommunityLevels();
-        setCommunityLevels(levels);
+  const refreshCloudLevels = useCallback(async () => {
+    try {
+      const levels = await fetchOwnedCloudLevelsFromApi();
+      setCloudLevels(levels);
+      setCloudTargetId(current => {
+        if (current == null) return current;
+        const stillExists = levels.some(level => level.id === current);
+        if (!stillExists) {
+          setCloudPublished(false);
+          return null;
+        }
+        const target = levels.find(level => level.id === current);
+        if (target) {
+          setCloudPublished(target.isPublished);
+        }
+        return current;
       });
+    } catch {
+      setCloudLevels([]);
+    }
   }, []);
 
   useEffect(() => {
-    refreshCommunityLevels();
-  }, [refreshCommunityLevels]);
+    let cancelled = false;
+
+    async function loadOwnedLevels() {
+      if (cancelled) return;
+      await refreshCloudLevels();
+    }
+
+    void loadOwnedLevels();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [refreshCloudLevels]);
+
+  useEffect(() => {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) {
+      return;
+    }
+
+    let mounted = true;
+
+    supabase.auth.getUser().then(({ data }) => {
+      if (!mounted) return;
+      setCloudSignedIn(Boolean(data.user));
+      if (data.user) {
+        void refreshCloudLevels();
+      } else {
+        setCloudLevels([]);
+        setCloudTargetId(null);
+      }
+    });
+
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!mounted) return;
+      setCloudSignedIn(Boolean(session?.user));
+      if (session?.user) {
+        void refreshCloudLevels();
+      } else {
+        setCloudLevels([]);
+        setCloudTargetId(null);
+      }
+    });
+
+    return () => {
+      mounted = false;
+      data.subscription.unsubscribe();
+    };
+  }, [refreshCloudLevels]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -1153,6 +1206,38 @@ export default function LevelEditor() {
     setMessage(null);
   }, []);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const rawId = new URLSearchParams(window.location.search).get('communityId');
+    if (!rawId) return;
+
+    const numericId = Number(rawId);
+    if (!Number.isFinite(numericId) || loadedCloudQueryIdRef.current === numericId) {
+      return;
+    }
+
+    async function loadFromQuery() {
+      loadedCloudQueryIdRef.current = numericId;
+      setPublishScope('community');
+      setCloudTargetId(numericId);
+      const target = cloudLevels.find(level => level.id === numericId);
+      if (target) {
+        setCloudPublished(target.isPublished);
+      }
+
+      try {
+        const level = await fetchCommunityLevelFromApi(numericId);
+        if (!level) return;
+        loadLevelIntoEditor(level);
+      } catch {
+        setMessage({ text: `Cloud map ${numericId} could not be loaded.`, type: 'error' });
+      }
+    }
+
+    void loadFromQuery();
+  }, [cloudLevels, loadLevelIntoEditor]);
+
   const buildLevelData = useCallback((id: number, fallbackName: string): LevelData => {
     const players = spawns.map((spawn) => ({
       startX: spawn.col,
@@ -1177,13 +1262,15 @@ export default function LevelEditor() {
 
     const sourceLevel = publishScope === 'campaign'
       ? await fetchCampaignOverrideFromApi(saveTargetId).catch(() => undefined) ?? getLevel(saveTargetId)
-      : await fetchCommunityLevelFromApi(communityTargetId).catch(() => getCommunityLevel(communityTargetId));
+      : cloudTargetId != null
+        ? await fetchCommunityLevelFromApi(cloudTargetId).catch(() => undefined)
+        : undefined;
 
     if (!sourceLevel) {
       setMessage({
         text: publishScope === 'campaign'
           ? `Level ${saveTargetId} could not be loaded.`
-          : `Community level ${communityTargetId} does not exist yet.`,
+          : 'Select one of your cloud maps to load it into the editor.',
         type: 'error',
       });
       return;
@@ -1198,7 +1285,7 @@ export default function LevelEditor() {
       text: `Loaded ${sourceLevel.name} into the editor as a new working copy.`,
       type: 'success',
     });
-  }, [communityTargetId, loadLevelIntoEditor, publishScope, saveTargetId]);
+  }, [cloudTargetId, loadLevelIntoEditor, publishScope, saveTargetId]);
 
   const handleSave = useCallback(async () => {
     setMessage(null);
@@ -1210,21 +1297,10 @@ export default function LevelEditor() {
       return;
     }
 
-    const isValidPassword = publishScope === 'campaign'
-      ? await verifyAdminPassword(password)
-      : await verifyCommunityPassword(password);
-    if (!isValidPassword) {
-      setMessage({
-        text: publishScope === 'campaign' ? 'Invalid admin password' : 'Invalid community password',
-        type: 'error',
-      });
-      return;
-    }
-
     if (publishScope === 'campaign') {
       const levelData = buildLevelData(saveTargetId, `Level ${saveTargetId}`);
       try {
-        await saveCampaignOverrideToApi(saveTargetId, levelData, password);
+        await saveCampaignOverrideToApi(saveTargetId, levelData);
         saveCustomLevel(saveTargetId, levelData);
         setMessage({ text: `Saved campaign override for Level ${saveTargetId} to the server and synced local backup.`, type: 'success' });
       } catch (error) {
@@ -1234,57 +1310,70 @@ export default function LevelEditor() {
       return;
     }
 
-    const levelData = buildLevelData(communityTargetId, `Community ${communityTargetId}`);
+    if (!cloudSignedIn) {
+      setMessage({ text: 'Sign in with Google to save cloud maps.', type: 'error' });
+      return;
+    }
+
+    const levelData = buildLevelData(cloudTargetId ?? 0, levelName || 'Untitled Cloud Map');
     try {
-      await saveCommunityLevelToApi(levelData, password);
-      saveCommunityLevel(communityTargetId, levelData);
-      await refreshCommunityLevels();
-      setMessage({ text: `Saved Community ${communityTargetId} to the server and synced local backup.`, type: 'success' });
+      const saved = await saveOwnedCommunityLevelToApi({
+        id: cloudTargetId,
+        level: levelData,
+        isPublished: cloudPublished,
+      });
+      setCloudTargetId(saved.summary.id);
+      setCloudPublished(saved.summary.isPublished);
+      await refreshCloudLevels();
+      setMessage({
+        text: `${cloudTargetId == null ? 'Created' : 'Saved'} cloud map ${saved.summary.id}${saved.summary.isPublished ? ' and published it to Community.' : '.'}`,
+        type: 'success',
+      });
     } catch (error) {
-      const text = error instanceof Error ? error.message : 'Failed to save community level.';
+      const text = error instanceof Error ? error.message : 'Failed to save cloud map.';
       setMessage({ text, type: 'error' });
     }
-  }, [buildLevelData, communityTargetId, password, publishScope, refreshCommunityLevels, saveTargetId, validate]);
+  }, [buildLevelData, cloudPublished, cloudSignedIn, cloudTargetId, levelName, publishScope, refreshCloudLevels, saveTargetId, validate]);
 
   const handleDeleteCommunity = useCallback(async () => {
     setMessage(null);
 
     if (publishScope !== 'community') {
-      setMessage({ text: 'Community deletion is only available for community slots.', type: 'error' });
+      setMessage({ text: 'Cloud deletion is only available for cloud maps.', type: 'error' });
       return;
     }
 
-    if (communityTargetId === 1001) {
-      setMessage({ text: 'The built-in community level cannot be deleted.', type: 'error' });
+    if (!cloudSignedIn) {
+      setMessage({ text: 'Sign in with Google to delete cloud maps.', type: 'error' });
       return;
     }
 
-    const isValidPassword = await verifyCommunityPassword(password);
-    if (!isValidPassword) {
-      setMessage({ text: 'Invalid community password', type: 'error' });
+    if (cloudTargetId == null) {
+      setMessage({ text: 'Select one of your cloud maps first.', type: 'error' });
       return;
     }
 
-    if (confirmDeleteCommunityId !== communityTargetId) {
-      setConfirmDeleteCommunityId(communityTargetId);
+    if (confirmDeleteCommunityId !== cloudTargetId) {
+      setConfirmDeleteCommunityId(cloudTargetId);
       setMessage({
-        text: `Press delete again to confirm removing Community ${communityTargetId}.`,
+        text: `Press delete again to confirm removing cloud map ${cloudTargetId}.`,
         type: 'error',
       });
       return;
     }
 
     try {
-      await deleteCommunityLevelFromApi(communityTargetId, password);
-      deleteCommunityLevel(communityTargetId);
-      await refreshCommunityLevels();
+      await deleteOwnedCommunityLevelFromApi(cloudTargetId);
+      await refreshCloudLevels();
+      setCloudTargetId(null);
+      setCloudPublished(false);
       setConfirmDeleteCommunityId(null);
-      setMessage({ text: `Deleted Community ${communityTargetId} from the server and local backup.`, type: 'success' });
+      setMessage({ text: `Deleted cloud map ${cloudTargetId}.`, type: 'success' });
     } catch (error) {
-      const text = error instanceof Error ? error.message : 'Failed to delete community level.';
+      const text = error instanceof Error ? error.message : 'Failed to delete cloud map.';
       setMessage({ text, type: 'error' });
     }
-  }, [communityTargetId, confirmDeleteCommunityId, password, publishScope, refreshCommunityLevels]);
+  }, [cloudSignedIn, cloudTargetId, confirmDeleteCommunityId, publishScope, refreshCloudLevels]);
 
   const handleExportLevels = useCallback(() => {
     const backup = exportLocalLevelBackup();
@@ -1301,7 +1390,7 @@ export default function LevelEditor() {
     try {
       const parsed = JSON.parse(importText);
       const result = importLocalLevelBackup(parsed);
-      refreshCommunityLevels();
+      refreshCloudLevels();
       setMessage({
         text: `Imported ${result.campaignCount} campaign override(s) and ${result.communityCount} community level(s).`,
         type: 'success',
@@ -1310,7 +1399,7 @@ export default function LevelEditor() {
       const text = error instanceof Error ? error.message : 'Import failed.';
       setMessage({ text, type: 'error' });
     }
-  }, [importText, refreshCommunityLevels]);
+  }, [importText, refreshCloudLevels]);
 
   const stopPreview = useCallback(() => {
     setPreviewLevel(null);
@@ -1387,7 +1476,9 @@ export default function LevelEditor() {
   const TAB_LABELS: Record<Tab, string> = { config: 'Config', blocks: 'Blocks', publish: 'Publish' };
   const targetNamePlaceholder = publishScope === 'campaign'
     ? `Level ${saveTargetId}`
-    : `Community ${communityTargetId}`;
+    : cloudTargetId != null
+      ? `Cloud Map ${cloudTargetId}`
+      : 'New Cloud Map';
 
   return (
     <div className="flex flex-col lg:flex-row gap-6 items-start justify-center">
@@ -1606,8 +1697,8 @@ export default function LevelEditor() {
                 : 'border-cyan-400/20 bg-cyan-500/10 text-cyan-200/80'
             }`}>
               {publishScope === 'campaign'
-                ? 'Campaign saves use the admin password and write a shared server override, then keep a local backup in this browser.'
-                : 'Community saves are server-backed. A successful save here should appear in other browsers/devices.'}
+                ? 'Campaign saves now require your signed-in admin account. Successful saves still keep a local backup in this browser.'
+                : 'Cloud maps are owned by your account. Save privately, then publish up to 5 maps from here or My Maps.'}
             </div>
             {publishScope === 'campaign' ? (
               <label className="block mb-2">
@@ -1625,23 +1716,40 @@ export default function LevelEditor() {
             ) : (
               <>
                 <label className="block mb-2">
-                  <span className="text-white/40 text-xs">Community Slot</span>
-                  <input
-                    type="number"
-                    min={1001}
-                    value={communityTargetId}
+                  <span className="text-white/40 text-xs">Cloud Map</span>
+                  <select
+                    value={cloudTargetId ?? ''}
                     onChange={e => {
-                      setCommunityTargetId(Math.max(1001, parseInt(e.target.value) || 1001));
+                      const value = e.target.value.trim();
+                      setCloudTargetId(value ? Number(value) : null);
                       setConfirmDeleteCommunityId(null);
                     }}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-white text-sm mt-1 focus:outline-none focus:border-purple-500/50"
-                  />
+                    className="w-full bg-[#12121a] border border-white/10 rounded-lg px-3 py-1.5 text-white text-sm mt-1 focus:outline-none focus:border-purple-500/50 [&>option]:bg-[#12121a] [&>option]:text-white"
+                  >
+                    <option value="">Create new cloud map</option>
+                    {cloudLevels.map(level => (
+                      <option key={level.id} value={level.id}>
+                        {level.name} ({level.id}){level.isPublished ? ' - Published' : ''}
+                      </option>
+                    ))}
+                  </select>
                 </label>
                 <div className="mb-2 rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2 text-[11px] text-white/35">
-                  {communityLevels.length > 0
-                    ? `Existing community slots: ${communityLevels.map(level => level.id).join(', ')}`
-                    : 'No community levels saved yet. The first save will create slot 1001.'}
+                  {!cloudSignedIn
+                    ? 'Sign in with Google to create or manage cloud maps.'
+                    : cloudLevels.length > 0
+                      ? `You own ${cloudLevels.length} cloud map${cloudLevels.length === 1 ? '' : 's'}. Published right now: ${cloudLevels.filter(level => level.isPublished).length}/5.`
+                      : 'No cloud maps yet. Saving here will create your first one.'}
                 </div>
+                <label className="flex items-center gap-3 mb-3 rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2 text-sm text-white/75">
+                  <input
+                    type="checkbox"
+                    checked={cloudPublished}
+                    onChange={e => setCloudPublished(e.target.checked)}
+                    className="h-4 w-4 rounded border-white/20 bg-[#12121a]"
+                  />
+                  Publish to Community
+                </label>
               </>
             )}
             <button
@@ -1650,36 +1758,31 @@ export default function LevelEditor() {
             >
               Load Into Editor
             </button>
-            <label className="block mb-3">
-              <span className="text-white/40 text-xs">
-                {publishScope === 'campaign' ? 'Admin Password' : 'Community Password'}
-              </span>
-              <input
-                type="password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-white text-sm mt-1 focus:outline-none focus:border-purple-500/50"
-                placeholder={publishScope === 'campaign' ? 'Enter admin password' : 'Enter community password'}
-              />
-            </label>
             <button
               onClick={handleSave}
               className="w-full text-sm px-3 py-2 bg-purple-500/20 border border-purple-500/30 rounded-lg text-purple-300 hover:bg-purple-500/30 hover:border-purple-500/50 transition-all duration-200"
             >
-              {publishScope === 'campaign' ? 'Save Campaign Override To Server' : 'Save Community Level To Server'}
+              {publishScope === 'campaign'
+                ? 'Save Campaign Override To Server'
+                : cloudTargetId == null
+                  ? 'Create Cloud Map'
+                  : 'Save Cloud Map'}
             </button>
             {publishScope === 'community' && (
               <button
                 onClick={handleDeleteCommunity}
+                disabled={cloudTargetId == null}
                 className={`w-full text-sm px-3 py-2 mt-2 rounded-lg border transition-all duration-200 ${
-                  confirmDeleteCommunityId === communityTargetId
+                  confirmDeleteCommunityId === cloudTargetId
                     ? 'bg-red-500/20 border-red-500/40 text-red-200 hover:bg-red-500/30 hover:border-red-500/50'
-                    : 'bg-white/5 border-white/10 text-white/65 hover:bg-white/10 hover:border-white/20'
+                    : 'bg-white/5 border-white/10 text-white/65 hover:bg-white/10 hover:border-white/20 disabled:opacity-50'
                 }`}
               >
-                {confirmDeleteCommunityId === communityTargetId
-                  ? `Confirm Delete Community ${communityTargetId}`
-                  : `Delete Community ${communityTargetId}`}
+                {confirmDeleteCommunityId === cloudTargetId
+                  ? `Confirm Delete Cloud Map ${cloudTargetId}`
+                  : cloudTargetId == null
+                    ? 'Delete Selected Cloud Map'
+                    : `Delete Cloud Map ${cloudTargetId}`}
               </button>
             )}
             <div className="mt-4 border-t border-white/10 pt-4">
@@ -1688,19 +1791,19 @@ export default function LevelEditor() {
                 onClick={handleExportLevels}
                 className="w-full text-sm px-3 py-2 mb-2 bg-white/5 border border-white/10 rounded-lg text-white/70 hover:bg-white/10 hover:border-white/20 transition-all duration-200"
               >
-                Export Local Saved Levels
+                Export Local Backups
               </button>
               <textarea
                 value={exportText}
                 readOnly
                 className="w-full min-h-32 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white/80 text-xs mt-1 mb-3 focus:outline-none"
-                placeholder="Exported local levels will appear here as JSON."
+                placeholder="Exported local backups will appear here as JSON."
               />
               <textarea
                 value={importText}
                 onChange={e => setImportText(e.target.value)}
                 className="w-full min-h-32 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white/80 text-xs mt-1 focus:outline-none focus:border-cyan-400/40"
-                placeholder="Paste exported JSON here to restore local saved levels."
+                placeholder="Paste exported JSON here to restore local backups."
               />
               <button
                 onClick={handleImportLevels}

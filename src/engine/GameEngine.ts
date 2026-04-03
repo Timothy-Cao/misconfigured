@@ -526,10 +526,12 @@ export class GameEngine {
 
   private isBoardSettledForManualInput(): boolean {
     return this.state.players.every((player) => (
+      (player.finished || player.lockedOnGoal || (
       player.animProgress >= 1 &&
       !player.sliding &&
       player.absorbTimer === 0 &&
       player.deathTimer === 0
+      ))
     ));
   }
 

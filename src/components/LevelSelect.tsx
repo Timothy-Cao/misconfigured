@@ -8,7 +8,7 @@ export default function LevelSelect() {
   const { progress, isUnlocked } = useGameProgress();
 
   return (
-    <div className="grid grid-cols-5 gap-3 sm:gap-4 max-w-[720px] mx-auto">
+    <div className="grid grid-cols-4 gap-3 sm:grid-cols-5 sm:gap-4 max-w-[720px] mx-auto">
       {Array.from({ length: TOTAL_LEVELS }, (_, i) => {
         const id = i + 1;
         const unlocked = isUnlocked(id);

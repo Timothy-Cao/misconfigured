@@ -14,13 +14,13 @@ export async function fetchCampaignOverrideFromApi(id: number): Promise<LevelDat
   return data.level;
 }
 
-export async function saveCampaignOverrideToApi(id: number, level: LevelData, password: string): Promise<LevelData> {
+export async function saveCampaignOverrideToApi(id: number, level: LevelData): Promise<LevelData> {
   const response = await fetch(`/api/campaign-overrides/${id}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ level, password }),
+    body: JSON.stringify({ level }),
   });
 
   const data = await response.json() as { level?: LevelData; error?: string };

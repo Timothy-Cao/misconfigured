@@ -1,6 +1,6 @@
 import { type LevelData } from '@/engine/types';
-import { verifyCommunityPassword } from '@/lib/admin';
-import { deleteCommunityLevelFromSupabase, listCommunityLevelsFromSupabase, upsertCommunityLevelInSupabase } from '@/lib/supabase-community';
+import { getCurrentAuthUser } from '@/lib/auth';
+import { listPublishedCommunityLevelsFromSupabase, saveOwnedCommunityLevelInSupabase } from '@/lib/supabase-community';
 import { builtInCommunityLevels, getBuiltInCommunityLevel } from '@/levels/community-levels';
 
 export const dynamic = 'force-dynamic';
@@ -24,62 +24,56 @@ function mergeBuiltInCommunityLevels(levels: LevelData[]): LevelData[] {
 
 export async function GET() {
   try {
-    const levels = await listCommunityLevelsFromSupabase();
+    const levels = await listPublishedCommunityLevelsFromSupabase();
     return Response.json({ levels: mergeBuiltInCommunityLevels(levels) });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to load community levels.';
-    return Response.json(
-      {
-        levels: mergeBuiltInCommunityLevels([]),
-        warning: message,
-      },
-      { status: 200 },
-    );
+    return Response.json({ error: message }, { status: 500 });
   }
 }
 
 export async function POST(request: Request) {
   try {
-    const { level, password } = await request.json() as { level?: LevelData; password?: string };
+    const user = await getCurrentAuthUser();
+    if (!user) {
+      return Response.json({ error: 'Sign in with Google to save cloud maps.' }, { status: 401 });
+    }
+
+    const { level, id, isPublished } = await request.json() as {
+      level?: LevelData;
+      id?: number | null;
+      isPublished?: boolean;
+    };
 
     if (!level || typeof level !== 'object') {
       return Response.json({ error: 'Missing level payload.' }, { status: 400 });
     }
 
-    if (!(await verifyCommunityPassword(password ?? ''))) {
-      return Response.json({ error: 'Invalid community password.' }, { status: 401 });
+    if (id != null && (!Number.isFinite(id) || getBuiltInCommunityLevel(Number(id)))) {
+      return Response.json({ error: 'Invalid cloud map id.' }, { status: 400 });
     }
 
-    const savedLevel = await upsertCommunityLevelInSupabase(level);
-    return Response.json({ level: savedLevel });
+    const saved = await saveOwnedCommunityLevelInSupabase({
+      id: id != null ? Number(id) : null,
+      ownerId: user.id,
+      level,
+      isPublished: Boolean(isPublished),
+    });
+
+    return Response.json({
+      level: saved.level,
+      summary: {
+        id: saved.id,
+        name: saved.name,
+        width: saved.width,
+        height: saved.height,
+        isPublished: saved.isPublished,
+        updatedAt: saved.updatedAt,
+      },
+    });
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to save community level.';
-    return Response.json({ error: message }, { status: 500 });
-  }
-}
-
-export async function DELETE(request: Request) {
-  try {
-    const { id, password } = await request.json() as { id?: number; password?: string };
-
-    if (!Number.isFinite(id)) {
-      return Response.json({ error: 'Missing community level id.' }, { status: 400 });
-    }
-
-    const numericId = Number(id);
-
-    if (getBuiltInCommunityLevel(numericId)) {
-      return Response.json({ error: 'The built-in community level cannot be deleted.' }, { status: 400 });
-    }
-
-    if (!(await verifyCommunityPassword(password ?? ''))) {
-      return Response.json({ error: 'Invalid community password.' }, { status: 401 });
-    }
-
-    await deleteCommunityLevelFromSupabase(numericId);
-    return Response.json({ ok: true });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to delete community level.';
-    return Response.json({ error: message }, { status: 500 });
+    const message = error instanceof Error ? error.message : 'Failed to save cloud map.';
+    const status = /sign in/i.test(message) ? 401 : /own|publish up to 5/i.test(message) ? 400 : 500;
+    return Response.json({ error: message }, { status });
   }
 }
