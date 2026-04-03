@@ -107,7 +107,8 @@ function computeTilePx(width: number, height: number): number {
   const maxW = Math.min(window.innerWidth - sidebarAllowance, 1040);
   const maxH = Math.min(window.innerHeight * 0.78, 860);
   const s = Math.min(maxW / width, maxH / height);
-  return Math.max(20, Math.min(56, Math.floor(s)));
+  const minTile = window.innerWidth < 640 ? 16 : 20;
+  return Math.max(minTile, Math.min(56, Math.floor(s)));
 }
 
 function createFloorGrid(w: number, h: number): number[][] {
@@ -150,6 +151,7 @@ export default function LevelEditor() {
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState<{ text: string; type: 'error' | 'success' } | null>(null);
   const [isPainting, setIsPainting] = useState(false);
+  const [mobileCanvasMode, setMobileCanvasMode] = useState<'paint' | 'pan'>('paint');
   const paintModeRef = useRef<'place' | 'erase'>('place');
   const lastPaintedRef = useRef<string>('');
   const [tilePx, setTilePx] = useState(32);
@@ -458,6 +460,7 @@ export default function LevelEditor() {
   }, []);
 
   const handleCanvasTouchStart = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
+    if (mobileCanvasMode === 'pan') return;
     const touch = e.touches[0];
     if (!touch) return;
     const cell = getCanvasCellFromClient(touch.clientX, touch.clientY);
@@ -496,9 +499,10 @@ export default function LevelEditor() {
     lastPaintedRef.current = `${col},${row}`;
     applyToolAt(col, row, mode);
     setIsPainting(true);
-  }, [applyToolAt, getCanvasCellFromClient, getToolTile, grid, handleSpawnClick, tool]);
+  }, [applyToolAt, getCanvasCellFromClient, getToolTile, grid, handleSpawnClick, mobileCanvasMode, tool]);
 
   const handleCanvasTouchMove = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
+    if (mobileCanvasMode === 'pan') return;
     if (!isPainting || tool.startsWith('spawn')) return;
     const touch = e.touches[0];
     if (!touch) return;
@@ -511,7 +515,7 @@ export default function LevelEditor() {
     e.preventDefault();
     lastPaintedRef.current = key;
     applyToolAt(cell.col, cell.row, touchPaintModeRef.current);
-  }, [applyToolAt, getCanvasCellFromClient, isPainting, tool]);
+  }, [applyToolAt, getCanvasCellFromClient, isPainting, mobileCanvasMode, tool]);
 
   const handleCanvasTouchEnd = useCallback(() => {
     setIsPainting(false);
@@ -1383,6 +1387,29 @@ export default function LevelEditor() {
       {/* Canvas */}
       <div className="order-1 lg:order-2 flex-1 w-full flex justify-center">
         <div className="w-full max-w-full">
+          <div className="mb-3 flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-3 lg:hidden">
+            <div>
+              <p className="text-xs font-mono uppercase tracking-wider text-white/55">Canvas Mode</p>
+              <p className="text-[11px] text-white/30 mt-1">
+                Use Paint to edit tiles, or Pan to move around larger boards.
+              </p>
+            </div>
+            <div className="flex rounded-lg border border-white/10 overflow-hidden shrink-0">
+              {(['paint', 'pan'] as const).map(mode => (
+                <button
+                  key={mode}
+                  onClick={() => setMobileCanvasMode(mode)}
+                  className={`px-3 py-2 text-xs font-mono uppercase tracking-wider transition-colors ${
+                    mobileCanvasMode === mode
+                      ? 'bg-white/12 text-white'
+                      : 'bg-transparent text-white/45'
+                  }`}
+                >
+                  {mode}
+                </button>
+              ))}
+            </div>
+          </div>
           <div
             className="rounded-xl overflow-auto border border-white/10"
             style={{ boxShadow: '0 0 40px rgba(168, 85, 247, 0.06)' }}
@@ -1392,7 +1419,7 @@ export default function LevelEditor() {
               width={width * tilePx}
               height={height * tilePx}
               className="block cursor-crosshair select-none mx-auto"
-              style={{ touchAction: 'none' }}
+              style={{ touchAction: mobileCanvasMode === 'pan' ? 'pan-x pan-y' : 'none' }}
               onMouseDown={handleCanvasMouseDown}
               onMouseMove={handleCanvasMouseMove}
               onMouseUp={handleCanvasMouseUp}
