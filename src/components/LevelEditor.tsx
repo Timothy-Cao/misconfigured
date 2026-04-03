@@ -1094,7 +1094,7 @@ export default function LevelEditor() {
       ctx.fill();
       ctx.restore();
     }
-  }, [grid, spawns, width, height, tilePx]);
+  }, [grid, spawns, width, height, tilePx, previewLevel]);
 
   const validate = useCallback((): string | null => {
     const validSpawns = spawns;
