@@ -10,6 +10,9 @@ export default function EditorPage() {
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
+      if (document.body.dataset.editorPreview === 'true') {
+        return;
+      }
       if (event.key === 'Escape') {
         router.push('/');
       }

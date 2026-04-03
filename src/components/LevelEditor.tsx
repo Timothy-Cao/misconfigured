@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
+import GameCanvas from '@/components/GameCanvas';
 import { TileType, COLORS, type LevelData, type Rotation, isPressurePlate, pressurePlateNumber, pressurePlateTile, isDoor, doorNumber, doorTile, isToggleSwitch, isToggleBlock, toggleNumber, toggleSwitchTile, isConveyor, conveyorDirection, conveyorTile, isOneWay, oneWayOrientation, oneWayTile, isRotationTile, rotationTileCW, isRepaintStation, repaintRotation, repaintStationTile, isColorFilter, colorFilterRotation, colorFilterTile, DIR_DX, DIR_DY } from '@/engine/types';
 import { getCommunityLevel, getCommunityLevels, getLevel, getNextCommunityLevelId, saveCommunityLevel, saveCustomLevel } from '@/levels';
 import { verifyAdminPassword } from '@/lib/admin';
@@ -160,6 +161,14 @@ export default function LevelEditor() {
   const [message, setMessage] = useState<{ text: string; type: 'error' | 'success' } | null>(null);
   const [isPainting, setIsPainting] = useState(false);
   const [mobileCanvasMode, setMobileCanvasMode] = useState<'paint' | 'pan'>('paint');
+  const [previewLevel, setPreviewLevel] = useState<LevelData | null>(null);
+  const [previewKey, setPreviewKey] = useState(0);
+  const [previewSettledUnits, setPreviewSettledUnits] = useState(0);
+  const [previewCompletionTime, setPreviewCompletionTime] = useState(0);
+  const [previewLives, setPreviewLives] = useState(levelLives);
+  const [previewMaxLives, setPreviewMaxLives] = useState(levelLives);
+  const [previewComplete, setPreviewComplete] = useState(false);
+  const [previewGameOver, setPreviewGameOver] = useState(false);
   const paintModeRef = useRef<'place' | 'erase'>('place');
   const lastPaintedRef = useRef<string>('');
   const [tilePx, setTilePx] = useState(32);
@@ -1208,10 +1217,60 @@ export default function LevelEditor() {
     setMessage({ text: `Saved to Community ${communityTargetId}!`, type: 'success' });
   }, [buildLevelData, communityTargetId, password, publishScope, refreshCommunityLevels, saveTargetId, validate]);
 
+  const stopPreview = useCallback(() => {
+    setPreviewLevel(null);
+    setPreviewComplete(false);
+    setPreviewGameOver(false);
+    setPreviewCompletionTime(0);
+  }, []);
+
+  const startPreview = useCallback(() => {
+    setMessage(null);
+    const error = validate();
+    if (error) {
+      setMessage({ text: error, type: 'error' });
+      return;
+    }
+
+    const level = buildLevelData(-1, 'Editor Test');
+    setPreviewLevel(level);
+    setPreviewKey(current => current + 1);
+    setPreviewSettledUnits(0);
+    setPreviewCompletionTime(0);
+    setPreviewLives(level.lives ?? 1);
+    setPreviewMaxLives(level.lives ?? 1);
+    setPreviewComplete(false);
+    setPreviewGameOver(false);
+  }, [buildLevelData, validate]);
+
   const clearGrid = useCallback(() => {
     setGrid(createFloorGrid(width, height));
     setSpawns([]);
   }, [width, height]);
+
+  useEffect(() => {
+    if (!previewLevel) return;
+
+    function handlePreviewEscape(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        stopPreview();
+      }
+    }
+
+    window.addEventListener('keydown', handlePreviewEscape);
+    return () => window.removeEventListener('keydown', handlePreviewEscape);
+  }, [previewLevel, stopPreview]);
+
+  useEffect(() => {
+    if (previewLevel) {
+      document.body.dataset.editorPreview = 'true';
+      return () => {
+        delete document.body.dataset.editorPreview;
+      };
+    }
+
+    delete document.body.dataset.editorPreview;
+  }, [previewLevel]);
 
   const placedPlayers = spawns.length;
   const goalCount = grid.flat().filter(t => t === TileType.GOAL).length;
@@ -1488,50 +1547,133 @@ export default function LevelEditor() {
       {/* Canvas */}
       <div className="order-1 lg:order-2 flex-1 w-full flex justify-center">
         <div className="w-full max-w-full">
-          <div className="mb-3 flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-3 lg:hidden">
+          {!previewLevel && (
+            <div className="mb-3 flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-3 lg:hidden">
+              <div>
+                <p className="text-xs font-mono uppercase tracking-wider text-white/55">Canvas Mode</p>
+                <p className="text-[11px] text-white/30 mt-1">
+                  Use Paint to edit tiles, or Pan to move around larger boards.
+                </p>
+              </div>
+              <div className="flex rounded-lg border border-white/10 overflow-hidden shrink-0">
+                {(['paint', 'pan'] as const).map(mode => (
+                  <button
+                    key={mode}
+                    onClick={() => setMobileCanvasMode(mode)}
+                    className={`px-3 py-2 text-xs font-mono uppercase tracking-wider transition-colors ${
+                      mobileCanvasMode === mode
+                        ? 'bg-white/12 text-white'
+                        : 'bg-transparent text-white/45'
+                    }`}
+                  >
+                    {mode}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-3">
             <div>
-              <p className="text-xs font-mono uppercase tracking-wider text-white/55">Canvas Mode</p>
-              <p className="text-[11px] text-white/30 mt-1">
-                Use Paint to edit tiles, or Pan to move around larger boards.
+              <p className="text-xs font-mono uppercase tracking-wider text-white/55">
+                {previewLevel ? 'Playtest Mode' : 'Editor Canvas'}
+              </p>
+              <p className="mt-1 text-[11px] text-white/35">
+                {previewLevel
+                  ? 'Play the current draft here. Press Esc to return to editing.'
+                  : 'Test the current draft instantly without leaving the editor.'}
               </p>
             </div>
-            <div className="flex rounded-lg border border-white/10 overflow-hidden shrink-0">
-              {(['paint', 'pan'] as const).map(mode => (
+            <div className="flex flex-wrap items-center gap-2">
+              {previewLevel && (
+                <>
+                  <span className={`rounded-lg border px-3 py-2 text-xs font-mono ${
+                    previewComplete ? 'border-green-400/30 bg-green-500/10 text-green-300' : 'border-white/10 bg-white/[0.02] text-white/55'
+                  }`}>
+                    Settled {previewSettledUnits}/{previewLevel.players.length}
+                  </span>
+                  <span className={`rounded-lg border px-3 py-2 text-xs font-mono ${
+                    previewGameOver ? 'border-red-400/30 bg-red-500/10 text-red-300' : 'border-white/10 bg-white/[0.02] text-white/55'
+                  }`}>
+                    Lives {previewLives}/{previewMaxLives}
+                  </span>
+                  <button
+                    onClick={startPreview}
+                    className="text-xs px-3 py-2 rounded-lg border border-white/10 bg-white/[0.02] text-white/70 hover:bg-white/8 hover:border-white/20 transition-all duration-200"
+                  >
+                    Restart Test
+                  </button>
+                  <button
+                    onClick={stopPreview}
+                    className="text-xs px-3 py-2 rounded-lg border border-white/10 bg-white/[0.02] text-white/70 hover:bg-white/8 hover:border-white/20 transition-all duration-200"
+                  >
+                    Back to Editor
+                  </button>
+                </>
+              )}
+              {!previewLevel && (
                 <button
-                  key={mode}
-                  onClick={() => setMobileCanvasMode(mode)}
-                  className={`px-3 py-2 text-xs font-mono uppercase tracking-wider transition-colors ${
-                    mobileCanvasMode === mode
-                      ? 'bg-white/12 text-white'
-                      : 'bg-transparent text-white/45'
-                  }`}
+                  onClick={startPreview}
+                  className="text-xs px-3 py-2 rounded-lg border border-cyan-400/30 bg-cyan-500/12 text-cyan-200 hover:bg-cyan-500/20 hover:border-cyan-300/40 transition-all duration-200"
                 >
-                  {mode}
+                  Play Test
                 </button>
-              ))}
+              )}
             </div>
           </div>
           <div
             className="rounded-xl overflow-auto border border-white/10"
             style={{ boxShadow: '0 0 40px rgba(168, 85, 247, 0.06)' }}
           >
-            <canvas
-              ref={canvasRef}
-              width={width * tilePx}
-              height={height * tilePx}
-              className="block cursor-crosshair select-none mx-auto"
-              style={{ touchAction: mobileCanvasMode === 'pan' ? 'pan-x pan-y' : 'none' }}
-              onMouseDown={handleCanvasMouseDown}
-              onMouseMove={handleCanvasMouseMove}
-              onMouseUp={handleCanvasMouseUp}
-              onMouseLeave={handleCanvasMouseLeave}
-              onTouchStart={handleCanvasTouchStart}
-              onTouchMove={handleCanvasTouchMove}
-              onTouchEnd={handleCanvasTouchEnd}
-              onTouchCancel={handleCanvasTouchEnd}
-              onContextMenu={handleContextMenu}
-            />
+            {previewLevel ? (
+              <div className="flex justify-center bg-[#09090d] p-3 sm:p-4">
+                <GameCanvas
+                  key={previewKey}
+                  level={previewLevel}
+                  onLevelComplete={(completionTime) => {
+                    setPreviewComplete(true);
+                    setPreviewCompletionTime(completionTime);
+                  }}
+                  onProgressUpdate={setPreviewSettledUnits}
+                  onGameOver={() => setPreviewGameOver(true)}
+                  onLivesUpdate={(lives, maxLives) => {
+                    setPreviewLives(lives);
+                    setPreviewMaxLives(maxLives);
+                  }}
+                />
+              </div>
+            ) : (
+              <canvas
+                ref={canvasRef}
+                width={width * tilePx}
+                height={height * tilePx}
+                className="block cursor-crosshair select-none mx-auto"
+                style={{ touchAction: mobileCanvasMode === 'pan' ? 'pan-x pan-y' : 'none' }}
+                onMouseDown={handleCanvasMouseDown}
+                onMouseMove={handleCanvasMouseMove}
+                onMouseUp={handleCanvasMouseUp}
+                onMouseLeave={handleCanvasMouseLeave}
+                onTouchStart={handleCanvasTouchStart}
+                onTouchMove={handleCanvasTouchMove}
+                onTouchEnd={handleCanvasTouchEnd}
+                onTouchCancel={handleCanvasTouchEnd}
+                onContextMenu={handleContextMenu}
+              />
+            )}
           </div>
+          {previewLevel && previewComplete && (
+            <div className="mt-3 rounded-xl border border-green-400/20 bg-green-500/10 px-4 py-3">
+              <p className="text-sm text-green-200/90">
+                Preview complete in {previewCompletionTime.toFixed(2)}s.
+              </p>
+            </div>
+          )}
+          {previewLevel && previewGameOver && !previewComplete && (
+            <div className="mt-3 rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-3">
+              <p className="text-sm text-red-200/90">
+                Out of lives in playtest. Restart the test or return to editing.
+              </p>
+            </div>
+          )}
           {editorWarnings.length > 0 && (
             <div className="mt-3 rounded-xl border border-amber-400/20 bg-amber-500/10 px-4 py-3">
               {editorWarnings.map((warning) => (
