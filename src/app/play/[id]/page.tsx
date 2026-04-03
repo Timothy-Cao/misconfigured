@@ -15,9 +15,13 @@ export default function PlayPage() {
   const router = useRouter();
   const levelId = Number(params.id);
   const localLevel = useMemo(() => (levelId < COMMUNITY_LEVEL_START_ID ? getLevel(levelId) : undefined), [levelId]);
-  const [remoteLevel, setRemoteLevel] = useState<LevelData | undefined>(undefined);
+  const [remoteLevel, setRemoteLevel] = useState<LevelData | null | undefined>(undefined);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const level = localLevel ?? remoteLevel;
+  const isCampaignLevel = levelId < COMMUNITY_LEVEL_START_ID;
+  const isRemoteLoading = remoteLevel === undefined;
+  const level = isCampaignLevel
+    ? (remoteLevel === undefined ? undefined : (remoteLevel ?? localLevel))
+    : remoteLevel ?? undefined;
   const { completeLevel } = useGameProgress();
   const [levelComplete, setLevelComplete] = useState(false);
   const [settledUnits, setSettledUnits] = useState(0);
@@ -38,7 +42,7 @@ export default function PlayPage() {
           ? await fetchCampaignOverrideFromApi(levelId)
           : await fetchCommunityLevelFromApi(levelId);
         if (cancelled) return;
-        setRemoteLevel(nextLevel);
+        setRemoteLevel(nextLevel ?? null);
         if (levelId < COMMUNITY_LEVEL_START_ID) {
           setLoadError(null);
         } else {
@@ -101,7 +105,9 @@ export default function PlayPage() {
   if (!level) {
     return (
       <main className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
-        <p className="text-white/40 font-mono">{loadError ?? 'Level not found'}</p>
+        <p className="text-white/40 font-mono">
+          {isRemoteLoading ? 'Loading level...' : (loadError ?? 'Level not found')}
+        </p>
       </main>
     );
   }
