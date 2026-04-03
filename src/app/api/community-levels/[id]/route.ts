@@ -1,6 +1,6 @@
-import communityLevel1001 from '@/levels/community-1001';
 import { verifyCommunityPassword } from '@/lib/admin';
 import { deleteCommunityLevelFromSupabase, getCommunityLevelFromSupabase } from '@/lib/supabase-community';
+import { getBuiltInCommunityLevel } from '@/levels/community-levels';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,12 +12,13 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
     return Response.json({ error: 'Invalid community level id.' }, { status: 400 });
   }
 
-  if (numericId === communityLevel1001.id) {
+  const builtInLevel = getBuiltInCommunityLevel(numericId);
+  if (builtInLevel) {
     return Response.json({
       level: {
-        ...communityLevel1001,
-        grid: communityLevel1001.grid.map(row => [...row]),
-        players: communityLevel1001.players.map(player => ({ ...player })),
+        ...builtInLevel,
+        grid: builtInLevel.grid.map(row => [...row]),
+        players: builtInLevel.players.map(player => ({ ...player })),
       },
     });
   }
@@ -43,7 +44,7 @@ export async function DELETE(request: Request, context: { params: Promise<{ id: 
     return Response.json({ error: 'Invalid community level id.' }, { status: 400 });
   }
 
-  if (numericId === communityLevel1001.id) {
+  if (getBuiltInCommunityLevel(numericId)) {
     return Response.json({ error: 'The built-in community level cannot be deleted.' }, { status: 400 });
   }
 

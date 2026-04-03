@@ -24,7 +24,7 @@ import level22 from './level-22';
 import level23 from './level-23';
 import level24 from './level-24';
 import level25 from './level-25';
-import communityLevel1001 from './community-1001';
+import { builtInCommunityLevels } from './community-levels';
 
 const builtInLevels: LevelData[] = [
   level01, level02, level03, level04, level05,
@@ -38,7 +38,6 @@ const CAMPAIGN_OVERRIDE_VERSION = 2;
 const CUSTOM_LEVELS_KEY = `misconfigured-custom-levels-v${CAMPAIGN_OVERRIDE_VERSION}`;
 const COMMUNITY_LEVELS_KEY = 'misconfigured-community-levels';
 export const COMMUNITY_LEVEL_START_ID = 1001;
-const builtInCommunityLevels: LevelData[] = [communityLevel1001];
 const LEVEL_BACKUP_VERSION = 1;
 
 export interface LocalLevelBackup {
