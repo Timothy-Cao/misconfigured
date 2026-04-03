@@ -15,21 +15,23 @@ describe('InputManager buffering', () => {
 
   it('queues manual inputs in order', () => {
     window.dispatchEvent(new KeyboardEvent('keydown', { key: 'w' }));
-    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'a' }));
 
     expect(manager.consumeAction()).toBe('W');
-    expect(manager.consumeAction()).toBe('A');
     expect(manager.consumeAction()).toBeNull();
   });
 
-  it('keeps only one buffered follow-up input beyond the next action', () => {
+  it('keeps only the latest pending keyboard action', () => {
     window.dispatchEvent(new KeyboardEvent('keydown', { key: 'w' }));
     window.dispatchEvent(new KeyboardEvent('keydown', { key: 'a' }));
     window.dispatchEvent(new KeyboardEvent('keydown', { key: 'd' }));
 
-    expect(manager.consumeAction()).toBe('W');
     expect(manager.consumeAction()).toBe('D');
     expect(manager.consumeAction()).toBeNull();
+  });
+
+  it('maps arrow keys to the same actions as WASD', () => {
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft' }));
+    expect(manager.consumeAction()).toBe('A');
   });
 
   it('ignores auto-repeat keydown events', () => {

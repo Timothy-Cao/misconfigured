@@ -454,8 +454,8 @@ export class GameEngine {
   private stepTimers: number[];
   /** Manual input cooldown so movement stays deliberate instead of spammy */
   private inputCooldownRemaining: number = 0;
-  /** Up to one buffered follow-up manual input beyond the next accepted action */
-  private queuedManualInputs: QueuedManualInput[] = [];
+  /** A single follow-up manual input can be buffered once the board is settled */
+  private queuedManualInput: QueuedManualInput | null = null;
   /** Conveyor ticks start after the first counted move and repeat every cooldown interval */
   private conveyorTicksArmed: boolean = false;
   private conveyorTickRemaining: number = INPUT_COOLDOWN;
@@ -498,7 +498,7 @@ export class GameEngine {
     this.elapsed = 0;
     this.stepTimers = Array(this.state.players.length).fill(0);
     this.inputCooldownRemaining = 0;
-    this.queuedManualInputs = [];
+    this.queuedManualInput = null;
     this.conveyorTicksArmed = false;
     this.conveyorTickRemaining = INPUT_COOLDOWN;
     this.input.reset();
@@ -512,17 +512,20 @@ export class GameEngine {
   }
 
   private enqueueManualInput(input: QueuedManualInput): void {
-    if (this.queuedManualInputs.length === 0) {
-      this.queuedManualInputs.push(input);
+    if (this.state.outOfMoves || !this.isBoardSettledForManualInput()) {
       return;
     }
 
-    if (this.queuedManualInputs.length === 1) {
-      this.queuedManualInputs.push(input);
-      return;
-    }
+    this.queuedManualInput = input;
+  }
 
-    this.queuedManualInputs[1] = input;
+  private isBoardSettledForManualInput(): boolean {
+    return this.state.players.every((player) => (
+      player.animProgress >= 1 &&
+      !player.sliding &&
+      player.absorbTimer === 0 &&
+      player.deathTimer === 0
+    ));
   }
 
   private loop = (now: number): void => {
@@ -575,22 +578,6 @@ export class GameEngine {
     if (this.conveyorTicksArmed) {
       this.conveyorTickRemaining = Math.max(0, this.conveyorTickRemaining - dt);
     }
-    let nextKey: BufferedAction | null;
-    while ((nextKey = this.input.consumeAction()) !== null) {
-      this.enqueueManualInput({ kind: 'key', key: nextKey });
-    }
-    const acceptedManualInput = !this.state.outOfMoves && this.inputCooldownRemaining <= 0
-      ? (this.queuedManualInputs.shift() ?? null)
-      : null;
-    if (acceptedManualInput) {
-      this.inputCooldownRemaining = INPUT_COOLDOWN;
-    }
-    if (this.state.outOfMoves) {
-      this.queuedManualInputs = [];
-    }
-    const pendingMoves: PendingMove[] = [];
-    const moveSnapshotBefore = acceptedManualInput ? this.getMoveTrackingSnapshot() : null;
-    const movedThisUpdate = new Set<number>();
 
     // Update pressure plates and toggles BEFORE movement
     updatePressurePlates(this.state, this.level);
@@ -602,6 +589,34 @@ export class GameEngine {
         player.animProgress = Math.min(1, player.animProgress + dt / ANIM_DURATION);
       }
     }
+
+    const boardSettledForManualInput = this.isBoardSettledForManualInput();
+    let nextKey: BufferedAction | null;
+    let latestKeyboardInput: BufferedAction | null = null;
+    while ((nextKey = this.input.consumeAction()) !== null) {
+      latestKeyboardInput = nextKey;
+    }
+    if (boardSettledForManualInput && latestKeyboardInput) {
+      this.enqueueManualInput({ kind: 'key', key: latestKeyboardInput });
+    }
+    if (this.state.outOfMoves) {
+      this.queuedManualInput = null;
+    }
+
+    const acceptedManualInput = !this.state.outOfMoves &&
+      boardSettledForManualInput &&
+      this.inputCooldownRemaining <= 0 &&
+      this.queuedManualInput !== null
+      ? this.queuedManualInput
+      : null;
+    if (acceptedManualInput) {
+      this.queuedManualInput = null;
+      this.inputCooldownRemaining = INPUT_COOLDOWN;
+    }
+
+    const pendingMoves: PendingMove[] = [];
+    const moveSnapshotBefore = acceptedManualInput ? this.getMoveTrackingSnapshot() : null;
+    const movedThisUpdate = new Set<number>();
 
     // Store previous positions for crumble detection
     const prevPositions = this.state.players.map(p => ({ col: p.col, row: p.row }));

@@ -43,31 +43,39 @@ export function remapInput(keys: KeyState, rotation: Rotation): MoveVector {
  * Tracks currently pressed keys. Attach to window keydown/keyup.
  */
 export class InputManager {
-  private queue: BufferedAction[] = [];
+  private pendingAction: BufferedAction | null = null;
+
+  private toBufferedAction(key: string): BufferedAction | null {
+    switch (key) {
+      case 'w':
+      case 'arrowup':
+        return 'W';
+      case 'a':
+      case 'arrowleft':
+        return 'A';
+      case 's':
+      case 'arrowdown':
+        return 'S';
+      case 'd':
+      case 'arrowright':
+        return 'D';
+      default:
+        return null;
+    }
+  }
 
   private onKeyDown = (e: KeyboardEvent) => {
-    const key = e.key.toLowerCase();
-    if (key === 'w' || key === 'a' || key === 's' || key === 'd') {
-      if (e.repeat) return;
-      this.enqueue(key.toUpperCase() as BufferedAction);
-    }
+    if (e.repeat) return;
+    const action = this.toBufferedAction(e.key.toLowerCase());
+    if (!action) return;
+    this.enqueue(action);
   };
 
   private onKeyUp = () => {};
 
   private enqueue(action: BufferedAction) {
-    if (this.queue.length === 0) {
-      this.queue.push(action);
-      return;
-    }
-
-    if (this.queue.length === 1) {
-      this.queue.push(action);
-      return;
-    }
-
-    // Keep only a single buffered follow-up action.
-    this.queue[1] = action;
+    // Keep only the latest single pending keyboard action.
+    this.pendingAction = action;
   }
 
   attach() {
@@ -81,10 +89,12 @@ export class InputManager {
   }
 
   consumeAction(): BufferedAction | null {
-    return this.queue.shift() ?? null;
+    const action = this.pendingAction;
+    this.pendingAction = null;
+    return action;
   }
 
   reset() {
-    this.queue = [];
+    this.pendingAction = null;
   }
 }

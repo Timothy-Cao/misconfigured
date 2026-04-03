@@ -235,4 +235,45 @@ describe('move limits', () => {
     expect(getState().gameOver).toBe(true);
     expect(getState().gameOverReason).toBe('moves');
   });
+
+  it('does not accept or buffer new manual input until the previous motion is settled', () => {
+    const level: LevelData = {
+      id: 100,
+      name: 'input-settle-test',
+      width: 5,
+      height: 5,
+      grid: [
+        [0, 0, 0, 0, 0],
+        [0, 1, 1, 1, 0],
+        [0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0],
+      ],
+      players: [{ startX: 1, startY: 1, rotation: 0 }],
+    };
+
+    const canvas = document.createElement('canvas');
+    vi.spyOn(canvas, 'getContext').mockReturnValue({} as CanvasRenderingContext2D);
+    const engine = new GameEngine(canvas, level, TILE, {});
+    const enqueueManualInput = (engine as unknown as { enqueueManualInput: (input: { kind: 'key'; key: 'W' | 'A' | 'S' | 'D' }) => void }).enqueueManualInput.bind(engine);
+    const update = (engine as unknown as { update: (dt: number) => void }).update.bind(engine);
+    const getState = () => (engine as unknown as { state: ReturnType<typeof createInitialState> }).state;
+
+    enqueueManualInput({ kind: 'key', key: 'D' });
+    update(0.5);
+    expect(getState().players[0].col).toBe(2);
+    expect(getState().movesUsed).toBe(1);
+
+    enqueueManualInput({ kind: 'key', key: 'D' });
+    update(0.05);
+    expect(getState().players[0].col).toBe(2);
+
+    update(0.45);
+    expect(getState().players[0].col).toBe(2);
+
+    enqueueManualInput({ kind: 'key', key: 'D' });
+    update(0.5);
+    expect(getState().players[0].col).toBe(3);
+    expect(getState().movesUsed).toBe(2);
+  });
 });
