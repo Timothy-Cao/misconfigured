@@ -4,6 +4,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import GameCanvas from '@/components/GameCanvas';
 import { TileType, COLORS, type LevelData, type Rotation, isPressurePlate, pressurePlateNumber, pressurePlateTile, isDoor, doorNumber, doorTile, isToggleSwitch, isToggleBlock, toggleNumber, toggleSwitchTile, isConveyor, conveyorDirection, conveyorTile, isOneWay, oneWayOrientation, oneWayTile, isRotationTile, rotationTileCW, isRepaintStation, repaintRotation, repaintStationTile, isColorFilter, colorFilterRotation, colorFilterTile, DIR_DX, DIR_DY } from '@/engine/types';
 import { exportLocalLevelBackup, getCommunityLevel, getCommunityLevels, getLevel, getNextCommunityLevelId, importLocalLevelBackup, saveCommunityLevel, saveCustomLevel } from '@/levels';
+import { fetchCommunityLevelFromApi, fetchCommunityLevelsFromApi, saveCommunityLevelToApi } from '@/lib/community-api';
 import { verifyAdminPassword, verifyCommunityPassword } from '@/lib/admin';
 
 const MAX_SIZE = 20;
@@ -185,13 +186,24 @@ export default function LevelEditor() {
   }, [width, height]);
 
   const refreshCommunityLevels = useCallback(() => {
-    const levels = getCommunityLevels();
-    setCommunityLevels(levels);
-    setCommunityTargetId(current => {
-      if (levels.some(level => level.id === current)) return current;
-      return getNextCommunityLevelId();
-    });
+    return fetchCommunityLevelsFromApi()
+      .then(levels => {
+        setCommunityLevels(levels);
+        setCommunityTargetId(current => {
+          if (levels.some(level => level.id === current)) return current;
+          if (levels.length === 0) return 1001;
+          return Math.max(1001, ...levels.map(level => level.id)) + 1;
+        });
+      })
+      .catch(() => {
+        const levels = getCommunityLevels();
+        setCommunityLevels(levels);
+      });
   }, []);
+
+  useEffect(() => {
+    refreshCommunityLevels();
+  }, [refreshCommunityLevels]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -1164,12 +1176,12 @@ export default function LevelEditor() {
     };
   }, [grid, height, levelLives, levelName, spawns, width]);
 
-  const handleLoad = useCallback(() => {
+  const handleLoad = useCallback(async () => {
     setMessage(null);
 
     const sourceLevel = publishScope === 'campaign'
       ? getLevel(saveTargetId)
-      : getCommunityLevel(communityTargetId);
+      : await fetchCommunityLevelFromApi(communityTargetId).catch(() => getCommunityLevel(communityTargetId));
 
     if (!sourceLevel) {
       setMessage({
@@ -1220,9 +1232,15 @@ export default function LevelEditor() {
     }
 
     const levelData = buildLevelData(communityTargetId, `Community ${communityTargetId}`);
-    saveCommunityLevel(communityTargetId, levelData);
-    refreshCommunityLevels();
-    setMessage({ text: `Saved to Community ${communityTargetId}!`, type: 'success' });
+    try {
+      await saveCommunityLevelToApi(levelData, password);
+      saveCommunityLevel(communityTargetId, levelData);
+      await refreshCommunityLevels();
+      setMessage({ text: `Saved to Community ${communityTargetId}!`, type: 'success' });
+    } catch (error) {
+      const text = error instanceof Error ? error.message : 'Failed to save community level.';
+      setMessage({ text, type: 'error' });
+    }
   }, [buildLevelData, communityTargetId, password, publishScope, refreshCommunityLevels, saveTargetId, validate]);
 
   const handleExportLevels = useCallback(() => {

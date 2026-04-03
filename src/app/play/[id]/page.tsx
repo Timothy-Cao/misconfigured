@@ -1,25 +1,65 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import GameCanvas from '@/components/GameCanvas';
 import HUD from '@/components/HUD';
-import { getLevel, TOTAL_LEVELS } from '@/levels';
+import { COMMUNITY_LEVEL_START_ID, getLevel, TOTAL_LEVELS } from '@/levels';
 import { useGameProgress } from '@/hooks/useGameProgress';
+import { type LevelData } from '@/engine/types';
+import { fetchCommunityLevelFromApi } from '@/lib/community-api';
 
 export default function PlayPage() {
   const params = useParams();
   const router = useRouter();
   const levelId = Number(params.id);
-  const level = useMemo(() => getLevel(levelId), [levelId]);
+  const localLevel = useMemo(() => (levelId < COMMUNITY_LEVEL_START_ID ? getLevel(levelId) : undefined), [levelId]);
+  const [remoteLevel, setRemoteLevel] = useState<LevelData | undefined>(undefined);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const level = localLevel ?? remoteLevel;
   const { completeLevel } = useGameProgress();
   const [levelComplete, setLevelComplete] = useState(false);
   const [settledUnits, setSettledUnits] = useState(0);
   const [completionTime, setCompletionTime] = useState(0);
   const [key, setKey] = useState(0);
-  const startingLives = level?.lives ?? 1;
-  const [lives, setLives] = useState(startingLives);
-  const [maxLives, setMaxLives] = useState(startingLives);
+  const [lives, setLives] = useState(1);
+  const [maxLives, setMaxLives] = useState(1);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadLevel() {
+      if (levelId < COMMUNITY_LEVEL_START_ID) {
+        setRemoteLevel(undefined);
+        setLoadError(null);
+        return;
+      }
+
+      setRemoteLevel(undefined);
+      setLoadError(null);
+
+      try {
+        const nextLevel = await fetchCommunityLevelFromApi(levelId);
+        if (cancelled) return;
+        setRemoteLevel(nextLevel);
+        setLoadError(nextLevel ? null : 'Level not found');
+      } catch (error) {
+        if (cancelled) return;
+        setLoadError(error instanceof Error ? error.message : 'Failed to load level.');
+      }
+    }
+
+    loadLevel();
+    return () => {
+      cancelled = true;
+    };
+  }, [levelId]);
+
+  useEffect(() => {
+    const startingLives = level?.lives ?? 1;
+    setLives(startingLives);
+    setMaxLives(startingLives);
+  }, [level]);
 
   const handleLevelComplete = useCallback((time: number) => {
     completeLevel(levelId);
@@ -37,13 +77,14 @@ export default function PlayPage() {
   }, []);
 
   const handleRestart = useCallback(() => {
+    const startingLives = level?.lives ?? 1;
     setLevelComplete(false);
     setSettledUnits(0);
     setCompletionTime(0);
     setLives(startingLives);
     setMaxLives(startingLives);
     setKey(k => k + 1);
-  }, [startingLives]);
+  }, [level]);
 
   const handleNextLevel = useCallback(() => {
     if (levelId < TOTAL_LEVELS) {
@@ -59,7 +100,7 @@ export default function PlayPage() {
   if (!level) {
     return (
       <main className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
-        <p className="text-white/40 font-mono">Level not found</p>
+        <p className="text-white/40 font-mono">{loadError ?? 'Level not found'}</p>
       </main>
     );
   }

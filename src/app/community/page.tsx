@@ -1,14 +1,20 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getCommunityLevels, getNextCommunityLevelId } from '@/levels';
+import { type LevelData } from '@/engine/types';
+import { fetchCommunityLevelsFromApi } from '@/lib/community-api';
+import { COMMUNITY_LEVEL_START_ID } from '@/levels';
 
 export default function CommunityPage() {
   const router = useRouter();
-  const levels = useMemo(() => getCommunityLevels(), []);
-  const nextCommunityLevelId = levels.length > 0 ? getNextCommunityLevelId() : 1001;
+  const [levels, setLevels] = useState<LevelData[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const nextCommunityLevelId = useMemo(() => {
+    if (levels.length === 0) return COMMUNITY_LEVEL_START_ID;
+    return Math.max(COMMUNITY_LEVEL_START_ID, ...levels.map(level => level.id)) + 1;
+  }, [levels]);
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -20,6 +26,27 @@ export default function CommunityPage() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [router]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadLevels() {
+      try {
+        const nextLevels = await fetchCommunityLevelsFromApi();
+        if (cancelled) return;
+        setLevels(nextLevels);
+        setLoadError(null);
+      } catch (error) {
+        if (cancelled) return;
+        setLoadError(error instanceof Error ? error.message : 'Failed to load community levels.');
+      }
+    }
+
+    loadLevels();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <main className="min-h-screen bg-[#0a0a0f] flex flex-col items-center p-6 sm:p-8 lg:p-10 relative overflow-hidden">
@@ -33,7 +60,7 @@ export default function CommunityPage() {
                 Community Levels
               </h1>
               <p className="text-white/35 text-sm sm:text-base mt-1">
-                Community play is open. In the current local-only setup, publishing from the editor still uses the built-in admin gate.
+                Community play is open. Server-backed community publishing is enabled when the Supabase table is configured.
               </p>
               <p className="text-white/20 text-xs sm:text-sm mt-2">Press Esc to return to the title.</p>
             </div>
@@ -65,6 +92,12 @@ export default function CommunityPage() {
               Next suggested slot: {nextCommunityLevelId}
             </p>
           </div>
+
+          {loadError && (
+            <p className="mb-4 rounded-xl border border-amber-400/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-200/90">
+              {loadError}
+            </p>
+          )}
 
           {levels.length > 0 ? (
             <div className="grid gap-3">
