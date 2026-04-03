@@ -28,19 +28,16 @@ export default function GameCanvas({
   const engineRef = useRef<GameEngine | null>(null);
   const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
   const clearTimeoutRef = useRef<number | null>(null);
-  const restartTimeoutRef = useRef<number | null>(null);
   const restartHideTimeoutRef = useRef<number | null>(null);
   const [scale, setScale] = useState(1);
   const [showClearFlash, setShowClearFlash] = useState(false);
   const [showRestartFlash, setShowRestartFlash] = useState(false);
+  const [restartFlashKey, setRestartFlashKey] = useState(0);
 
   useEffect(() => {
     return () => {
       if (clearTimeoutRef.current !== null) {
         window.clearTimeout(clearTimeoutRef.current);
-      }
-      if (restartTimeoutRef.current !== null) {
-        window.clearTimeout(restartTimeoutRef.current);
       }
       if (restartHideTimeoutRef.current !== null) {
         window.clearTimeout(restartHideTimeoutRef.current);
@@ -86,27 +83,21 @@ export default function GameCanvas({
           return;
         }
 
+        engine.restart();
+        onProgressUpdate?.(0);
+        const startingLives = level.lives ?? 1;
+        onLivesUpdate?.(startingLives, startingLives);
+
         setShowRestartFlash(true);
-        if (restartTimeoutRef.current !== null) {
-          window.clearTimeout(restartTimeoutRef.current);
-        }
+        setRestartFlashKey(current => current + 1);
         if (restartHideTimeoutRef.current !== null) {
           window.clearTimeout(restartHideTimeoutRef.current);
         }
 
-        restartTimeoutRef.current = window.setTimeout(() => {
-          engine.restart();
-          onProgressUpdate?.(0);
-          const startingLives = level.lives ?? 1;
-          onLivesUpdate?.(startingLives, startingLives);
-          setShowRestartFlash(false);
-          restartTimeoutRef.current = null;
-        }, 500);
-
         restartHideTimeoutRef.current = window.setTimeout(() => {
           setShowRestartFlash(false);
           restartHideTimeoutRef.current = null;
-        }, 500);
+        }, 3000);
       },
       onLivesUpdate,
     });
@@ -193,12 +184,12 @@ export default function GameCanvas({
         </div>
       )}
       {showRestartFlash && (
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/30 animate-[fadeIn_0.15s_ease-out]">
-          <div className="text-center animate-[fadeIn_0.15s_ease-out]">
-            <div className="text-sm font-mono uppercase tracking-[0.35em] text-white/45">
-              Restarting
-            </div>
-            <div className="mt-2 text-2xl sm:text-3xl font-black text-white/90">
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <div
+            key={restartFlashKey}
+            className="text-center animate-[levelTitleFade_3s_ease-in-out_forwards]"
+          >
+            <div className="text-3xl sm:text-4xl font-black text-white/35 drop-shadow-[0_0_18px_rgba(255,255,255,0.16)]">
               {level.name}
             </div>
           </div>
