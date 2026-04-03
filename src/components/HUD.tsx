@@ -142,6 +142,12 @@ export default function HUD({ levelId, levelName, levelComplete, settledUnits, t
             </p>
             <div className="flex gap-3 justify-center animate-[fadeInUp_0.5s_ease-out_0.3s_both]">
               <button
+                onClick={onRestart}
+                className="px-6 py-2.5 border border-white/15 text-white/70 rounded-lg hover:bg-white/5 hover:border-white/25 transition-all duration-200"
+              >
+                Restart
+              </button>
+              <button
                 onClick={onNextLevel}
                 className="px-8 py-2.5 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-lg font-semibold hover:from-green-400 hover:to-emerald-400 transition-all duration-300 shadow-[0_0_20px_rgba(74,222,128,0.3)] hover:shadow-[0_0_30px_rgba(74,222,128,0.5)]"
               >
