@@ -1535,6 +1535,15 @@ export default function LevelEditor() {
                 <option value="community">Community Levels</option>
               </select>
             </label>
+            <div className={`mb-3 rounded-lg border px-3 py-2 text-[11px] leading-relaxed ${
+              publishScope === 'campaign'
+                ? 'border-amber-400/20 bg-amber-500/10 text-amber-200/80'
+                : 'border-cyan-400/20 bg-cyan-500/10 text-cyan-200/80'
+            }`}>
+              {publishScope === 'campaign'
+                ? 'Campaign saves are local-only browser overrides. They do not save to the server or appear in other browsers/devices.'
+                : 'Community saves are server-backed. A successful save here should appear in other browsers/devices.'}
+            </div>
             {publishScope === 'campaign' ? (
               <label className="block mb-2">
                 <span className="text-white/40 text-xs">Target Level</span>
@@ -1589,7 +1598,7 @@ export default function LevelEditor() {
               onClick={handleSave}
               className="w-full text-sm px-3 py-2 bg-purple-500/20 border border-purple-500/30 rounded-lg text-purple-300 hover:bg-purple-500/30 hover:border-purple-500/50 transition-all duration-200"
             >
-              {publishScope === 'campaign' ? 'Save Campaign Override' : 'Save Community Level'}
+              {publishScope === 'campaign' ? 'Save Local Campaign Override' : 'Save Community Level To Server'}
             </button>
             <div className="mt-4 border-t border-white/10 pt-4">
               <h4 className="text-white/55 text-xs font-mono uppercase tracking-wider mb-3">Backup</h4>
@@ -1619,7 +1628,7 @@ export default function LevelEditor() {
               </button>
             </div>
             {message && (
-              <p className={`text-xs mt-2 ${message.type === 'error' ? 'text-red-400' : 'text-green-400'}`}>
+              <p className={`text-xs mt-2 leading-relaxed ${message.type === 'error' ? 'text-red-400' : 'text-green-400'}`}>
                 {message.text}
               </p>
             )}
