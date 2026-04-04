@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import GameCanvas from '@/components/GameCanvas';
 import { TileType, COLORS, type LevelData, type Rotation, isPressurePlate, pressurePlateNumber, pressurePlateTile, isDoor, doorNumber, doorTile, isToggleSwitch, isToggleBlock, toggleNumber, toggleSwitchTile, isConveyor, conveyorDirection, conveyorTile, isOneWay, oneWayOrientation, oneWayTile, isRotationTile, rotationTileCW, isRepaintStation, repaintRotation, repaintStationTile, isColorFilter, colorFilterRotation, colorFilterTile, DIR_DX, DIR_DY } from '@/engine/types';
 import { exportLocalLevelBackup, getBuiltInLevel, importLocalLevelBackup, saveCustomLevel } from '@/levels';
@@ -187,6 +187,7 @@ export default function LevelEditor() {
   const touchSpawnTapRef = useRef(false);
   const loadedCloudQueryIdRef = useRef<number | null>(null);
   const baselineDraftSnapshotRef = useRef<string | null>(null);
+  const [verifiedDraftSnapshot, setVerifiedDraftSnapshot] = useState<string | null>(null);
 
   useEffect(() => {
     function update() { setTilePx(computeTilePx(width, height)); }
@@ -1233,19 +1234,6 @@ export default function LevelEditor() {
       return 'Need at least 1 unit spawn';
     }
 
-    let goalCount = 0;
-    let blackholeCount = 0;
-    for (let r = 0; r < height; r++) {
-      for (let c = 0; c < width; c++) {
-        if (grid[r][c] === TileType.GOAL) goalCount++;
-        if (grid[r][c] === TileType.BLACKHOLE) blackholeCount++;
-      }
-    }
-    const hasEnoughFinishCapacity = blackholeCount > 0 || goalCount >= validSpawns.length;
-    if (!hasEnoughFinishCapacity) {
-      return `Need at least ${validSpawns.length} regular goals, or at least one black hole goal (have ${goalCount} goals and ${blackholeCount} black hole${blackholeCount === 1 ? '' : 's'})`;
-    }
-
     for (let i = 0; i < validSpawns.length; i++) {
       const s = validSpawns[i];
       if (grid[s.row][s.col] === TileType.VOID) {
@@ -1314,6 +1302,7 @@ export default function LevelEditor() {
           lives: level.lives ?? 1,
           maxMoves: level.maxMoves ?? 0,
         });
+        setVerifiedDraftSnapshot(null);
       } catch {
         setMessage({ text: `Cloud map ${numericId} could not be loaded.`, type: 'error' });
       }
@@ -1361,9 +1350,16 @@ export default function LevelEditor() {
     return snapshotLevelData(buildLevelData(-1, 'Working Draft'));
   }, [buildLevelData, snapshotLevelData]);
 
+  const currentDraftSnapshot = useMemo(() => getCurrentDraftSnapshot(), [getCurrentDraftSnapshot]);
+  const isDraftVerified = verifiedDraftSnapshot !== null && verifiedDraftSnapshot === currentDraftSnapshot;
+
   const markCurrentDraftAsBaseline = useCallback((level: LevelData) => {
     baselineDraftSnapshotRef.current = snapshotLevelData(level);
   }, [snapshotLevelData]);
+
+  const clearDraftVerification = useCallback(() => {
+    setVerifiedDraftSnapshot(null);
+  }, []);
 
   const hasUnsavedWork = useCallback(() => {
     if (baselineDraftSnapshotRef.current == null) {
@@ -1412,11 +1408,12 @@ export default function LevelEditor() {
       players: sourceLevel.players.map(player => ({ ...player })) as LevelData['players'],
     });
     markCurrentDraftAsBaseline(sourceLevel);
+    clearDraftVerification();
     setMessage({
       text: `Loaded ${sourceLevel.name} into the editor as a new working copy.`,
       type: 'success',
     });
-  }, [cloudTargetId, loadLevelIntoEditor, markCurrentDraftAsBaseline, publishScope, saveTargetId]);
+  }, [clearDraftVerification, cloudTargetId, loadLevelIntoEditor, markCurrentDraftAsBaseline, publishScope, saveTargetId]);
 
   const loadCampaignLevelIntoEditor = useCallback(async (targetId: number) => {
     const sourceLevel = await fetchCampaignOverrideFromApi(targetId).catch(() => undefined) ?? getBuiltInLevel(targetId);
@@ -1432,12 +1429,13 @@ export default function LevelEditor() {
       players: sourceLevel.players.map(player => ({ ...player })) as LevelData['players'],
     });
     markCurrentDraftAsBaseline(sourceLevel);
+    clearDraftVerification();
     setMessage({
       text: `Loaded ${sourceLevel.name} into the editor as a new working copy.`,
       type: 'success',
     });
     return true;
-  }, [loadLevelIntoEditor, markCurrentDraftAsBaseline]);
+  }, [clearDraftVerification, loadLevelIntoEditor, markCurrentDraftAsBaseline]);
 
   const handleCampaignTargetChange = useCallback(async (nextTargetId: number) => {
     if (Number.isNaN(nextTargetId) || nextTargetId === saveTargetId) {
@@ -1465,6 +1463,14 @@ export default function LevelEditor() {
     const error = validate();
     if (error) {
       setMessage({ text: error, type: 'error' });
+      return;
+    }
+
+    if (!isDraftVerified) {
+      setMessage({
+        text: 'Clear this exact draft in Play Test before saving it to campaign or cloud.',
+        type: 'error',
+      });
       return;
     }
 
@@ -1506,7 +1512,7 @@ export default function LevelEditor() {
       const text = error instanceof Error ? error.message : 'Failed to save cloud map.';
       setMessage({ text, type: 'error' });
     }
-  }, [buildLevelData, cloudPublished, cloudSignedIn, cloudTargetId, levelName, markCurrentDraftAsBaseline, publishScope, refreshCloudLevels, saveTargetId, validate]);
+  }, [buildLevelData, cloudPublished, cloudSignedIn, cloudTargetId, isDraftVerified, levelName, markCurrentDraftAsBaseline, publishScope, refreshCloudLevels, saveTargetId, validate]);
 
   const handleDeleteCommunity = useCallback(async () => {
     setMessage(null);
@@ -1636,14 +1642,12 @@ export default function LevelEditor() {
   }, [previewLevel]);
 
   const placedPlayers = spawns.length;
-  const goalCount = grid.flat().filter(t => t === TileType.GOAL).length;
-  const blackholeCount = grid.flat().filter(t => t === TileType.BLACKHOLE).length;
   const editorWarnings: string[] = [];
   if (placedPlayers < 1) {
     editorWarnings.push('Need at least one unit spawn.');
   }
-  if (blackholeCount === 0 && goalCount < placedPlayers) {
-    editorWarnings.push(`Need at least ${placedPlayers} regular goals, or place a black hole goal instead.`);
+  if (!isDraftVerified) {
+    editorWarnings.push('Clear the current draft in Play Test before saving it to campaign or cloud.');
   }
 
   const TAB_LABELS: Record<Tab, string> = { config: 'Config', blocks: 'Blocks', publish: 'Publish' };
@@ -1879,6 +1883,15 @@ export default function LevelEditor() {
                 Cloud maps are owned by your account. Save privately, then publish up to 5 maps from here or My Maps.
               </div>
             )}
+            <div className={`mb-3 rounded-lg border px-3 py-2 text-[11px] leading-relaxed ${
+              isDraftVerified
+                ? 'border-emerald-400/25 bg-emerald-500/10 text-emerald-100/85'
+                : 'border-amber-400/20 bg-amber-500/10 text-amber-200/80'
+            }`}>
+              {isDraftVerified
+                ? 'This exact draft has been cleared in Play Test and can be saved.'
+                : 'Play Test and clear this exact draft before saving it to campaign or cloud.'}
+            </div>
             {publishScope === 'campaign' ? (
               <label className="block mb-2">
                 <span className="text-white/40 text-xs">Target Level</span>
@@ -2097,6 +2110,7 @@ export default function LevelEditor() {
                   onLevelComplete={(completionTime) => {
                     setPreviewComplete(true);
                     setPreviewCompletionTime(completionTime);
+                    setVerifiedDraftSnapshot(currentDraftSnapshot);
                   }}
                   onProgressUpdate={setPreviewSettledUnits}
                   onGameOver={(reason) => {
