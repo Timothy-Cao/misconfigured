@@ -4,7 +4,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import GameCanvas from '@/components/GameCanvas';
 import HUD from '@/components/HUD';
-import { COMMUNITY_LEVEL_START_ID, getLevel, TOTAL_LEVELS } from '@/levels';
+import { COMMUNITY_LEVEL_START_ID, getLevel, getLocalCampaignOverride, TOTAL_LEVELS } from '@/levels';
 import { useGameProgress } from '@/hooks/useGameProgress';
 import { type LevelData } from '@/engine/types';
 import { fetchCampaignOverrideFromApi } from '@/lib/campaign-api';
@@ -15,6 +15,10 @@ export default function PlayPage() {
   const router = useRouter();
   const levelId = Number(params.id);
   const localLevel = useMemo(() => (levelId < COMMUNITY_LEVEL_START_ID ? getLevel(levelId) : undefined), [levelId]);
+  const localOverride = useMemo(
+    () => (levelId < COMMUNITY_LEVEL_START_ID ? getLocalCampaignOverride(levelId) : undefined),
+    [levelId],
+  );
   const [remoteLevel, setRemoteLevel] = useState<LevelData | null | undefined>(undefined);
   const [loadError, setLoadError] = useState<string | null>(null);
   const isCampaignLevel = levelId < COMMUNITY_LEVEL_START_ID;
@@ -127,6 +131,9 @@ export default function PlayPage() {
   }, [levelId, router]);
 
   const canGoNext = isCampaignLevel && levelId < TOTAL_LEVELS && isUnlocked(levelId + 1);
+  const sourceLabel = isCampaignLevel
+    ? (remoteLevel ? 'Campaign Override (Server)' : (localOverride ? 'Campaign Override (Local)' : 'Campaign'))
+    : 'Community';
 
   useEffect(() => {
     function goBack() {
@@ -215,6 +222,7 @@ export default function PlayPage() {
         <HUD
           levelId={levelId}
           levelName={level.name}
+          sourceLabel={sourceLabel}
           levelComplete={levelComplete}
           settledUnits={settledUnits}
           totalUnits={level.players.length}

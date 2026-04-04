@@ -3,6 +3,7 @@
 interface HUDProps {
   levelId: number;
   levelName?: string;
+  sourceLabel?: string;
   levelComplete: boolean;
   settledUnits: number;
   totalUnits: number;
@@ -27,7 +28,7 @@ function formatTime(seconds: number): string {
     : `${s}.${String(ms).padStart(2, '0')}s`;
 }
 
-export default function HUD({ levelId, levelName, levelComplete, settledUnits, totalUnits, completionTime, lives, maxLives, movesUsed, maxMoves, gameOver, gameOverReason, canGoNext, onRestart, onNextLevel }: HUDProps) {
+export default function HUD({ levelId, levelName, sourceLabel, levelComplete, settledUnits, totalUnits, completionTime, lives, maxLives, movesUsed, maxMoves, gameOver, gameOverReason, canGoNext, onRestart, onNextLevel }: HUDProps) {
   const displayName = levelName || `Level ${String(levelId).padStart(2, '0')}`;
   const keyHint = levelComplete
     ? 'Esc back, R restart, Enter or Space next'
@@ -52,9 +53,16 @@ export default function HUD({ levelId, levelName, levelComplete, settledUnits, t
 
             <div className="flex flex-col gap-2 sm:items-end">
               <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-3">
-                <span className="text-center text-sm font-mono tracking-wider text-white/70 sm:text-left">
-                  {displayName}
-                </span>
+                <div className="flex flex-col gap-1 sm:gap-0 sm:flex-row sm:items-center sm:gap-3">
+                  <span className="text-center text-sm font-mono tracking-wider text-white/70 sm:text-left">
+                    {displayName}
+                  </span>
+                  {sourceLabel && (
+                    <span className="inline-flex items-center justify-center rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[10px] uppercase tracking-[0.2em] text-white/45">
+                      {sourceLabel}
+                    </span>
+                  )}
+                </div>
                 <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 sm:justify-end">
                   <span className={`text-xs font-mono tracking-wider transition-colors duration-300 ${
                     settledUnits === totalUnits ? 'text-green-400' : 'text-white/40'
@@ -66,7 +74,7 @@ export default function HUD({ levelId, levelName, levelComplete, settledUnits, t
                     <span className={`text-xs font-mono tracking-wider transition-colors duration-300 ${
                       movesUsed >= maxMoves ? 'text-red-400' : 'text-white/40'
                     }`}>
-                      Moves {movesUsed}/{maxMoves}
+                      Move Limit {movesUsed}/{maxMoves}
                     </span>
                   )}
 
@@ -87,12 +95,22 @@ export default function HUD({ levelId, levelName, levelComplete, settledUnits, t
                       <span className="flex items-center gap-1 text-xs font-mono">
                         <span style={{ color: '#ff5064' }}>{'\u2764'}</span>
                         <span className={`tracking-wider ${lives <= 1 ? 'text-red-400' : 'text-white/50'}`}>
-                          x{lives}
+                          Lives {lives}/{maxLives}
                         </span>
                       </span>
                     )}
                   </div>
                 </div>
+              </div>
+              <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-end">
+                {maxMoves !== null && (
+                  <span className="rounded-full border border-amber-400/30 bg-amber-500/10 px-2 py-0.5 text-[10px] uppercase tracking-[0.2em] text-amber-200/70">
+                    Move Limit
+                  </span>
+                )}
+                <span className="rounded-full border border-rose-400/30 bg-rose-500/10 px-2 py-0.5 text-[10px] uppercase tracking-[0.2em] text-rose-200/70">
+                  Lives
+                </span>
               </div>
               <p className="text-center text-[10px] uppercase tracking-[0.18em] text-white/20 sm:text-right">
                 {keyHint}

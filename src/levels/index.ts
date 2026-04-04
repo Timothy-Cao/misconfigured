@@ -183,4 +183,15 @@ export function getLevel(id: number): LevelData | undefined {
   return builtIn ? cloneLevel(builtIn) : undefined;
 }
 
+export function getLocalCampaignOverride(id: number): LevelData | undefined {
+  const custom = getCustomLevels();
+  const level = custom[String(id)];
+  return level ? cloneLevel(level) : undefined;
+}
+
+export function getBuiltInLevel(id: number): LevelData | undefined {
+  const builtIn = builtInLevels.find(l => l.id === id);
+  return builtIn ? cloneLevel(builtIn) : undefined;
+}
+
 export const TOTAL_LEVELS = builtInLevels.length;
