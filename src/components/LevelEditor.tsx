@@ -2133,7 +2133,7 @@ export default function LevelEditor() {
             style={{ boxShadow: '0 0 40px rgba(168, 85, 247, 0.06)' }}
           >
             {previewLevel ? (
-              <div className="flex min-h-[min(70svh,720px)] w-full items-center justify-center bg-[#09090d] p-3 sm:p-4">
+              <div className="flex h-[min(72svh,760px)] w-full items-center justify-center bg-[#09090d] p-3 sm:h-[min(74svh,820px)] sm:p-4">
                 <div className="flex h-full w-full max-w-6xl min-h-0 items-center justify-center">
                   <div className="relative flex h-full w-full min-h-0 min-w-0 items-center justify-center">
                     <GameCanvas
