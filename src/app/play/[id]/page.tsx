@@ -142,6 +142,22 @@ export default function PlayPage() {
     }
   }, [levelId, router]);
 
+  const handlePreviousLevel = useCallback(() => {
+    if (levelId > 1) {
+      setLevelComplete(false);
+      setSettledUnits(0);
+      setCompletionTime(0);
+      setMovesUsed(0);
+      setMaxMoves(null);
+      setGameOver(false);
+      setGameOverReason(null);
+      router.push(`/play/${levelId - 1}`);
+    } else {
+      router.push('/levels');
+    }
+  }, [levelId, router]);
+
+  const canGoPrevious = isCampaignLevel && levelId > 1 && isUnlocked(levelId - 1);
   const canGoNext = isCampaignLevel && levelId < TOTAL_LEVELS && isUnlocked(levelId + 1);
   const sourceLabel = isCampaignLevel
     ? (usingLocalCampaignBackup ? 'Local Backup Warning' : undefined)
@@ -234,37 +250,61 @@ export default function PlayPage() {
         />
       </div>
       <div className="flex flex-col items-center gap-4 animate-[fadeIn_0.4s_ease-out]">
-        <div className="relative">
-          <GameCanvas
-            key={key}
-            level={level}
-            onLevelComplete={handleLevelComplete}
-            onProgressUpdate={handleProgressUpdate}
-            onGameOver={handleGameOver}
-            onLivesUpdate={handleLivesUpdate}
-            onMovesUpdate={handleMovesUpdate}
-            autoRestartOnGameOver={false}
-            captureGlobalMobileSwipes
-          />
-          <HUD
-            levelId={levelId}
-            levelName={level.name}
-            sourceLabel={sourceLabel}
-            levelComplete={levelComplete}
-            settledUnits={settledUnits}
-            totalUnits={level.players.length}
-            completionTime={completionTime}
-            lives={lives}
-            maxLives={maxLives}
-            movesUsed={movesUsed}
-            maxMoves={maxMoves}
-            gameOver={gameOver}
-            gameOverReason={gameOverReason}
-            canGoNext={canGoNext}
-            onRestart={handleRestart}
-            onNextLevel={handleNextLevel}
-            showBar={false}
-          />
+        <div className="flex items-center justify-center gap-2 sm:gap-4">
+          {canGoPrevious && (
+            <button
+              onClick={handlePreviousLevel}
+              aria-label={`Go to level ${levelId - 1}`}
+              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-xl text-white/75 transition-all duration-200 hover:border-white/25 hover:bg-white/[0.08] hover:text-white sm:h-14 sm:w-14 sm:text-2xl"
+            >
+              ←
+            </button>
+          )}
+          {!canGoPrevious && isCampaignLevel && <div className="hidden h-12 w-12 shrink-0 sm:block sm:h-14 sm:w-14" />}
+
+          <div className="relative">
+            <GameCanvas
+              key={key}
+              level={level}
+              onLevelComplete={handleLevelComplete}
+              onProgressUpdate={handleProgressUpdate}
+              onGameOver={handleGameOver}
+              onLivesUpdate={handleLivesUpdate}
+              onMovesUpdate={handleMovesUpdate}
+              autoRestartOnGameOver={false}
+              captureGlobalMobileSwipes
+            />
+            <HUD
+              levelId={levelId}
+              levelName={level.name}
+              sourceLabel={sourceLabel}
+              levelComplete={levelComplete}
+              settledUnits={settledUnits}
+              totalUnits={level.players.length}
+              completionTime={completionTime}
+              lives={lives}
+              maxLives={maxLives}
+              movesUsed={movesUsed}
+              maxMoves={maxMoves}
+              gameOver={gameOver}
+              gameOverReason={gameOverReason}
+              canGoNext={canGoNext}
+              onRestart={handleRestart}
+              onNextLevel={handleNextLevel}
+              showBar={false}
+            />
+          </div>
+
+          {canGoNext && (
+            <button
+              onClick={handleNextLevel}
+              aria-label={`Go to level ${levelId + 1}`}
+              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-xl text-white/75 transition-all duration-200 hover:border-white/25 hover:bg-white/[0.08] hover:text-white sm:h-14 sm:w-14 sm:text-2xl"
+            >
+              →
+            </button>
+          )}
+          {!canGoNext && isCampaignLevel && <div className="hidden h-12 w-12 shrink-0 sm:block sm:h-14 sm:w-14" />}
         </div>
         {maxMoves !== null && (
           <div
