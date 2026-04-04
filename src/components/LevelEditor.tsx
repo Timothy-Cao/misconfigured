@@ -186,6 +186,7 @@ export default function LevelEditor() {
   const touchMovedRef = useRef(false);
   const touchSpawnTapRef = useRef(false);
   const loadedCloudQueryIdRef = useRef<number | null>(null);
+  const baselineDraftSnapshotRef = useRef<string | null>(null);
 
   useEffect(() => {
     function update() { setTilePx(computeTilePx(width, height)); }
@@ -1299,6 +1300,19 @@ export default function LevelEditor() {
         const level = await fetchCommunityLevelFromApi(numericId);
         if (!level) return;
         loadLevelIntoEditor(level);
+        baselineDraftSnapshotRef.current = JSON.stringify({
+          name: level.name,
+          width: level.width,
+          height: level.height,
+          grid: level.grid,
+          players: level.players.map(player => ({
+            startX: player.startX,
+            startY: player.startY,
+            rotation: player.rotation,
+          })),
+          lives: level.lives ?? 1,
+          maxMoves: level.maxMoves ?? 0,
+        });
       } catch {
         setMessage({ text: `Cloud map ${numericId} could not be loaded.`, type: 'error' });
       }
@@ -1326,6 +1340,52 @@ export default function LevelEditor() {
     };
   }, [grid, height, levelLives, levelMaxMoves, levelName, spawns, width]);
 
+  const snapshotLevelData = useCallback((level: LevelData): string => {
+    return JSON.stringify({
+      name: level.name,
+      width: level.width,
+      height: level.height,
+      grid: level.grid,
+      players: level.players.map(player => ({
+        startX: player.startX,
+        startY: player.startY,
+        rotation: player.rotation,
+      })),
+      lives: level.lives ?? 1,
+      maxMoves: level.maxMoves ?? 0,
+    });
+  }, []);
+
+  const getCurrentDraftSnapshot = useCallback(() => {
+    return snapshotLevelData(buildLevelData(-1, 'Working Draft'));
+  }, [buildLevelData, snapshotLevelData]);
+
+  const markCurrentDraftAsBaseline = useCallback((level: LevelData) => {
+    baselineDraftSnapshotRef.current = snapshotLevelData(level);
+  }, [snapshotLevelData]);
+
+  const hasUnsavedWork = useCallback(() => {
+    if (baselineDraftSnapshotRef.current == null) {
+      return false;
+    }
+
+    return baselineDraftSnapshotRef.current !== getCurrentDraftSnapshot();
+  }, [getCurrentDraftSnapshot]);
+
+  const confirmDiscardUnsavedWork = useCallback(() => {
+    if (!hasUnsavedWork()) {
+      return true;
+    }
+
+    return window.confirm('Discard your current unsaved editor changes and load a different campaign level?');
+  }, [hasUnsavedWork]);
+
+  useEffect(() => {
+    if (baselineDraftSnapshotRef.current == null) {
+      baselineDraftSnapshotRef.current = getCurrentDraftSnapshot();
+    }
+  }, [getCurrentDraftSnapshot]);
+
   const handleLoad = useCallback(async () => {
     setMessage(null);
 
@@ -1350,11 +1410,52 @@ export default function LevelEditor() {
       grid: sourceLevel.grid.map(row => [...row]),
       players: sourceLevel.players.map(player => ({ ...player })) as LevelData['players'],
     });
+    markCurrentDraftAsBaseline(sourceLevel);
     setMessage({
       text: `Loaded ${sourceLevel.name} into the editor as a new working copy.`,
       type: 'success',
     });
-  }, [cloudTargetId, loadLevelIntoEditor, publishScope, saveTargetId]);
+  }, [cloudTargetId, loadLevelIntoEditor, markCurrentDraftAsBaseline, publishScope, saveTargetId]);
+
+  const loadCampaignLevelIntoEditor = useCallback(async (targetId: number) => {
+    const sourceLevel = await fetchCampaignOverrideFromApi(targetId).catch(() => undefined) ?? getBuiltInLevel(targetId);
+
+    if (!sourceLevel) {
+      setMessage({ text: `Level ${targetId} could not be loaded.`, type: 'error' });
+      return false;
+    }
+
+    loadLevelIntoEditor({
+      ...sourceLevel,
+      grid: sourceLevel.grid.map(row => [...row]),
+      players: sourceLevel.players.map(player => ({ ...player })) as LevelData['players'],
+    });
+    markCurrentDraftAsBaseline(sourceLevel);
+    setMessage({
+      text: `Loaded ${sourceLevel.name} into the editor as a new working copy.`,
+      type: 'success',
+    });
+    return true;
+  }, [loadLevelIntoEditor, markCurrentDraftAsBaseline]);
+
+  const handleCampaignTargetChange = useCallback(async (nextTargetId: number) => {
+    if (Number.isNaN(nextTargetId) || nextTargetId === saveTargetId) {
+      return;
+    }
+
+    if (authUser?.isAdmin) {
+      if (!confirmDiscardUnsavedWork()) {
+        return;
+      }
+
+      setSaveTargetId(nextTargetId);
+      setMessage(null);
+      await loadCampaignLevelIntoEditor(nextTargetId);
+      return;
+    }
+
+    setSaveTargetId(nextTargetId);
+  }, [authUser?.isAdmin, confirmDiscardUnsavedWork, loadCampaignLevelIntoEditor, saveTargetId]);
 
   const handleSave = useCallback(async () => {
     setMessage(null);
@@ -1371,6 +1472,7 @@ export default function LevelEditor() {
       try {
         await saveCampaignOverrideToApi(saveTargetId, levelData);
         saveCustomLevel(saveTargetId, levelData);
+        markCurrentDraftAsBaseline(levelData);
         setMessage({ text: `Saved campaign override for Level ${saveTargetId} to the server and synced local backup.`, type: 'success' });
       } catch (error) {
         const text = error instanceof Error ? error.message : 'Failed to save campaign override.';
@@ -1394,6 +1496,7 @@ export default function LevelEditor() {
       setCloudTargetId(saved.summary.id);
       setCloudPublished(saved.summary.isPublished);
       await refreshCloudLevels();
+      markCurrentDraftAsBaseline(levelData);
       setMessage({
         text: `${cloudTargetId == null ? 'Created' : 'Saved'} cloud map ${saved.summary.id}${saved.summary.isPublished ? ' and published it to Community.' : '.'}`,
         type: 'success',
@@ -1402,7 +1505,7 @@ export default function LevelEditor() {
       const text = error instanceof Error ? error.message : 'Failed to save cloud map.';
       setMessage({ text, type: 'error' });
     }
-  }, [buildLevelData, cloudPublished, cloudSignedIn, cloudTargetId, levelName, publishScope, refreshCloudLevels, saveTargetId, validate]);
+  }, [buildLevelData, cloudPublished, cloudSignedIn, cloudTargetId, levelName, markCurrentDraftAsBaseline, publishScope, refreshCloudLevels, saveTargetId, validate]);
 
   const handleDeleteCommunity = useCallback(async () => {
     setMessage(null);
@@ -1763,7 +1866,7 @@ export default function LevelEditor() {
             {publishScope === 'campaign' ? (
               authUser?.isAdmin ? (
                 <div className="mb-3 rounded-lg border border-emerald-400/25 bg-emerald-500/10 px-3 py-2 text-[11px] leading-relaxed text-emerald-100/85">
-                  Admin signed in as {authUser.email ?? authUser.displayName ?? 'your account'}. Campaign saves go straight to the server and still keep a local backup in this browser.
+                  Admin signed in as {authUser.email ?? authUser.displayName ?? 'your account'}. Selecting a campaign level now auto-loads that slot into the editor, and changing slots will ask before discarding unsaved work.
                 </div>
               ) : (
                 <div className="mb-3 rounded-lg border border-amber-400/20 bg-amber-500/10 px-3 py-2 text-[11px] leading-relaxed text-amber-200/80">
@@ -1780,7 +1883,9 @@ export default function LevelEditor() {
                 <span className="text-white/40 text-xs">Target Level</span>
                 <select
                   value={saveTargetId}
-                  onChange={e => setSaveTargetId(parseInt(e.target.value))}
+                  onChange={e => {
+                    void handleCampaignTargetChange(parseInt(e.target.value, 10));
+                  }}
                   className="w-full bg-[#12121a] border border-white/10 rounded-lg px-3 py-1.5 text-white text-sm mt-1 focus:outline-none focus:border-purple-500/50 [&>option]:bg-[#12121a] [&>option]:text-white"
                 >
                   {Array.from({ length: 25 }, (_, i) => (
