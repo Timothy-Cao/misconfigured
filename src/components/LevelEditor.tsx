@@ -2129,34 +2129,38 @@ export default function LevelEditor() {
             </div>
           </div>
           <div
-            className="rounded-xl overflow-auto border border-white/10"
+            className={`rounded-xl border border-white/10 ${previewLevel ? 'overflow-hidden' : 'overflow-auto'}`}
             style={{ boxShadow: '0 0 40px rgba(168, 85, 247, 0.06)' }}
           >
             {previewLevel ? (
-              <div className="flex justify-center bg-[#09090d] p-3 sm:p-4">
-                <GameCanvas
-                  key={previewKey}
-                  level={previewLevel}
-                  onLevelComplete={(completionTime) => {
-                    setPreviewComplete(true);
-                    setPreviewCompletionTime(completionTime);
-                    setVerifiedDraftSnapshot(currentDraftSnapshot);
-                  }}
-                  onProgressUpdate={setPreviewSettledUnits}
-                  onGameOver={(reason) => {
-                    setPreviewGameOver(true);
-                    setPreviewGameOverReason(reason);
-                  }}
-                  onLivesUpdate={(lives, maxLives) => {
-                    setPreviewLives(lives);
-                    setPreviewMaxLives(maxLives);
-                  }}
-                  onMovesUpdate={(movesUsed, maxMoves) => {
-                    setPreviewMovesUsed(movesUsed);
-                    setPreviewMoveLimit(maxMoves);
-                  }}
-                  autoRestartOnGameOver={false}
-                />
+              <div className="flex min-h-[min(70svh,720px)] w-full items-center justify-center bg-[#09090d] p-3 sm:p-4">
+                <div className="flex h-full w-full max-w-6xl min-h-0 items-center justify-center">
+                  <div className="relative flex h-full w-full min-h-0 min-w-0 items-center justify-center">
+                    <GameCanvas
+                      key={previewKey}
+                      level={previewLevel}
+                      onLevelComplete={(completionTime) => {
+                        setPreviewComplete(true);
+                        setPreviewCompletionTime(completionTime);
+                        setVerifiedDraftSnapshot(currentDraftSnapshot);
+                      }}
+                      onProgressUpdate={setPreviewSettledUnits}
+                      onGameOver={(reason) => {
+                        setPreviewGameOver(true);
+                        setPreviewGameOverReason(reason);
+                      }}
+                      onLivesUpdate={(lives, maxLives) => {
+                        setPreviewLives(lives);
+                        setPreviewMaxLives(maxLives);
+                      }}
+                      onMovesUpdate={(movesUsed, maxMoves) => {
+                        setPreviewMovesUsed(movesUsed);
+                        setPreviewMoveLimit(maxMoves);
+                      }}
+                      autoRestartOnGameOver={false}
+                    />
+                  </div>
+                </div>
               </div>
             ) : (
               <canvas
