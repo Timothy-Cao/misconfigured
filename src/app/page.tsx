@@ -2,7 +2,7 @@ import Link from 'next/link';
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-[#0a0a0f] flex flex-col items-center justify-center px-6 py-10 relative overflow-x-hidden">
+    <main className="min-h-[calc(100svh-4rem)] bg-[#0a0a0f] flex flex-col items-center justify-center px-6 py-10 relative overflow-x-hidden sm:min-h-[calc(100svh-5rem)]">
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[720px] h-[720px] rounded-full bg-purple-500/5 blur-[140px] animate-pulse" />
       <div className="absolute top-1/3 left-1/3 w-[360px] h-[360px] rounded-full bg-cyan-500/5 blur-[110px] animate-[pulse_4s_ease-in-out_infinite]" />
 

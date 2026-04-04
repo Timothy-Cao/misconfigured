@@ -205,7 +205,7 @@ export default function PlayPage() {
 
   if (!level) {
     return (
-      <main className="min-h-screen bg-[#0a0a0f] flex items-center justify-center px-6">
+      <main className="min-h-[calc(100svh-4rem)] bg-[#0a0a0f] flex items-center justify-center px-6 sm:min-h-[calc(100svh-5rem)]">
         <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-6 py-6 text-center">
           <p className="text-white/40 font-mono">
             {isRemoteLoading ? 'Loading level...' : (loadError ?? 'Level not found')}
@@ -226,7 +226,7 @@ export default function PlayPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#0a0a0f] flex flex-col items-center justify-center gap-4 relative overflow-hidden px-3 py-6 sm:px-4 sm:py-8">
+    <main className="min-h-[calc(100svh-4rem)] bg-[#0a0a0f] flex flex-col items-center justify-center gap-4 relative overflow-hidden px-3 py-6 sm:min-h-[calc(100svh-5rem)] sm:px-4 sm:py-8">
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-purple-500/[0.03] blur-[100px]" />
       <div className="w-full max-w-5xl animate-[fadeIn_0.4s_ease-out]">
         <HUD

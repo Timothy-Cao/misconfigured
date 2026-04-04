@@ -23,7 +23,7 @@ export default function LevelsPage() {
   }, [router]);
 
   return (
-    <main className="min-h-screen bg-[#0a0a0f] flex flex-col items-center p-6 sm:p-8 lg:p-10 relative overflow-x-hidden">
+    <main className="min-h-[calc(100svh-4rem)] bg-[#0a0a0f] flex flex-col items-center p-6 sm:min-h-[calc(100svh-5rem)] sm:p-8 lg:p-10 relative overflow-x-hidden">
       <div className="absolute top-1/4 right-1/4 w-[480px] h-[480px] rounded-full bg-green-500/5 blur-[110px]" />
 
       <div className="relative z-10 w-full max-w-5xl">
