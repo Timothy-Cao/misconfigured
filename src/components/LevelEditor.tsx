@@ -1332,7 +1332,6 @@ export default function LevelEditor() {
 
   const snapshotLevelData = useCallback((level: LevelData): string => {
     return JSON.stringify({
-      name: level.name,
       width: level.width,
       height: level.height,
       grid: level.grid,
