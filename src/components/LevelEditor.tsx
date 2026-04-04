@@ -7,7 +7,7 @@ import { exportLocalLevelBackup, getBuiltInLevel, importLocalLevelBackup, saveCu
 import { fetchCampaignOverrideFromApi, saveCampaignOverrideToApi } from '@/lib/campaign-api';
 import { deleteOwnedCommunityLevelFromApi, fetchCommunityLevelFromApi, fetchOwnedCloudLevelsFromApi, saveOwnedCommunityLevelToApi } from '@/lib/community-api';
 import { getSupabaseBrowserClient } from '@/lib/supabase/browser';
-import { type OwnedCloudLevelSummary } from '@/lib/auth';
+import { type AuthUserSummary, type OwnedCloudLevelSummary } from '@/lib/auth';
 import { type Session, type User } from '@supabase/supabase-js';
 
 const MAX_SIZE = 20;
@@ -158,6 +158,7 @@ export default function LevelEditor() {
   const [cloudTargetId, setCloudTargetId] = useState<number | null>(null);
   const [cloudPublished, setCloudPublished] = useState(false);
   const [cloudSignedIn, setCloudSignedIn] = useState(false);
+  const [authUser, setAuthUser] = useState<AuthUserSummary | null>(null);
   const [confirmDeleteCommunityId, setConfirmDeleteCommunityId] = useState<number | null>(null);
   const [exportText, setExportText] = useState('');
   const [importText, setImportText] = useState('');
@@ -238,12 +239,32 @@ export default function LevelEditor() {
 
     let mounted = true;
 
+    async function refreshAuthState() {
+      try {
+        const response = await fetch('/api/auth/me', { cache: 'no-store' });
+        if (!response.ok) {
+          if (mounted) setAuthUser(null);
+          return;
+        }
+        const data = await response.json() as { user?: AuthUserSummary | null };
+        if (mounted) {
+          setAuthUser(data.user ?? null);
+        }
+      } catch {
+        if (mounted) {
+          setAuthUser(null);
+        }
+      }
+    }
+
     supabase.auth.getUser().then(({ data }: { data: { user: User | null } }) => {
       if (!mounted) return;
       setCloudSignedIn(Boolean(data.user));
       if (data.user) {
         void refreshCloudLevels();
+        void refreshAuthState();
       } else {
+        setAuthUser(null);
         setCloudLevels([]);
         setCloudTargetId(null);
       }
@@ -254,7 +275,9 @@ export default function LevelEditor() {
       setCloudSignedIn(Boolean(session?.user));
       if (session?.user) {
         void refreshCloudLevels();
+        void refreshAuthState();
       } else {
+        setAuthUser(null);
         setCloudLevels([]);
         setCloudTargetId(null);
       }
@@ -1737,15 +1760,21 @@ export default function LevelEditor() {
                 <option value="community">Community Levels</option>
               </select>
             </label>
-            <div className={`mb-3 rounded-lg border px-3 py-2 text-[11px] leading-relaxed ${
-              publishScope === 'campaign'
-                ? 'border-amber-400/20 bg-amber-500/10 text-amber-200/80'
-                : 'border-cyan-400/20 bg-cyan-500/10 text-cyan-200/80'
-            }`}>
-              {publishScope === 'campaign'
-                ? 'Campaign saves now require your signed-in admin account. Successful saves still keep a local backup in this browser.'
-                : 'Cloud maps are owned by your account. Save privately, then publish up to 5 maps from here or My Maps.'}
-            </div>
+            {publishScope === 'campaign' ? (
+              authUser?.isAdmin ? (
+                <div className="mb-3 rounded-lg border border-emerald-400/25 bg-emerald-500/10 px-3 py-2 text-[11px] leading-relaxed text-emerald-100/85">
+                  Admin signed in as {authUser.email ?? authUser.displayName ?? 'your account'}. Campaign saves go straight to the server and still keep a local backup in this browser.
+                </div>
+              ) : (
+                <div className="mb-3 rounded-lg border border-amber-400/20 bg-amber-500/10 px-3 py-2 text-[11px] leading-relaxed text-amber-200/80">
+                  Campaign saves now require your signed-in admin account. Successful saves still keep a local backup in this browser.
+                </div>
+              )
+            ) : (
+              <div className="mb-3 rounded-lg border border-cyan-400/20 bg-cyan-500/10 px-3 py-2 text-[11px] leading-relaxed text-cyan-200/80">
+                Cloud maps are owned by your account. Save privately, then publish up to 5 maps from here or My Maps.
+              </div>
+            )}
             {publishScope === 'campaign' ? (
               <label className="block mb-2">
                 <span className="text-white/40 text-xs">Target Level</span>
