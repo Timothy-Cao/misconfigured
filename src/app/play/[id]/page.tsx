@@ -228,37 +228,50 @@ export default function PlayPage() {
           showOverlays={false}
         />
       </div>
-      <div className="relative animate-[fadeIn_0.4s_ease-out]">
-        <GameCanvas
-          key={key}
-          level={level}
-          onLevelComplete={handleLevelComplete}
-          onProgressUpdate={handleProgressUpdate}
-          onGameOver={handleGameOver}
-          onLivesUpdate={handleLivesUpdate}
-          onMovesUpdate={handleMovesUpdate}
-          autoRestartOnGameOver={false}
-          captureGlobalMobileSwipes
-        />
-        <HUD
-          levelId={levelId}
-          levelName={level.name}
-          sourceLabel={sourceLabel}
-          levelComplete={levelComplete}
-          settledUnits={settledUnits}
-          totalUnits={level.players.length}
-          completionTime={completionTime}
-          lives={lives}
-          maxLives={maxLives}
-          movesUsed={movesUsed}
-          maxMoves={maxMoves}
-          gameOver={gameOver}
-          gameOverReason={gameOverReason}
-          canGoNext={canGoNext}
-          onRestart={handleRestart}
-          onNextLevel={handleNextLevel}
-          showBar={false}
-        />
+      <div className="flex flex-col items-center gap-4 animate-[fadeIn_0.4s_ease-out]">
+        <div className="relative">
+          <GameCanvas
+            key={key}
+            level={level}
+            onLevelComplete={handleLevelComplete}
+            onProgressUpdate={handleProgressUpdate}
+            onGameOver={handleGameOver}
+            onLivesUpdate={handleLivesUpdate}
+            onMovesUpdate={handleMovesUpdate}
+            autoRestartOnGameOver={false}
+            captureGlobalMobileSwipes
+          />
+          <HUD
+            levelId={levelId}
+            levelName={level.name}
+            sourceLabel={sourceLabel}
+            levelComplete={levelComplete}
+            settledUnits={settledUnits}
+            totalUnits={level.players.length}
+            completionTime={completionTime}
+            lives={lives}
+            maxLives={maxLives}
+            movesUsed={movesUsed}
+            maxMoves={maxMoves}
+            gameOver={gameOver}
+            gameOverReason={gameOverReason}
+            canGoNext={canGoNext}
+            onRestart={handleRestart}
+            onNextLevel={handleNextLevel}
+            showBar={false}
+          />
+        </div>
+        {maxMoves !== null && (
+          <div
+            className={`rounded-2xl border px-5 py-3 text-center font-mono font-black tracking-[0.18em] shadow-[0_0_24px_rgba(0,0,0,0.25)] sm:px-8 sm:py-4 sm:text-4xl ${
+              movesUsed >= maxMoves
+                ? 'border-red-400/40 bg-red-500/15 text-red-200'
+                : 'border-amber-300/40 bg-amber-500/15 text-amber-100'
+            } text-2xl`}
+          >
+            MOVES {movesUsed}/{maxMoves}
+          </div>
+        )}
       </div>
     </main>
   );

@@ -521,7 +521,7 @@ export function render(
         const slatWidth = horizontal ? s * 0.16 : beltW * 0.9;
         const slatHeight = horizontal ? beltH * 0.9 : s * 0.16;
         const travel = (time * 1.6) % 1;
-        const offset = travel * slatSpacing;
+        const offset = travel * slatSpacing * (horizontal ? dx : dy);
         ctx.fillStyle = 'rgba(120,190,255,0.28)';
 
         for (let k = -6; k <= 6; k++) {

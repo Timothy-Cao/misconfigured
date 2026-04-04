@@ -124,14 +124,6 @@ export default function HUD({ levelId, levelName, sourceLabel, levelComplete, se
         </div>
       )}
 
-      {showOverlays && maxMoves !== null && (
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <div className="text-center text-5xl sm:text-7xl font-black tracking-[0.25em] text-white/10 whitespace-nowrap">
-            MOVES {movesUsed}/{maxMoves}
-          </div>
-        </div>
-      )}
-
       {showOverlays && gameOver && !levelComplete && (
         <div className="absolute inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center animate-[fadeIn_0.4s_ease-out]">
           <div className="px-5 text-center animate-[fadeInUp_0.5s_ease-out_0.1s_both]">
