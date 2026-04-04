@@ -1241,8 +1241,9 @@ export default function LevelEditor() {
         if (grid[r][c] === TileType.BLACKHOLE) blackholeCount++;
       }
     }
-    if (goalCount + blackholeCount < validSpawns.length) {
-      return `Need at least ${validSpawns.length} total finish tiles across goals and black holes (have ${goalCount + blackholeCount})`;
+    const hasEnoughFinishCapacity = blackholeCount > 0 || goalCount >= validSpawns.length;
+    if (!hasEnoughFinishCapacity) {
+      return `Need at least ${validSpawns.length} regular goals, or at least one black hole goal (have ${goalCount} goals and ${blackholeCount} black hole${blackholeCount === 1 ? '' : 's'})`;
     }
 
     for (let i = 0; i < validSpawns.length; i++) {
@@ -1641,8 +1642,8 @@ export default function LevelEditor() {
   if (placedPlayers < 1) {
     editorWarnings.push('Need at least one unit spawn.');
   }
-  if (goalCount + blackholeCount < placedPlayers) {
-    editorWarnings.push(`Need at least ${placedPlayers} total finish tiles across goals and black holes.`);
+  if (blackholeCount === 0 && goalCount < placedPlayers) {
+    editorWarnings.push(`Need at least ${placedPlayers} regular goals, or place a black hole goal instead.`);
   }
 
   const TAB_LABELS: Record<Tab, string> = { config: 'Config', blocks: 'Blocks', publish: 'Publish' };
