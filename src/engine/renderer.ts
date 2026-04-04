@@ -537,25 +537,6 @@ export function render(
           }
         }
 
-        const arrowLen = s * 0.16;
-        ctx.strokeStyle = 'rgba(140,220,255,0.5)';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(cx - dx * arrowLen, cy - dy * arrowLen);
-        ctx.lineTo(cx + dx * arrowLen, cy + dy * arrowLen);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(
-          cx + dx * arrowLen - dy * arrowLen * 0.4,
-          cy + dy * arrowLen + dx * arrowLen * 0.4,
-        );
-        ctx.lineTo(cx + dx * arrowLen, cy + dy * arrowLen);
-        ctx.lineTo(
-          cx + dx * arrowLen + dy * arrowLen * 0.4,
-          cy + dy * arrowLen - dx * arrowLen * 0.4,
-        );
-        ctx.stroke();
-
         ctx.restore();
       }
       if (isOneWay(tile)) {
