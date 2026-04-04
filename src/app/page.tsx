@@ -1,19 +1,12 @@
 import Link from 'next/link';
-import AuthControls from '@/components/AuthControls';
-import { getCurrentAuthUser } from '@/lib/auth';
 
-export default async function Home() {
-  const user = await getCurrentAuthUser();
-
+export default function Home() {
   return (
-    <main className="min-h-screen bg-[#0a0a0f] flex flex-col items-center justify-center px-6 py-10 relative overflow-hidden">
+    <main className="min-h-screen bg-[#0a0a0f] flex flex-col items-center justify-center px-6 py-10 relative overflow-x-hidden">
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[720px] h-[720px] rounded-full bg-purple-500/5 blur-[140px] animate-pulse" />
       <div className="absolute top-1/3 left-1/3 w-[360px] h-[360px] rounded-full bg-cyan-500/5 blur-[110px] animate-[pulse_4s_ease-in-out_infinite]" />
 
       <div className="relative z-10 w-full max-w-3xl text-center rounded-[28px] border border-white/10 bg-white/[0.03] px-6 py-10 sm:px-10 sm:py-12 shadow-[0_0_50px_rgba(0,0,0,0.25)]">
-        <div className="mb-6 flex justify-center sm:justify-end">
-          <AuthControls initialUser={user} />
-        </div>
         <h1 className="text-6xl sm:text-7xl lg:text-8xl font-black tracking-tight bg-gradient-to-r from-rose-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent mb-4 animate-[fadeInUp_0.8s_ease-out]">
           Misconfigured
         </h1>
@@ -33,11 +26,11 @@ export default async function Home() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <Link
-              href="/editor"
+              href="/my-maps"
               className="group px-6 py-4 rounded-2xl border border-white/10 bg-white/[0.04] text-white/85 hover:text-white hover:bg-white/[0.08] hover:border-white/20 transition-all duration-300"
             >
-              <span className="block text-base sm:text-lg font-semibold">Level Editor</span>
-              <span className="block text-xs sm:text-sm text-white/35 mt-1">Build, test, and save puzzle layouts</span>
+              <span className="block text-base sm:text-lg font-semibold">My Maps</span>
+              <span className="block text-xs sm:text-sm text-white/35 mt-1">Open your cloud maps, then jump into the editor from there</span>
             </Link>
             <Link
               href="/community"
@@ -53,8 +46,8 @@ export default async function Home() {
               href="/my-maps"
               className="group px-6 py-4 rounded-2xl border border-cyan-400/20 bg-cyan-500/[0.07] text-cyan-100/90 hover:text-white hover:bg-cyan-500/[0.14] hover:border-cyan-300/30 transition-all duration-300"
             >
-              <span className="block text-base sm:text-lg font-semibold">My Maps</span>
-              <span className="block text-xs sm:text-sm text-cyan-100/45 mt-1">Signed-in cloud maps, publish status, and play links</span>
+              <span className="block text-base sm:text-lg font-semibold">Cloud Maps</span>
+              <span className="block text-xs sm:text-sm text-cyan-100/45 mt-1">Signed-in cloud maps, publish status, play links, and editor access</span>
             </Link>
             <div className="rounded-2xl border border-white/10 bg-white/[0.02] px-6 py-4 text-left">
               <p className="text-sm font-semibold text-white/75">Cloud maps are live</p>

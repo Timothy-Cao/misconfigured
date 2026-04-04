@@ -1,7 +1,5 @@
 'use client';
 
-import Link from 'next/link';
-
 interface HUDProps {
   levelId: number;
   levelName?: string;
@@ -30,9 +28,6 @@ function formatTime(seconds: number): string {
 
 export default function HUD({ levelId, levelName, levelComplete, settledUnits, totalUnits, completionTime, lives, maxLives, movesUsed, maxMoves, gameOver, gameOverReason, onRestart, onNextLevel }: HUDProps) {
   const displayName = levelName || `Level ${String(levelId).padStart(2, '0')}`;
-  const isCommunityLevel = levelId >= 1001;
-  const levelsHref = isCommunityLevel ? '/community' : '/levels';
-  const levelsLabel = isCommunityLevel ? 'Community' : 'Levels';
 
   return (
     <>
@@ -40,18 +35,6 @@ export default function HUD({ levelId, levelName, levelComplete, settledUnits, t
         <div className="rounded-2xl border border-white/10 bg-black/25 px-3 py-3 backdrop-blur-sm">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex flex-wrap items-center gap-2">
-              <Link
-                href="/"
-                className="text-white/55 hover:text-white text-xs px-3 py-2 border border-white/10 rounded-lg hover:border-white/25 hover:bg-white/5 transition-all duration-200"
-              >
-                Menu
-              </Link>
-              <Link
-                href={levelsHref}
-                className="text-white/55 hover:text-white text-xs px-3 py-2 border border-white/10 rounded-lg hover:border-white/25 hover:bg-white/5 transition-all duration-200"
-              >
-                {levelsLabel}
-              </Link>
               <button
                 onClick={onRestart}
                 className="text-white/55 hover:text-white text-xs px-3 py-2 border border-white/10 rounded-lg hover:border-white/25 hover:bg-white/5 transition-all duration-200"
@@ -133,12 +116,6 @@ export default function HUD({ levelId, levelName, levelComplete, settledUnits, t
                 Try Again
                 <span className="ml-1.5 text-[11px] text-white/70">R</span>
               </button>
-              <Link
-                href={levelsHref}
-                className="px-6 py-2.5 border border-white/15 text-white/70 rounded-lg hover:bg-white/5 hover:border-white/25 transition-all duration-200"
-              >
-                {levelsLabel}
-              </Link>
             </div>
           </div>
         </div>
@@ -170,12 +147,6 @@ export default function HUD({ levelId, levelName, levelComplete, settledUnits, t
                 Next Level
                 <span className="ml-1.5 text-[11px] text-white/70">Enter</span>
               </button>
-              <Link
-                href={levelsHref}
-                className="px-6 py-2.5 border border-white/15 text-white/70 rounded-lg hover:bg-white/5 hover:border-white/25 transition-all duration-200"
-              >
-                {levelsLabel}
-              </Link>
             </div>
           </div>
         </div>

@@ -179,6 +179,10 @@ export default function LevelEditor() {
   const [tilePx, setTilePx] = useState(32);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const touchPaintModeRef = useRef<'place' | 'erase'>('place');
+  const touchStartCellRef = useRef<{ col: number; row: number } | null>(null);
+  const touchStartPointRef = useRef<{ x: number; y: number } | null>(null);
+  const touchMovedRef = useRef(false);
+  const touchSpawnTapRef = useRef(false);
   const loadedCloudQueryIdRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -583,10 +587,15 @@ export default function LevelEditor() {
     if (!cell) return;
 
     const { col, row } = cell;
+    touchStartCellRef.current = { col, row };
+    touchStartPointRef.current = { x: touch.clientX, y: touch.clientY };
+    touchMovedRef.current = false;
+    touchSpawnTapRef.current = false;
 
     if (tool.startsWith('spawn')) {
       e.preventDefault();
-      handleSpawnClick(col, row);
+      touchSpawnTapRef.current = true;
+      setIsPainting(true);
       return;
     }
 
@@ -616,10 +625,9 @@ export default function LevelEditor() {
 
     e.preventDefault();
     touchPaintModeRef.current = mode;
-    lastPaintedRef.current = `${col},${row}`;
-    applyToolAt(col, row, mode);
+    lastPaintedRef.current = '';
     setIsPainting(true);
-  }, [applyToolAt, getCanvasCellFromClient, getToolTile, grid, handleSpawnClick, mobileCanvasMode, tool]);
+  }, [getCanvasCellFromClient, getToolTile, grid, mobileCanvasMode, tool]);
 
   const handleCanvasTouchMove = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
     if (mobileCanvasMode === 'pan') return;
@@ -629,18 +637,55 @@ export default function LevelEditor() {
     const cell = getCanvasCellFromClient(touch.clientX, touch.clientY);
     if (!cell) return;
 
+    const startPoint = touchStartPointRef.current;
+    if (startPoint) {
+      const drift = Math.hypot(touch.clientX - startPoint.x, touch.clientY - startPoint.y);
+      if (drift < 12) {
+        return;
+      }
+    }
+
     const key = `${cell.col},${cell.row}`;
     if (key === lastPaintedRef.current) return;
 
     e.preventDefault();
+    if (touchSpawnTapRef.current) {
+      touchMovedRef.current = true;
+      return;
+    }
+
+    if (!touchMovedRef.current) {
+      const startCell = touchStartCellRef.current;
+      if (startCell) {
+        applyToolAt(startCell.col, startCell.row, touchPaintModeRef.current);
+        lastPaintedRef.current = `${startCell.col},${startCell.row}`;
+      }
+    }
+
+    touchMovedRef.current = true;
     lastPaintedRef.current = key;
     applyToolAt(cell.col, cell.row, touchPaintModeRef.current);
   }, [applyToolAt, getCanvasCellFromClient, isPainting, mobileCanvasMode, tool]);
 
   const handleCanvasTouchEnd = useCallback(() => {
+    if (mobileCanvasMode !== 'pan' && isPainting) {
+      const startCell = touchStartCellRef.current;
+      if (startCell && !touchMovedRef.current) {
+        if (touchSpawnTapRef.current) {
+          handleSpawnClick(startCell.col, startCell.row);
+        } else {
+          applyToolAt(startCell.col, startCell.row, touchPaintModeRef.current);
+        }
+      }
+    }
+
     setIsPainting(false);
     lastPaintedRef.current = '';
-  }, []);
+    touchStartCellRef.current = null;
+    touchStartPointRef.current = null;
+    touchMovedRef.current = false;
+    touchSpawnTapRef.current = false;
+  }, [applyToolAt, handleSpawnClick, isPainting, mobileCanvasMode]);
 
   const handleContextMenu = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     e.preventDefault();

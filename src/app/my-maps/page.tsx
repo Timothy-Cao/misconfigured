@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import AuthControls from '@/components/AuthControls';
 import MyMapsClient from '@/components/MyMapsClient';
 import { getCurrentAuthUser, listOwnedCloudLevels, isSupabaseAuthReady } from '@/lib/auth';
@@ -9,7 +8,7 @@ export default async function MyMapsPage() {
   const { levels, warning } = await listOwnedCloudLevels();
 
   return (
-    <main className="min-h-screen bg-[#0a0a0f] flex flex-col items-center p-6 sm:p-8 lg:p-10 relative overflow-hidden">
+    <main className="min-h-screen bg-[#0a0a0f] flex flex-col items-center p-6 sm:p-8 lg:p-10 relative overflow-x-hidden">
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 h-[520px] w-[520px] rounded-full bg-cyan-500/5 blur-[120px]" />
 
       <div className="relative z-10 w-full max-w-5xl">
@@ -22,29 +21,6 @@ export default async function MyMapsPage() {
               <p className="mt-1 text-sm text-white/35 sm:text-base">
                 Your signed-in cloud collection. Unpublished maps stay private, and published maps appear in Community.
               </p>
-            </div>
-            <div className="flex flex-col items-stretch gap-3 sm:items-end">
-              <AuthControls initialUser={user} className="justify-start sm:justify-end" />
-              <div className="flex flex-wrap gap-3">
-                <Link
-                  href="/editor"
-                  className="inline-flex items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm sm:text-base text-white/75 hover:text-white hover:border-white/20 hover:bg-white/[0.08] transition-all duration-300"
-                >
-                  Editor
-                </Link>
-                <Link
-                  href="/community"
-                  className="inline-flex items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm sm:text-base text-white/75 hover:text-white hover:border-white/20 hover:bg-white/[0.08] transition-all duration-300"
-                >
-                  Community
-                </Link>
-                <Link
-                  href="/levels"
-                  className="inline-flex items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm sm:text-base text-white/75 hover:text-white hover:border-white/20 hover:bg-white/[0.08] transition-all duration-300"
-                >
-                  Campaign
-                </Link>
-              </div>
             </div>
           </div>
         </div>
@@ -60,7 +36,15 @@ export default async function MyMapsPage() {
               <AuthControls />
             </div>
           ) : (
-            <MyMapsClient initialLevels={levels} initialWarning={warning} />
+            <>
+              <div className="mb-5 rounded-2xl border border-cyan-400/20 bg-cyan-500/[0.08] px-4 py-4 text-sm text-cyan-100/85">
+                <p className="font-medium text-cyan-100">Cloud maps are live.</p>
+                <p className="mt-1 text-cyan-100/65">
+                  This is your hub for private saves, publishing to Community, and opening maps in the editor.
+                </p>
+              </div>
+              <MyMapsClient initialLevels={levels} initialWarning={warning} />
+            </>
           )}
         </div>
       </div>

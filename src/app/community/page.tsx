@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import AuthControls from '@/components/AuthControls';
 import { type LevelData } from '@/engine/types';
 import { fetchCommunityLevelsFromApi } from '@/lib/community-api';
 
@@ -53,45 +52,18 @@ export default function CommunityPage() {
   }, []);
 
   return (
-    <main className="min-h-screen bg-[#0a0a0f] flex flex-col items-center p-6 sm:p-8 lg:p-10 relative overflow-hidden">
+    <main className="min-h-screen bg-[#0a0a0f] flex flex-col items-center p-6 sm:p-8 lg:p-10 relative overflow-x-hidden">
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[500px] h-[500px] rounded-full bg-cyan-500/5 blur-[110px]" />
 
       <div className="relative z-10 w-full max-w-5xl">
         <div className="mb-6 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4 sm:px-6 animate-[fadeInUp_0.6s_ease-out]">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-cyan-300 to-white bg-clip-text text-transparent">
-                Community Levels
-              </h1>
-              <p className="text-white/35 text-sm sm:text-base mt-1">
-                Browse published player-made maps and built-in inspiration pieces. Manage your own private and published maps from My Maps.
-              </p>
-              <p className="text-white/20 text-xs sm:text-sm mt-2">Press Esc to go back.</p>
-            </div>
-            <div className="flex flex-col items-stretch gap-3 sm:items-end">
-              <AuthControls className="justify-start sm:justify-end" />
-              <div className="flex flex-wrap gap-3">
-                <Link
-                  href="/my-maps"
-                  className="inline-flex items-center justify-center px-4 py-2.5 rounded-xl border border-cyan-400/20 bg-cyan-500/10 text-cyan-100 hover:bg-cyan-500/20 transition-all duration-200"
-                >
-                  My Maps
-                </Link>
-                <Link
-                  href="/editor"
-                  className="inline-flex items-center justify-center px-4 py-2.5 rounded-xl border border-white/10 bg-white/[0.04] text-white/75 hover:text-white hover:border-white/20 hover:bg-white/[0.08] transition-all duration-200"
-                >
-                  Open Editor
-                </Link>
-                <Link
-                  href="/"
-                  className="inline-flex items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm sm:text-base text-white/75 hover:text-white hover:border-white/20 hover:bg-white/[0.08] transition-all duration-300"
-                >
-                  Home
-                </Link>
-              </div>
-            </div>
-          </div>
+          <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-cyan-300 to-white bg-clip-text text-transparent">
+            Community Levels
+          </h1>
+          <p className="text-white/35 text-sm sm:text-base mt-1">
+            Browse published player-made maps and built-in inspiration pieces. Manage your own private and published maps from My Maps.
+          </p>
+          <p className="text-white/20 text-xs sm:text-sm mt-2">Press Esc to go back.</p>
         </div>
 
         <div className="rounded-[28px] border border-white/10 bg-white/[0.03] p-6 sm:p-8 lg:p-10">
@@ -124,14 +96,12 @@ export default function CommunityPage() {
                     </p>
                   </div>
                   <div className="flex flex-col items-stretch gap-2 sm:items-end">
-                    <div className="flex gap-2">
                     <Link
                       href={`/play/${level.id}`}
                       className="inline-flex items-center justify-center px-4 py-2 rounded-xl border border-cyan-400/30 bg-cyan-500/15 text-cyan-200 hover:bg-cyan-500/25 transition-all duration-200 text-sm sm:text-base"
                     >
                       Play
                     </Link>
-                    </div>
                   </div>
                 </div>
               ))}
