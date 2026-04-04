@@ -36,7 +36,7 @@ export default function LevelSelect() {
         const completed = progress.completedLevels.includes(id);
         const hasLocalOverride = Boolean(getLocalCampaignOverride(id));
         const hasServerOverride = serverOverrides.has(id);
-        const sourceLabel = hasServerOverride ? 'Server' : hasLocalOverride ? 'Local' : '';
+        const showLocalBackupWarning = hasLocalOverride && !hasServerOverride;
 
         if (!unlocked) {
           return (
@@ -63,13 +63,9 @@ export default function LevelSelect() {
             style={{ animationDelay: `${i * 30}ms` }}
             aria-label={`Play level ${id}`}
           >
-            {sourceLabel && (
-              <span className={`absolute top-2 right-2 rounded-full border px-2 py-0.5 text-[9px] uppercase tracking-[0.2em] ${
-                hasServerOverride
-                  ? 'border-cyan-400/40 bg-cyan-500/15 text-cyan-200/80'
-                  : 'border-amber-400/40 bg-amber-500/10 text-amber-200/70'
-              }`}>
-                {sourceLabel}
+            {showLocalBackupWarning && (
+              <span className="absolute top-2 right-2 rounded-full border border-amber-400/40 bg-amber-500/10 px-2 py-0.5 text-[9px] uppercase tracking-[0.2em] text-amber-200/80">
+                Backup
               </span>
             )}
             {completed ? '✓' : id}

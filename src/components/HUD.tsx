@@ -32,6 +32,7 @@ function formatTime(seconds: number): string {
 
 export default function HUD({ levelId, levelName, sourceLabel, levelComplete, settledUnits, totalUnits, completionTime, lives, maxLives, movesUsed, maxMoves, gameOver, gameOverReason, canGoNext, onRestart, onNextLevel, showBar = true, showOverlays = true }: HUDProps) {
   const displayName = levelName || `Level ${String(levelId).padStart(2, '0')}`;
+  const isWarningSource = sourceLabel?.toLowerCase().includes('warning') ?? false;
   const keyHint = levelComplete
     ? 'Esc back, R restart, Enter or Space next'
     : gameOver
@@ -61,7 +62,11 @@ export default function HUD({ levelId, levelName, sourceLabel, levelComplete, se
                       {displayName}
                     </span>
                     {sourceLabel && (
-                      <span className="inline-flex items-center justify-center rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[10px] uppercase tracking-[0.2em] text-white/45">
+                      <span className={`inline-flex items-center justify-center rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-[0.2em] ${
+                        isWarningSource
+                          ? 'border-amber-400/40 bg-amber-500/10 text-amber-200/80'
+                          : 'border-white/10 bg-white/[0.04] text-white/45'
+                      }`}>
                         {sourceLabel}
                       </span>
                     )}

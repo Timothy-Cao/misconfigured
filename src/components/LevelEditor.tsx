@@ -3,7 +3,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import GameCanvas from '@/components/GameCanvas';
 import { TileType, COLORS, type LevelData, type Rotation, isPressurePlate, pressurePlateNumber, pressurePlateTile, isDoor, doorNumber, doorTile, isToggleSwitch, isToggleBlock, toggleNumber, toggleSwitchTile, isConveyor, conveyorDirection, conveyorTile, isOneWay, oneWayOrientation, oneWayTile, isRotationTile, rotationTileCW, isRepaintStation, repaintRotation, repaintStationTile, isColorFilter, colorFilterRotation, colorFilterTile, DIR_DX, DIR_DY } from '@/engine/types';
-import { exportLocalLevelBackup, getLevel, importLocalLevelBackup, saveCustomLevel } from '@/levels';
+import { exportLocalLevelBackup, getBuiltInLevel, importLocalLevelBackup, saveCustomLevel } from '@/levels';
 import { fetchCampaignOverrideFromApi, saveCampaignOverrideToApi } from '@/lib/campaign-api';
 import { deleteOwnedCommunityLevelFromApi, fetchCommunityLevelFromApi, fetchOwnedCloudLevelsFromApi, saveOwnedCommunityLevelToApi } from '@/lib/community-api';
 import { getSupabaseBrowserClient } from '@/lib/supabase/browser';
@@ -1307,7 +1307,7 @@ export default function LevelEditor() {
     setMessage(null);
 
     const sourceLevel = publishScope === 'campaign'
-      ? await fetchCampaignOverrideFromApi(saveTargetId).catch(() => undefined) ?? getLevel(saveTargetId)
+      ? await fetchCampaignOverrideFromApi(saveTargetId).catch(() => undefined) ?? getBuiltInLevel(saveTargetId)
       : cloudTargetId != null
         ? await fetchCommunityLevelFromApi(cloudTargetId).catch(() => undefined)
         : undefined;
