@@ -8,6 +8,7 @@ import { fetchCampaignOverrideFromApi, saveCampaignOverrideToApi } from '@/lib/c
 import { deleteOwnedCommunityLevelFromApi, fetchCommunityLevelFromApi, fetchOwnedCloudLevelsFromApi, saveOwnedCommunityLevelToApi } from '@/lib/community-api';
 import { getSupabaseBrowserClient } from '@/lib/supabase/browser';
 import { type OwnedCloudLevelSummary } from '@/lib/auth';
+import { type Session, type User } from '@supabase/supabase-js';
 
 const MAX_SIZE = 20;
 const MIN_SIZE = 4;
@@ -237,7 +238,7 @@ export default function LevelEditor() {
 
     let mounted = true;
 
-    supabase.auth.getUser().then(({ data }) => {
+    supabase.auth.getUser().then(({ data }: { data: { user: User | null } }) => {
       if (!mounted) return;
       setCloudSignedIn(Boolean(data.user));
       if (data.user) {
@@ -248,7 +249,7 @@ export default function LevelEditor() {
       }
     });
 
-    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data } = supabase.auth.onAuthStateChange((_event: string, session: Session | null) => {
       if (!mounted) return;
       setCloudSignedIn(Boolean(session?.user));
       if (session?.user) {

@@ -13,6 +13,7 @@ interface HUDProps {
   maxMoves: number | null;
   gameOver: boolean;
   gameOverReason: 'lives' | 'moves' | null;
+  canGoNext: boolean;
   onRestart: () => void;
   onNextLevel: () => void;
 }
@@ -26,8 +27,13 @@ function formatTime(seconds: number): string {
     : `${s}.${String(ms).padStart(2, '0')}s`;
 }
 
-export default function HUD({ levelId, levelName, levelComplete, settledUnits, totalUnits, completionTime, lives, maxLives, movesUsed, maxMoves, gameOver, gameOverReason, onRestart, onNextLevel }: HUDProps) {
+export default function HUD({ levelId, levelName, levelComplete, settledUnits, totalUnits, completionTime, lives, maxLives, movesUsed, maxMoves, gameOver, gameOverReason, canGoNext, onRestart, onNextLevel }: HUDProps) {
   const displayName = levelName || `Level ${String(levelId).padStart(2, '0')}`;
+  const keyHint = levelComplete
+    ? 'Esc back, R restart, Enter or Space next'
+    : gameOver
+      ? (canGoNext ? 'Esc back, R restart, Enter or Space next' : 'Esc back, R restart, Enter or Space retry')
+      : 'Esc back, R restart';
 
   return (
     <>
@@ -89,7 +95,7 @@ export default function HUD({ levelId, levelName, levelComplete, settledUnits, t
                 </div>
               </div>
               <p className="text-center text-[10px] uppercase tracking-[0.18em] text-white/20 sm:text-right">
-                Esc back, R restart{levelComplete ? ', Enter or Space next' : ''}
+                {keyHint}
               </p>
             </div>
           </div>
@@ -116,6 +122,15 @@ export default function HUD({ levelId, levelName, levelComplete, settledUnits, t
                 Try Again
                 <span className="ml-1.5 text-[11px] text-white/70">R</span>
               </button>
+              {canGoNext && (
+                <button
+                  onClick={onNextLevel}
+                  className="px-8 py-2.5 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-lg font-semibold hover:from-green-400 hover:to-emerald-400 transition-all duration-300 shadow-[0_0_20px_rgba(74,222,128,0.3)] hover:shadow-[0_0_30px_rgba(74,222,128,0.5)]"
+                >
+                  Next Level
+                  <span className="ml-1.5 text-[11px] text-white/70">Enter</span>
+                </button>
+              )}
             </div>
           </div>
         </div>

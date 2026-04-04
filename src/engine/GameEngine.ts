@@ -1,8 +1,9 @@
-import { type LevelData, type GameState, type PlayerState, type PushableBlock, COLORS, TileType, STEP_INTERVAL, ANIM_DURATION, INPUT_COOLDOWN, isPressurePlate, pressurePlateNumber, isToggleSwitch, toggleNumber, isConveyor, conveyorDirection, isRotationTile, rotationTileCW, isRepaintStation, repaintRotation, DIR_DX, DIR_DY, type Rotation } from './types';
+import { type LevelData, type GameState, type PlayerState, type PushableBlock, COLORS, TileType, STEP_INTERVAL, ANIM_DURATION, INPUT_COOLDOWN, isPressurePlate, pressurePlateNumber, isToggleSwitch, toggleNumber, isConveyor, conveyorDirection, isRotationTile, rotationTileCW, isRepaintStation, repaintRotation, isColorFilter, colorFilterRotation, isDoor, doorNumber, DIR_DX, DIR_DY, type Rotation } from './types';
 
 import { InputManager, remapInput, type BufferedAction } from './input';
 import { getTileAt, isWalkable, canMoveTo } from './physics';
 import { render } from './renderer';
+import { playSfx } from './sfx';
 
 function collectPushableBlocks(level: LevelData): PushableBlock[] {
   const blocks: PushableBlock[] = [];
@@ -244,7 +245,8 @@ function getActivePlates(
  * Update toggle switches — toggle state when a player steps on one.
  */
 const toggleCooldown = new Set<string>();
-function updateToggleSwitches(state: GameState, level: LevelData): void {
+function updateToggleSwitches(state: GameState, level: LevelData): boolean {
+  let toggled = false;
   for (const player of state.players) {
     if (!player.alive) continue;
     const tile = level.grid[player.row]?.[player.col];
@@ -257,6 +259,7 @@ function updateToggleSwitches(state: GameState, level: LevelData): void {
         } else {
           state.toggledSwitches.add(n);
         }
+        toggled = true;
         toggleCooldown.add(key);
       }
     }
@@ -270,6 +273,8 @@ function updateToggleSwitches(state: GameState, level: LevelData): void {
     });
     if (!occupied) toggleCooldown.delete(key);
   }
+
+  return toggled;
 }
 
 /**
@@ -362,6 +367,21 @@ function tryPushBlock(
   return true;
 }
 
+function countOpenDoors(level: LevelData, activePlates: Set<number>, toggledSwitches: Set<number>): number {
+  let count = 0;
+  for (let row = 0; row < level.height; row++) {
+    for (let col = 0; col < level.width; col++) {
+      const tile = level.grid[row][col];
+      if (!isDoor(tile)) continue;
+      const n = doorNumber(tile);
+      if (activePlates.has(n) || toggledSwitches.has(n)) {
+        count += 1;
+      }
+    }
+  }
+  return count;
+}
+
 /**
  * Try to step a player one tile in (dx, dy) direction.
  * Returns true if the step was taken.
@@ -373,6 +393,7 @@ function stepPlayer(
   selfIndex: number,
   state: GameState,
   level: LevelData,
+  onPush?: () => void,
 ): boolean {
   if (!player.alive || (dx === 0 && dy === 0)) return false;
   // Only allow cardinal movement (no diagonals)
@@ -386,7 +407,8 @@ function stepPlayer(
 
   // Try pushing a block first
   if (level.grid[targetRow]?.[targetCol] === TileType.PUSHABLE) {
-    tryPushBlock(level, state, targetCol, targetRow, dx, dy);
+    const pushed = tryPushBlock(level, state, targetCol, targetRow, dx, dy);
+    if (pushed) onPush?.();
   }
 
   const currentActivePlates = getActivePlates(state, level);
@@ -587,8 +609,18 @@ export class GameEngine {
     }
 
     // Update pressure plates and toggles BEFORE movement
+    const prevActivePlates = new Set(this.state.activePlates);
+    const prevToggles = new Set(this.state.toggledSwitches);
+    const prevOpenDoors = countOpenDoors(this.level, prevActivePlates, prevToggles);
+    const prevReversed = this.state.players.map(p => p.reversed);
+    const prevRotations = this.state.players.map(p => p.rotation);
+    const prevCheckpoint = this.state.players.map(p => ({ col: p.checkpointCol, row: p.checkpointRow }));
+    const prevDeathTimers = this.state.players.map(p => p.deathTimer);
+    const prevAbsorbTimers = this.state.players.map(p => p.absorbTimer);
+    const prevLockedGoals = this.state.players.map(p => p.lockedOnGoal);
+
     updatePressurePlates(this.state, this.level);
-    updateToggleSwitches(this.state, this.level);
+    const toggledThisUpdate = updateToggleSwitches(this.state, this.level);
 
     // Advance animation progress for all players
     for (const player of this.state.players) {
@@ -624,6 +656,13 @@ export class GameEngine {
     const pendingMoves: PendingMove[] = [];
     const moveSnapshotBefore = acceptedManualInput ? this.getMoveTrackingSnapshot() : null;
     const movedThisUpdate = new Set<number>();
+    let pushedThisUpdate = false;
+    let movedByManual = false;
+    let movedByConveyor = false;
+    let movedBySlide = false;
+    let iceStarted = false;
+    let filterEntered = false;
+    let stickyEntered = false;
 
     // Store previous positions for crumble detection
     const prevPositions = this.state.players.map(p => ({ col: p.col, row: p.row }));
@@ -713,7 +752,15 @@ export class GameEngine {
         continue;
       }
 
-      const moved = stepPlayer(player, pending.dx, pending.dy, pending.index, this.state, this.level);
+      const moved = stepPlayer(
+        player,
+        pending.dx,
+        pending.dy,
+        pending.index,
+        this.state,
+        this.level,
+        () => { pushedThisUpdate = true; },
+      );
       if (!moved) {
         if (pending.source === 'slide') {
           player.sliding = false;
@@ -724,13 +771,18 @@ export class GameEngine {
       }
 
       movedThisUpdate.add(pending.index);
+      if (pending.source === 'input' || pending.source === 'swipe') movedByManual = true;
+      if (pending.source === 'slide') movedBySlide = true;
       const newTile = this.level.grid[player.row]?.[player.col];
       if ((pending.source === 'input' || pending.source === 'swipe') && newTile === TileType.ICE) {
         player.sliding = true;
         player.slideDx = pending.dx;
         player.slideDy = pending.dy;
         this.stepTimers[pending.index] = 0;
+        iceStarted = true;
       }
+      if (newTile === TileType.STICKY) stickyEntered = true;
+      if (newTile !== undefined && isColorFilter(newTile)) filterEntered = true;
     }
 
     if (this.conveyorTicksArmed && this.conveyorTickRemaining <= 0) {
@@ -772,18 +824,30 @@ export class GameEngine {
           continue;
         }
 
-        const moved = stepPlayer(player, pending.dx, pending.dy, pending.index, this.state, this.level);
+        const moved = stepPlayer(
+          player,
+          pending.dx,
+          pending.dy,
+          pending.index,
+          this.state,
+          this.level,
+          () => { pushedThisUpdate = true; },
+        );
         if (!moved) {
           continue;
         }
 
+        movedByConveyor = true;
         const newTile = this.level.grid[player.row]?.[player.col];
         if (newTile === TileType.ICE) {
           player.sliding = true;
           player.slideDx = pending.dx;
           player.slideDy = pending.dy;
           this.stepTimers[pending.index] = 0;
+          iceStarted = true;
         }
+        if (newTile === TileType.STICKY) stickyEntered = true;
+        if (newTile !== undefined && isColorFilter(newTile)) filterEntered = true;
       }
     }
 
@@ -823,6 +887,7 @@ export class GameEngine {
     updateRotationTiles(this.state, this.level);
     updateRepaintStations(this.state, this.level);
     updateStickyPads(this.state, this.level, prevPositions);
+    const prevCrumbleCount = this.state.crumbledTiles.size;
     updateCrumbleTiles(this.state, this.level, prevPositions);
     checkCheckpoints(this.state, this.level);
     checkKillZones(this.state, this.level);
@@ -842,6 +907,27 @@ export class GameEngine {
 
     // Re-update pressure plates after movement
     updatePressurePlates(this.state, this.level);
+
+    const postOpenDoors = countOpenDoors(this.level, this.state.activePlates, this.state.toggledSwitches);
+    const plateChanged = prevActivePlates.size !== this.state.activePlates.size ||
+      Array.from(this.state.activePlates).some(n => !prevActivePlates.has(n));
+    const doorOpened = postOpenDoors > prevOpenDoors;
+    const doorClosed = postOpenDoors < prevOpenDoors;
+    const reverseTriggered = this.state.players.some((p, i) => !prevReversed[i] && p.reversed);
+    const repaintTriggered = this.state.players.some((p, i) => {
+      if (p.rotation === prevRotations[i]) return false;
+      const tile = this.level.grid[p.row]?.[p.col];
+      return tile !== undefined && isRepaintStation(tile);
+    });
+    const checkpointTriggered = this.state.players.some((p, i) => {
+      const prev = prevCheckpoint[i];
+      return (p.checkpointCol !== prev.col || p.checkpointRow !== prev.row);
+    });
+    const blackholeTriggered = this.state.players.some((p, i) => prevAbsorbTimers[i] === 0 && p.absorbTimer > 0);
+    const goalTriggered = this.state.players.some((p, i) => !prevLockedGoals[i] && p.lockedOnGoal);
+    const deathTriggered = this.state.players.some((p, i) => prevDeathTimers[i] === 0 && p.deathTimer > 0);
+    const crumbleTriggered = this.state.crumbledTiles.size > prevCrumbleCount;
+    const bumpTriggered = Boolean(acceptedManualInput && movedThisUpdate.size === 0);
 
     const manualMoveChangedState = acceptedManualInput && moveSnapshotBefore !== this.getMoveTrackingSnapshot();
     if (manualMoveChangedState) {
@@ -893,6 +979,28 @@ export class GameEngine {
       this.state.gameOverReason = 'moves';
       this.callbacks.onGameOver?.('moves');
     }
+
+    // Sound effects
+    if (movedByManual) playSfx('move');
+    if (bumpTriggered) playSfx('bump');
+    if (pushedThisUpdate) playSfx('push');
+    if (plateChanged) playSfx('plate');
+    if (toggledThisUpdate) playSfx('switch');
+    if (doorOpened) playSfx('doorOpen');
+    if (doorClosed) playSfx('doorClose');
+    if (iceStarted) playSfx('ice');
+    if (movedByConveyor) playSfx('conveyor');
+    if (movedBySlide) playSfx('ice');
+    if (crumbleTriggered) playSfx('crumble');
+    if (reverseTriggered) playSfx('reverse');
+    if (repaintTriggered) playSfx('repaint');
+    if (filterEntered) playSfx('filter');
+    if (checkpointTriggered) playSfx('checkpoint');
+    if (goalTriggered) playSfx('goal');
+    if (blackholeTriggered) playSfx('blackhole');
+    if (deathTriggered) playSfx('death');
+    if (lifeCollected) playSfx('life');
+    if (stickyEntered) playSfx('sticky');
 
     this.callbacks.onProgressUpdate?.(this.state.settledUnits);
   }

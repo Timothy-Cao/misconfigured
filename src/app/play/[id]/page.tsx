@@ -22,7 +22,7 @@ export default function PlayPage() {
   const level = isCampaignLevel
     ? (remoteLevel === undefined ? undefined : (remoteLevel ?? localLevel))
     : remoteLevel ?? undefined;
-  const { completeLevel } = useGameProgress();
+  const { completeLevel, isUnlocked } = useGameProgress();
   const [levelComplete, setLevelComplete] = useState(false);
   const [settledUnits, setSettledUnits] = useState(0);
   const [completionTime, setCompletionTime] = useState(0);
@@ -126,6 +126,8 @@ export default function PlayPage() {
     }
   }, [levelId, router]);
 
+  const canGoNext = isCampaignLevel && levelId < TOTAL_LEVELS && isUnlocked(levelId + 1);
+
   useEffect(() => {
     function goBack() {
       if (window.history.length > 1) {
@@ -142,19 +144,32 @@ export default function PlayPage() {
         return;
       }
 
-      if (!levelComplete) {
+      if (event.key.toLowerCase() === 'r') {
+        event.preventDefault();
+        handleRestart();
         return;
       }
 
       if (event.key === 'Enter' || event.key === ' ') {
-        event.preventDefault();
-        handleNextLevel();
+        if (levelComplete) {
+          event.preventDefault();
+          handleNextLevel();
+          return;
+        }
+        if (gameOver) {
+          event.preventDefault();
+          if (canGoNext) {
+            handleNextLevel();
+          } else {
+            handleRestart();
+          }
+        }
       }
     }
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleNextLevel, levelComplete, levelId, router]);
+  }, [canGoNext, gameOver, handleNextLevel, handleRestart, levelComplete, levelId, router]);
 
   if (!level) {
     return (
@@ -210,6 +225,7 @@ export default function PlayPage() {
           maxMoves={maxMoves}
           gameOver={gameOver}
           gameOverReason={gameOverReason}
+          canGoNext={canGoNext}
           onRestart={handleRestart}
           onNextLevel={handleNextLevel}
         />

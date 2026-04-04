@@ -506,24 +506,59 @@ export function render(
         const dir = conveyorDirection(tile);
         const dx = DIR_DX[dir];
         const dy = DIR_DY[dir];
-        ctx.strokeStyle = 'rgba(100,200,255,0.35)';
-        ctx.lineWidth = 2;
-        const flow = (time * 1.8) % 1;
-        const spacing = s * 0.28;
-        const travel = s * 0.56;
-        const arrowLen = s * 0.13;
-        // Draw a denser wrapped chevron stream so the belt motion loops cleanly.
-        for (let k = -2; k <= 2; k++) {
-          const offset = (k + flow) * spacing;
-          if (offset < -travel || offset > travel) continue;
-          const ax = cx + dx * offset;
-          const ay = cy + dy * offset;
-          ctx.beginPath();
-          ctx.moveTo(ax - dy * arrowLen - dx * arrowLen, ay + dx * arrowLen - dy * arrowLen);
-          ctx.lineTo(ax + dx * arrowLen * 0.5, ay + dy * arrowLen * 0.5);
-          ctx.lineTo(ax + dy * arrowLen - dx * arrowLen, ay - dx * arrowLen - dy * arrowLen);
-          ctx.stroke();
+        const horizontal = dx !== 0;
+        const beltInset = s * 0.16;
+        const beltThickness = s * 0.32;
+        const beltX = horizontal ? x + beltInset : x + (s - beltThickness) / 2;
+        const beltY = horizontal ? y + (s - beltThickness) / 2 : y + beltInset;
+        const beltW = horizontal ? s - beltInset * 2 : beltThickness;
+        const beltH = horizontal ? beltThickness : s - beltInset * 2;
+
+        ctx.save();
+        ctx.fillStyle = 'rgba(25,35,55,0.85)';
+        roundRect(ctx, beltX, beltY, beltW, beltH, 6);
+        ctx.fill();
+
+        const slatSpacing = s * 0.18;
+        const slatWidth = horizontal ? s * 0.08 : beltW * 0.6;
+        const slatHeight = horizontal ? beltH * 0.6 : s * 0.08;
+        const travel = (time * 1.6) % 1;
+        const offset = travel * slatSpacing;
+        ctx.fillStyle = 'rgba(120,190,255,0.35)';
+
+        for (let k = -6; k <= 6; k++) {
+          const pos = k * slatSpacing + offset;
+          const sx = horizontal ? beltX + pos : beltX + (beltW - slatWidth) / 2;
+          const sy = horizontal ? beltY + (beltH - slatHeight) / 2 : beltY + pos;
+          if (horizontal) {
+            if (sx + slatWidth < beltX || sx > beltX + beltW) continue;
+            ctx.fillRect(sx, sy, slatWidth, slatHeight);
+          } else {
+            if (sy + slatHeight < beltY || sy > beltY + beltH) continue;
+            ctx.fillRect(sx, sy, slatWidth, slatHeight);
+          }
         }
+
+        const arrowLen = s * 0.16;
+        ctx.strokeStyle = 'rgba(140,220,255,0.5)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(cx - dx * arrowLen, cy - dy * arrowLen);
+        ctx.lineTo(cx + dx * arrowLen, cy + dy * arrowLen);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(
+          cx + dx * arrowLen - dy * arrowLen * 0.4,
+          cy + dy * arrowLen + dx * arrowLen * 0.4,
+        );
+        ctx.lineTo(cx + dx * arrowLen, cy + dy * arrowLen);
+        ctx.lineTo(
+          cx + dx * arrowLen + dy * arrowLen * 0.4,
+          cy + dy * arrowLen - dx * arrowLen * 0.4,
+        );
+        ctx.stroke();
+
+        ctx.restore();
       }
       if (isOneWay(tile)) {
         const vertical = oneWayOrientation(tile) === 0;
