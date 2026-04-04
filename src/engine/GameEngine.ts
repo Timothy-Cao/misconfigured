@@ -1,4 +1,4 @@
-import { type LevelData, type GameState, type PlayerState, type PushableBlock, COLORS, TileType, STEP_INTERVAL, ANIM_DURATION, INPUT_COOLDOWN, isPressurePlate, pressurePlateNumber, isToggleSwitch, toggleNumber, isConveyor, conveyorDirection, isRotationTile, rotationTileCW, isRepaintStation, repaintRotation, isColorFilter, colorFilterRotation, isDoor, doorNumber, DIR_DX, DIR_DY, type Rotation } from './types';
+import { type LevelData, type GameState, type PlayerState, type PushableBlock, COLORS, TileType, STEP_INTERVAL, ANIM_DURATION, INPUT_COOLDOWN, INPUT_BUFFER_WINDOW, isPressurePlate, pressurePlateNumber, isToggleSwitch, toggleNumber, isConveyor, conveyorDirection, isRotationTile, rotationTileCW, isRepaintStation, repaintRotation, isColorFilter, colorFilterRotation, isDoor, doorNumber, DIR_DX, DIR_DY, type Rotation } from './types';
 
 import { InputManager, remapInput, type BufferedAction } from './input';
 import { getTileAt, isWalkable, canMoveTo } from './physics';
@@ -445,9 +445,11 @@ interface PendingMove {
   order: number;
 }
 
-type QueuedManualInput =
+type QueuedManualInputBase =
   | { kind: 'key'; key: BufferedAction }
   | { kind: 'swipe'; dx: number; dy: number };
+
+type QueuedManualInput = QueuedManualInputBase & { expiresAt: number };
 
 function comparePendingMoves(a: PendingMove, b: PendingMove, state: GameState): number {
   if (a.dx === b.dx && a.dy === b.dy) {
@@ -538,12 +540,39 @@ export class GameEngine {
     this.enqueueManualInput({ kind: 'swipe', dx, dy });
   }
 
-  private enqueueManualInput(input: QueuedManualInput): void {
-    if (this.state.outOfMoves || !this.isBoardSettledForManualInput()) {
+  private getBoardSettleRemaining(): number {
+    let remaining = 0;
+
+    for (const player of this.state.players) {
+      if (!player.alive || player.finished || player.lockedOnGoal) continue;
+      if (player.sliding || player.absorbTimer > 0 || player.deathTimer > 0) {
+        return Number.POSITIVE_INFINITY;
+      }
+      if (player.animProgress < 1) {
+        remaining = Math.max(remaining, (1 - player.animProgress) * ANIM_DURATION);
+      }
+    }
+
+    return remaining;
+  }
+
+  private getManualInputReadyIn(): number {
+    return Math.max(this.inputCooldownRemaining, this.getBoardSettleRemaining());
+  }
+
+  private enqueueManualInput(input: QueuedManualInputBase): void {
+    if (this.state.outOfMoves) {
       return;
     }
 
-    this.queuedManualInput = input;
+    if (this.getManualInputReadyIn() > INPUT_BUFFER_WINDOW) {
+      return;
+    }
+
+    this.queuedManualInput = {
+      ...input,
+      expiresAt: this.elapsed + INPUT_BUFFER_WINDOW,
+    };
   }
 
   private isBoardSettledForManualInput(): boolean {
@@ -641,6 +670,9 @@ export class GameEngine {
     if (boardSettledForManualInput && latestKeyboardInput) {
       this.enqueueManualInput({ kind: 'key', key: latestKeyboardInput });
     }
+    if (this.queuedManualInput && this.queuedManualInput.expiresAt < this.elapsed) {
+      this.queuedManualInput = null;
+    }
     if (this.state.outOfMoves) {
       this.queuedManualInput = null;
     }
@@ -648,7 +680,8 @@ export class GameEngine {
     const acceptedManualInput = !this.state.outOfMoves &&
       boardSettledForManualInput &&
       this.inputCooldownRemaining <= 0 &&
-      this.queuedManualInput !== null
+      this.queuedManualInput !== null &&
+      this.queuedManualInput.expiresAt >= this.elapsed
       ? this.queuedManualInput
       : null;
     if (acceptedManualInput) {

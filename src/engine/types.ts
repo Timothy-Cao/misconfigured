@@ -185,3 +185,4 @@ export const STEP_INTERVAL = 0.12; // seconds between grid steps when holding a 
 export const ANIM_DURATION = 0.1; // seconds for move animation
 export const TELEPORT_CHARGE_TIME = 1.0; // seconds to charge teleport
 export const INPUT_COOLDOWN = 0.5; // seconds between accepted manual inputs
+export const INPUT_BUFFER_WINDOW = 0.2; // seconds before the next legal manual move when input buffering is allowed
