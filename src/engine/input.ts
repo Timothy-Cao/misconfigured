@@ -44,6 +44,8 @@ export function remapInput(keys: KeyState, rotation: Rotation): MoveVector {
  */
 export class InputManager {
   private pendingAction: BufferedAction | null = null;
+  private heldActions = new Map<BufferedAction, number>();
+  private pressOrder = 0;
 
   private toBufferedAction(key: string): BufferedAction | null {
     switch (key) {
@@ -65,13 +67,20 @@ export class InputManager {
   }
 
   private onKeyDown = (e: KeyboardEvent) => {
-    if (e.repeat) return;
     const action = this.toBufferedAction(e.key.toLowerCase());
     if (!action) return;
+    e.preventDefault();
+    if (e.repeat) return;
+    this.heldActions.set(action, this.pressOrder++);
     this.enqueue(action);
   };
 
-  private onKeyUp = () => {};
+  private onKeyUp = (e: KeyboardEvent) => {
+    const action = this.toBufferedAction(e.key.toLowerCase());
+    if (!action) return;
+    e.preventDefault();
+    this.heldActions.delete(action);
+  };
 
   private enqueue(action: BufferedAction) {
     // Keep only the latest single pending keyboard action.
@@ -94,7 +103,23 @@ export class InputManager {
     return action;
   }
 
+  getHeldAction(): BufferedAction | null {
+    let latestAction: BufferedAction | null = null;
+    let latestOrder = -1;
+
+    for (const [action, order] of this.heldActions) {
+      if (order > latestOrder) {
+        latestOrder = order;
+        latestAction = action;
+      }
+    }
+
+    return latestAction;
+  }
+
   reset() {
     this.pendingAction = null;
+    this.heldActions.clear();
+    this.pressOrder = 0;
   }
 }

@@ -635,6 +635,9 @@ export class GameEngine {
     while ((nextKey = this.input.consumeAction()) !== null) {
       latestKeyboardInput = nextKey;
     }
+    if (!latestKeyboardInput) {
+      latestKeyboardInput = this.input.getHeldAction();
+    }
     if (boardSettledForManualInput && latestKeyboardInput) {
       this.enqueueManualInput({ kind: 'key', key: latestKeyboardInput });
     }
