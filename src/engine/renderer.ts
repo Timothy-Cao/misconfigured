@@ -507,24 +507,22 @@ export function render(
         const dx = DIR_DX[dir];
         const dy = DIR_DY[dir];
         const horizontal = dx !== 0;
-        const beltInset = s * 0.16;
-        const beltThickness = s * 0.32;
-        const beltX = horizontal ? x + beltInset : x + (s - beltThickness) / 2;
-        const beltY = horizontal ? y + (s - beltThickness) / 2 : y + beltInset;
-        const beltW = horizontal ? s - beltInset * 2 : beltThickness;
-        const beltH = horizontal ? beltThickness : s - beltInset * 2;
+        const beltX = x;
+        const beltY = y;
+        const beltW = s;
+        const beltH = s;
 
         ctx.save();
-        ctx.fillStyle = 'rgba(25,35,55,0.85)';
-        roundRect(ctx, beltX, beltY, beltW, beltH, 6);
+        ctx.fillStyle = 'rgba(20,28,48,0.9)';
+        roundRect(ctx, beltX, beltY, beltW, beltH, radius);
         ctx.fill();
 
-        const slatSpacing = s * 0.18;
-        const slatWidth = horizontal ? s * 0.08 : beltW * 0.6;
-        const slatHeight = horizontal ? beltH * 0.6 : s * 0.08;
+        const slatSpacing = s * 0.22;
+        const slatWidth = horizontal ? s * 0.16 : beltW * 0.9;
+        const slatHeight = horizontal ? beltH * 0.9 : s * 0.16;
         const travel = (time * 1.6) % 1;
         const offset = travel * slatSpacing;
-        ctx.fillStyle = 'rgba(120,190,255,0.35)';
+        ctx.fillStyle = 'rgba(120,190,255,0.28)';
 
         for (let k = -6; k <= 6; k++) {
           const pos = k * slatSpacing + offset;
@@ -532,10 +530,10 @@ export function render(
           const sy = horizontal ? beltY + (beltH - slatHeight) / 2 : beltY + pos;
           if (horizontal) {
             if (sx + slatWidth < beltX || sx > beltX + beltW) continue;
-            ctx.fillRect(sx, sy, slatWidth, slatHeight);
+            ctx.fillRect(sx, beltY + s * 0.05, slatWidth, beltH * 0.9);
           } else {
             if (sy + slatHeight < beltY || sy > beltY + beltH) continue;
-            ctx.fillRect(sx, sy, slatWidth, slatHeight);
+            ctx.fillRect(beltX + s * 0.05, sy, beltW * 0.9, slatHeight);
           }
         }
 

@@ -205,8 +205,29 @@ export default function PlayPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#0a0a0f] flex items-center justify-center relative overflow-hidden px-3 pb-4 pt-32 sm:px-4 sm:pt-20">
+    <main className="min-h-screen bg-[#0a0a0f] flex flex-col items-center justify-center gap-4 relative overflow-hidden px-3 py-6 sm:px-4 sm:py-8">
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-purple-500/[0.03] blur-[100px]" />
+      <div className="w-full max-w-5xl animate-[fadeIn_0.4s_ease-out]">
+        <HUD
+          levelId={levelId}
+          levelName={level.name}
+          sourceLabel={sourceLabel}
+          levelComplete={levelComplete}
+          settledUnits={settledUnits}
+          totalUnits={level.players.length}
+          completionTime={completionTime}
+          lives={lives}
+          maxLives={maxLives}
+          movesUsed={movesUsed}
+          maxMoves={maxMoves}
+          gameOver={gameOver}
+          gameOverReason={gameOverReason}
+          canGoNext={canGoNext}
+          onRestart={handleRestart}
+          onNextLevel={handleNextLevel}
+          showOverlays={false}
+        />
+      </div>
       <div className="relative animate-[fadeIn_0.4s_ease-out]">
         <GameCanvas
           key={key}
@@ -236,6 +257,7 @@ export default function PlayPage() {
           canGoNext={canGoNext}
           onRestart={handleRestart}
           onNextLevel={handleNextLevel}
+          showBar={false}
         />
       </div>
     </main>
