@@ -12,6 +12,7 @@ interface AppHeaderProps {
 
 const NAV_ITEMS = [
   { href: '/', label: 'Menu' },
+  { href: '/editor', label: 'Editor' },
   { href: '/community', label: 'Community' },
   { href: '/levels', label: 'Campaign' },
   { href: '/my-maps', label: 'My Maps' },
@@ -32,7 +33,7 @@ export default function AppHeader({ initialUser = null }: AppHeaderProps) {
 
   return (
     <>
-      <header className="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-[#0a0a0f]/88 backdrop-blur-xl">
+      <header className="sticky top-0 z-50 border-b border-white/10 bg-[#0a0a0f]/88 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-3 sm:h-20 sm:px-5 lg:px-8">
           <div className="flex min-w-0 items-center gap-2 sm:gap-3">
             <Link

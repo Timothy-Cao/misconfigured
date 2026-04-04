@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import AppHeader from '@/components/AppHeader';
 import AudioSettings from '@/components/AudioSettings';
 import UiSfx from '@/components/UiSfx';
 import './globals.css';
@@ -17,6 +18,7 @@ export default async function RootLayout({
     <html lang="en">
       <body className="bg-[#0a0a0f] text-white antialiased">
         <UiSfx />
+        <AppHeader />
         <AudioSettings />
         {children}
       </body>

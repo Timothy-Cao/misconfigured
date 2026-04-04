@@ -12,17 +12,13 @@ export default function CommunityPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
-    function goBackOrHome() {
-      if (window.history.length > 1) {
-        router.back();
-        return;
-      }
+    function goHome() {
       router.push('/');
     }
 
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') {
-        goBackOrHome();
+        goHome();
       }
     }
 

@@ -8,17 +8,13 @@ export default function LevelsPage() {
   const router = useRouter();
 
   useEffect(() => {
-    function goBackOrHome() {
-      if (window.history.length > 1) {
-        router.back();
-        return;
-      }
+    function goHome() {
       router.push('/');
     }
 
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') {
-        goBackOrHome();
+        goHome();
       }
     }
 
