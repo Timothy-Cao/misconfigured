@@ -3,7 +3,7 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import GameCanvas from '@/components/GameCanvas';
 import { TileType, COLORS, type LevelData, type Rotation, isPressurePlate, pressurePlateNumber, pressurePlateTile, isDoor, doorNumber, doorTile, isToggleSwitch, isToggleBlock, toggleNumber, toggleSwitchTile, isConveyor, conveyorDirection, conveyorTile, isOneWay, oneWayOrientation, oneWayTile, isRotationTile, rotationTileCW, isRepaintStation, repaintRotation, repaintStationTile, isColorFilter, colorFilterRotation, colorFilterTile, DIR_DX, DIR_DY } from '@/engine/types';
-import { exportLocalLevelBackup, getBuiltInLevel, importLocalLevelBackup, saveCustomLevel } from '@/levels';
+import { getBuiltInLevel, saveCustomLevel } from '@/levels';
 import { fetchCampaignOverrideFromApi, saveCampaignOverrideToApi } from '@/lib/campaign-api';
 import { deleteOwnedCommunityLevelFromApi, fetchCommunityLevelFromApi, fetchOwnedCloudLevelsFromApi, saveOwnedCommunityLevelToApi } from '@/lib/community-api';
 import { getSupabaseBrowserClient } from '@/lib/supabase/browser';
@@ -1555,30 +1555,59 @@ export default function LevelEditor() {
   }, [cloudSignedIn, cloudTargetId, confirmDeleteCommunityId, publishScope, refreshCloudLevels]);
 
   const handleExportLevels = useCallback(() => {
-    const backup = exportLocalLevelBackup();
-    const serialized = JSON.stringify(backup, null, 2);
+    const level = buildLevelData(
+      publishScope === 'campaign' ? saveTargetId : (cloudTargetId ?? 0),
+      publishScope === 'campaign'
+        ? `Level ${saveTargetId}`
+        : (levelName || 'Untitled Cloud Map'),
+    );
+    const serialized = JSON.stringify(level);
     setExportText(serialized);
     setMessage({
-      text: `Exported ${Object.keys(backup.campaignOverrides).length} campaign override(s) and ${Object.keys(backup.communityLevels).length} community level(s).`,
+      text: `Exported the current editor level as compact JSON.`,
       type: 'success',
     });
-  }, []);
+  }, [buildLevelData, cloudTargetId, levelName, publishScope, saveTargetId]);
 
   const handleImportLevels = useCallback(() => {
     setMessage(null);
     try {
       const parsed = JSON.parse(importText);
-      const result = importLocalLevelBackup(parsed);
-      refreshCloudLevels();
+      if (!parsed || typeof parsed !== 'object') {
+        throw new Error('Import payload must be a level object.');
+      }
+
+      const level = parsed as Partial<LevelData>;
+      if (
+        !Number.isFinite(level.width) ||
+        !Number.isFinite(level.height) ||
+        !Array.isArray(level.grid) ||
+        !Array.isArray(level.players)
+      ) {
+        throw new Error('Import payload is missing level fields.');
+      }
+
+      loadLevelIntoEditor({
+        id: Number.isFinite(level.id) ? Number(level.id) : -1,
+        name: typeof level.name === 'string' ? level.name : 'Imported Level',
+        width: Number(level.width),
+        height: Number(level.height),
+        grid: level.grid.map(row => [...row]),
+        players: level.players.map(player => ({ ...player })) as LevelData['players'],
+        lives: Number.isFinite(level.lives) ? Number(level.lives) : 1,
+        maxMoves: Number.isFinite(level.maxMoves) ? Number(level.maxMoves) : undefined,
+      });
+      baselineDraftSnapshotRef.current = null;
+      setVerifiedDraftSnapshot(null);
       setMessage({
-        text: `Imported ${result.campaignCount} campaign override(s) and ${result.communityCount} community level(s).`,
+        text: 'Imported a level into the editor. Play Test it again before saving.',
         type: 'success',
       });
     } catch (error) {
       const text = error instanceof Error ? error.message : 'Import failed.';
       setMessage({ text, type: 'error' });
     }
-  }, [importText, refreshCloudLevels]);
+  }, [importText, loadLevelIntoEditor]);
 
   const stopPreview = useCallback(() => {
     setPreviewLevel(null);
@@ -1980,30 +2009,30 @@ export default function LevelEditor() {
               </button>
             )}
             <div className="mt-4 border-t border-white/10 pt-4">
-              <h4 className="text-white/55 text-xs font-mono uppercase tracking-wider mb-3">Backup</h4>
+              <h4 className="text-white/55 text-xs font-mono uppercase tracking-wider mb-3">Import / Export</h4>
               <button
                 onClick={handleExportLevels}
                 className="w-full text-sm px-3 py-2 mb-2 bg-white/5 border border-white/10 rounded-lg text-white/70 hover:bg-white/10 hover:border-white/20 transition-all duration-200"
               >
-                Export Local Backups
+                Export Current Level
               </button>
               <textarea
                 value={exportText}
                 readOnly
                 className="w-full min-h-32 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white/80 text-xs mt-1 mb-3 focus:outline-none"
-                placeholder="Exported local backups will appear here as JSON."
+                placeholder="The current level will appear here as compact JSON for copy/paste."
               />
               <textarea
                 value={importText}
                 onChange={e => setImportText(e.target.value)}
                 className="w-full min-h-32 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white/80 text-xs mt-1 focus:outline-none focus:border-cyan-400/40"
-                placeholder="Paste exported JSON here to restore local backups."
+                placeholder="Paste one exported level JSON here to load it into the editor."
               />
               <button
                 onClick={handleImportLevels}
                 className="w-full text-sm px-3 py-2 mt-2 bg-cyan-500/15 border border-cyan-400/25 rounded-lg text-cyan-200 hover:bg-cyan-500/25 hover:border-cyan-400/40 transition-all duration-200"
               >
-                Import Local Saved Levels
+                Import Level Into Editor
               </button>
             </div>
             {message && (
