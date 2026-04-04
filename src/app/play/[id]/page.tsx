@@ -41,6 +41,7 @@ export default function PlayPage() {
   const [maxMoves, setMaxMoves] = useState<number | null>(null);
   const [gameOver, setGameOver] = useState(false);
   const [gameOverReason, setGameOverReason] = useState<'lives' | 'moves' | null>(null);
+  const [simulationSpeed, setSimulationSpeed] = useState(1);
   const usingLocalCampaignBackup = isCampaignLevel && !!loadError && !!localOverride;
   const level = isCampaignLevel
     ? (remoteLevel === undefined
@@ -126,6 +127,10 @@ export default function PlayPage() {
     setGameOverReason(null);
     setKey(k => k + 1);
   }, [level]);
+
+  const handleToggleSimulationSpeed = useCallback(() => {
+    setSimulationSpeed(current => current === 1 ? 2 : 1);
+  }, []);
 
   const handleNextLevel = useCallback(() => {
     if (levelId < TOTAL_LEVELS) {
@@ -246,6 +251,8 @@ export default function PlayPage() {
           canGoNext={canGoNext}
           onRestart={handleRestart}
           onNextLevel={handleNextLevel}
+          simulationSpeed={simulationSpeed}
+          onToggleSimulationSpeed={handleToggleSimulationSpeed}
           showOverlays={false}
         />
       </div>
@@ -274,6 +281,7 @@ export default function PlayPage() {
                 onMovesUpdate={handleMovesUpdate}
                 autoRestartOnGameOver={false}
                 captureGlobalMobileSwipes
+                simulationSpeed={simulationSpeed}
               />
               <HUD
                 levelId={levelId}
@@ -292,6 +300,7 @@ export default function PlayPage() {
                 canGoNext={canGoNext}
                 onRestart={handleRestart}
                 onNextLevel={handleNextLevel}
+                simulationSpeed={simulationSpeed}
                 showBar={false}
               />
             </div>

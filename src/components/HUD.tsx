@@ -17,6 +17,8 @@ interface HUDProps {
   canGoNext: boolean;
   onRestart: () => void;
   onNextLevel: () => void;
+  simulationSpeed?: number;
+  onToggleSimulationSpeed?: () => void;
   showBar?: boolean;
   showOverlays?: boolean;
 }
@@ -30,7 +32,7 @@ function formatTime(seconds: number): string {
     : `${s}.${String(ms).padStart(2, '0')}s`;
 }
 
-export default function HUD({ levelId, levelName, sourceLabel, levelComplete, settledUnits, totalUnits, completionTime, lives, maxLives, movesUsed, maxMoves, gameOver, gameOverReason, canGoNext, onRestart, onNextLevel, showBar = true, showOverlays = true }: HUDProps) {
+export default function HUD({ levelId, levelName, sourceLabel, levelComplete, settledUnits, totalUnits, completionTime, lives, maxLives, movesUsed, maxMoves, gameOver, gameOverReason, canGoNext, onRestart, onNextLevel, simulationSpeed = 1, onToggleSimulationSpeed, showBar = true, showOverlays = true }: HUDProps) {
   const displayName = levelName || `Level ${String(levelId).padStart(2, '0')}`;
   const isWarningSource = sourceLabel?.toLowerCase().includes('warning') ?? false;
   const doneAccentClass = settledUnits === totalUnits
@@ -49,12 +51,26 @@ export default function HUD({ levelId, levelName, sourceLabel, levelComplete, se
           <div className="rounded-2xl border border-white/10 bg-black/25 px-3 py-3 backdrop-blur-sm">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center">
               <div className="flex justify-start">
-                <button
-                  onClick={onRestart}
-                  className="text-white/55 hover:text-white text-xs px-3 py-2 border border-white/10 rounded-lg hover:border-white/25 hover:bg-white/5 transition-all duration-200"
-                >
-                  Restart
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={onRestart}
+                    className="text-white/55 hover:text-white text-xs px-3 py-2 border border-white/10 rounded-lg hover:border-white/25 hover:bg-white/5 transition-all duration-200"
+                  >
+                    Restart
+                  </button>
+                  {onToggleSimulationSpeed && (
+                    <button
+                      onClick={onToggleSimulationSpeed}
+                      className={`text-xs px-3 py-2 border rounded-lg transition-all duration-200 ${
+                        simulationSpeed > 1
+                          ? 'border-cyan-400/35 bg-cyan-500/12 text-cyan-200 hover:bg-cyan-500/18'
+                          : 'border-white/10 text-white/55 hover:border-white/25 hover:bg-white/5 hover:text-white'
+                      }`}
+                    >
+                      {simulationSpeed.toFixed(0)}x
+                    </button>
+                  )}
+                </div>
               </div>
 
               <div className="flex min-w-0 flex-col items-center gap-2">

@@ -17,6 +17,7 @@ interface GameCanvasProps {
   onMovesUpdate?: (movesUsed: number, maxMoves: number | null) => void;
   autoRestartOnGameOver?: boolean;
   captureGlobalMobileSwipes?: boolean;
+  simulationSpeed?: number;
 }
 
 export default function GameCanvas({
@@ -28,6 +29,7 @@ export default function GameCanvas({
   onMovesUpdate,
   autoRestartOnGameOver = true,
   captureGlobalMobileSwipes = false,
+  simulationSpeed = 1,
 }: GameCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -265,6 +267,8 @@ export default function GameCanvas({
       },
       onLivesUpdate: (lives, maxLives) => onLivesUpdateRef.current?.(lives, maxLives),
       onMovesUpdate: (movesUsed, maxMoves) => onMovesUpdateRef.current?.(movesUsed, maxMoves),
+    }, {
+      speedMultiplier: simulationSpeed,
     });
     engineRef.current = engine;
     engine.start();
@@ -286,7 +290,7 @@ export default function GameCanvas({
       window.removeEventListener('keydown', handleKeyDown);
       engineRef.current = null;
     };
-  }, [autoRestartOnGameOver, level]);
+  }, [autoRestartOnGameOver, level, simulationSpeed]);
 
   const handleTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
     if (event.touches.length !== 1) return;

@@ -437,6 +437,10 @@ export interface GameEngineCallbacks {
   onMovesUpdate?: (movesUsed: number, maxMoves: number | null) => void;
 }
 
+interface GameEngineOptions {
+  speedMultiplier?: number;
+}
+
 interface PendingMove {
   index: number;
   dx: number;
@@ -486,12 +490,14 @@ export class GameEngine {
   /** After running out of moves, only fail once the board has remained unchanged for a full beat */
   private outOfMovesStillnessTime: number = 0;
   private outOfMovesSnapshot: string | null = null;
+  private speedMultiplier: number;
 
   constructor(
     canvas: HTMLCanvasElement,
     level: LevelData,
     tileSize: number,
     callbacks: GameEngineCallbacks = {},
+    options: GameEngineOptions = {},
   ) {
     this.ctx = canvas.getContext('2d')!;
     this.level = level;
@@ -500,9 +506,14 @@ export class GameEngine {
     this.input = new InputManager();
     this.callbacks = callbacks;
     this.stepTimers = Array(level.players.length).fill(0);
+    this.speedMultiplier = Math.max(0.25, options.speedMultiplier ?? 1);
 
     canvas.width = level.width * tileSize;
     canvas.height = level.height * tileSize;
+  }
+
+  setSpeedMultiplier(multiplier: number): void {
+    this.speedMultiplier = Math.max(0.25, multiplier);
   }
 
   start(): void {
@@ -587,8 +598,9 @@ export class GameEngine {
   }
 
   private loop = (now: number): void => {
-    const dt = Math.min((now - this.lastTime) / 1000, 0.05);
+    const realDt = Math.min((now - this.lastTime) / 1000, 0.05);
     this.lastTime = now;
+    const dt = realDt * this.speedMultiplier;
     this.elapsed += dt;
     this.state.time = this.elapsed;
 

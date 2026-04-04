@@ -178,6 +178,7 @@ export default function LevelEditor() {
   const [previewComplete, setPreviewComplete] = useState(false);
   const [previewGameOver, setPreviewGameOver] = useState(false);
   const [previewGameOverReason, setPreviewGameOverReason] = useState<'lives' | 'moves' | null>(null);
+  const [previewSimulationSpeed, setPreviewSimulationSpeed] = useState(1);
   const paintModeRef = useRef<'place' | 'erase'>('place');
   const lastPaintedRef = useRef<string>('');
   const [tilePx, setTilePx] = useState(32);
@@ -2105,6 +2106,16 @@ export default function LevelEditor() {
                     </span>
                   )}
                   <button
+                    onClick={() => setPreviewSimulationSpeed(current => current === 1 ? 2 : 1)}
+                    className={`text-xs px-3 py-2 rounded-lg border transition-all duration-200 ${
+                      previewSimulationSpeed > 1
+                        ? 'border-cyan-400/35 bg-cyan-500/12 text-cyan-200 hover:bg-cyan-500/18'
+                        : 'border-white/10 bg-white/[0.02] text-white/70 hover:bg-white/8 hover:border-white/20'
+                    }`}
+                  >
+                    {previewSimulationSpeed}x Speed
+                  </button>
+                  <button
                     onClick={startPreview}
                     className="text-xs px-3 py-2 rounded-lg border border-white/10 bg-white/[0.02] text-white/70 hover:bg-white/8 hover:border-white/20 transition-all duration-200"
                   >
@@ -2119,12 +2130,24 @@ export default function LevelEditor() {
                 </>
               )}
               {!previewLevel && (
-                <button
-                  onClick={startPreview}
-                  className="text-xs px-3 py-2 rounded-lg border border-cyan-400/30 bg-cyan-500/12 text-cyan-200 hover:bg-cyan-500/20 hover:border-cyan-300/40 transition-all duration-200"
-                >
-                  Play Test
-                </button>
+                <>
+                  <button
+                    onClick={startPreview}
+                    className="text-xs px-3 py-2 rounded-lg border border-cyan-400/30 bg-cyan-500/12 text-cyan-200 hover:bg-cyan-500/20 hover:border-cyan-300/40 transition-all duration-200"
+                  >
+                    Play Test
+                  </button>
+                  <button
+                    onClick={() => setPreviewSimulationSpeed(current => current === 1 ? 2 : 1)}
+                    className={`text-xs px-3 py-2 rounded-lg border transition-all duration-200 ${
+                      previewSimulationSpeed > 1
+                        ? 'border-cyan-400/35 bg-cyan-500/12 text-cyan-200 hover:bg-cyan-500/18'
+                        : 'border-white/10 bg-white/[0.02] text-white/70 hover:bg-white/8 hover:border-white/20'
+                    }`}
+                  >
+                    {previewSimulationSpeed}x Speed
+                  </button>
+                </>
               )}
             </div>
           </div>
@@ -2158,6 +2181,7 @@ export default function LevelEditor() {
                         setPreviewMoveLimit(maxMoves);
                       }}
                       autoRestartOnGameOver={false}
+                      simulationSpeed={previewSimulationSpeed}
                     />
                   </div>
                 </div>
