@@ -327,6 +327,66 @@ describe('move limits', () => {
   });
 });
 
+describe('movement edge cases', () => {
+  it('blocks stepping onto a door that closes when leaving its plate', () => {
+    const level: LevelData = {
+      id: 200,
+      name: 'door-close-test',
+      width: 5,
+      height: 3,
+      grid: [
+        [0, 0, 0, 0, 0],
+        [0, 10, 20, 1, 0],
+        [0, 0, 0, 0, 0],
+      ],
+      players: [{ startX: 1, startY: 1, rotation: 0 }],
+    };
+
+    const canvas = document.createElement('canvas');
+    vi.spyOn(canvas, 'getContext').mockReturnValue({} as CanvasRenderingContext2D);
+    const engine = new GameEngine(canvas, level, TILE, {});
+    const enqueueManualInput = (engine as unknown as { enqueueManualInput: (input: { kind: 'key'; key: 'D' }) => void }).enqueueManualInput.bind(engine);
+    const update = (engine as unknown as { update: (dt: number) => void }).update.bind(engine);
+    const getState = () => (engine as unknown as { state: ReturnType<typeof createInitialState> }).state;
+
+    enqueueManualInput({ kind: 'key', key: 'D' });
+    update(0.2);
+    expect(getState().players[0].col).toBe(1);
+    expect(getState().players[0].row).toBe(1);
+  });
+
+  it('lets a line of units advance together when the front unit moves away', () => {
+    const level: LevelData = {
+      id: 201,
+      name: 'line-move-test',
+      width: 6,
+      height: 3,
+      grid: [
+        [0, 0, 0, 0, 0, 0],
+        [0, 1, 1, 1, 1, 0],
+        [0, 0, 0, 0, 0, 0],
+      ],
+      players: [
+        { startX: 1, startY: 1, rotation: 0 },
+        { startX: 2, startY: 1, rotation: 0 },
+      ],
+    };
+
+    const canvas = document.createElement('canvas');
+    vi.spyOn(canvas, 'getContext').mockReturnValue({} as CanvasRenderingContext2D);
+    const engine = new GameEngine(canvas, level, TILE, {});
+    const enqueueManualInput = (engine as unknown as { enqueueManualInput: (input: { kind: 'key'; key: 'D' }) => void }).enqueueManualInput.bind(engine);
+    const update = (engine as unknown as { update: (dt: number) => void }).update.bind(engine);
+    const getState = () => (engine as unknown as { state: ReturnType<typeof createInitialState> }).state;
+
+    enqueueManualInput({ kind: 'key', key: 'D' });
+    update(0.2);
+    const state = getState();
+    expect(state.players[0].col).toBe(2);
+    expect(state.players[1].col).toBe(3);
+  });
+});
+
 describe('black hole settling', () => {
   it('still accepts manual input for remaining units after one unit finishes in a black hole', () => {
     const level: LevelData = {
