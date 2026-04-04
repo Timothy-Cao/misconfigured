@@ -112,11 +112,13 @@ const ARROW_ANGLES: Record<number, number> = {
 
 function computeTilePx(width: number, height: number): number {
   if (typeof window === 'undefined') return 32;
-  const sidebarAllowance = window.innerWidth >= 1024 ? 360 : 48;
-  const maxW = Math.min(window.innerWidth - sidebarAllowance, 1040);
-  const maxH = Math.min(window.innerHeight * 0.78, 860);
+  const viewportWidth = window.visualViewport?.width ?? window.innerWidth;
+  const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
+  const sidebarAllowance = viewportWidth >= 1024 ? 380 : 48;
+  const maxW = Math.min(viewportWidth - sidebarAllowance, 1040);
+  const maxH = Math.min(viewportHeight * 0.74, 860);
   const s = Math.min(maxW / width, maxH / height);
-  const minTile = window.innerWidth < 640 ? 16 : 20;
+  const minTile = viewportWidth < 640 ? 10 : 12;
   return Math.max(minTile, Math.min(56, Math.floor(s)));
 }
 

@@ -5,6 +5,8 @@ import { GameEngine } from '@/engine/GameEngine';
 import { type LevelData } from '@/engine/types';
 
 const BASE_TILE_SIZE = 40;
+const MIN_SCALE = 0.35;
+const MAX_SCALE = 2.5;
 
 interface GameCanvasProps {
   level: LevelData;
@@ -165,17 +167,54 @@ export default function GameCanvas({
 
   // Compute scale so the canvas fills available space without distorting
   useEffect(() => {
+    const wrapper = wrapperRef.current;
+    const parent = wrapper?.parentElement;
+    if (!wrapper || !parent) {
+      return;
+    }
+
     function computeScale() {
-      const maxW = window.innerWidth * 0.9;
-      const maxH = window.innerHeight * 0.85;
+      const currentWrapper = wrapperRef.current;
+      if (!currentWrapper) {
+        return;
+      }
+      const parentElement = currentWrapper.parentElement;
+      if (!parentElement) {
+        return;
+      }
+      const viewportWidth = window.visualViewport?.width ?? window.innerWidth;
+      const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
+      const parentRect = parentElement.getBoundingClientRect();
+      const horizontalPadding = 8;
+      const verticalPadding = 12;
+      const maxW = Math.max(
+        BASE_TILE_SIZE,
+        Math.min(parentElement.clientWidth, viewportWidth) - horizontalPadding * 2,
+      );
+      const maxH = Math.max(
+        BASE_TILE_SIZE,
+        viewportHeight - Math.max(parentRect.top, 0) - verticalPadding,
+      );
       const nativeW = level.width * BASE_TILE_SIZE;
       const nativeH = level.height * BASE_TILE_SIZE;
-      const s = Math.min(maxW / nativeW, maxH / nativeH, 2.5); // cap at 2.5x
-      setScale(Math.max(1, s));
+      const nextScale = Math.min(maxW / nativeW, maxH / nativeH, MAX_SCALE);
+      setScale(Math.max(MIN_SCALE, nextScale));
     }
+
     computeScale();
     window.addEventListener('resize', computeScale);
-    return () => window.removeEventListener('resize', computeScale);
+    window.visualViewport?.addEventListener('resize', computeScale);
+    window.visualViewport?.addEventListener('scroll', computeScale);
+
+    const resizeObserver = new ResizeObserver(() => computeScale());
+    resizeObserver.observe(parent);
+
+    return () => {
+      window.removeEventListener('resize', computeScale);
+      window.visualViewport?.removeEventListener('resize', computeScale);
+      window.visualViewport?.removeEventListener('scroll', computeScale);
+      resizeObserver.disconnect();
+    };
   }, [level.width, level.height]);
 
   useEffect(() => {
