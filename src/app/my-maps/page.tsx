@@ -37,6 +37,20 @@ export default async function MyMapsPage() {
             </div>
           ) : (
             <>
+              <div className={`mb-5 rounded-2xl border px-4 py-4 text-sm ${
+                user.isAdmin
+                  ? 'border-emerald-400/25 bg-emerald-500/[0.08] text-emerald-100/85'
+                  : 'border-amber-400/20 bg-amber-500/[0.08] text-amber-100/85'
+              }`}>
+                <p className="font-medium">
+                  Signed in as {user.email ?? user.displayName ?? 'your account'}
+                </p>
+                <p className="mt-1 opacity-80">
+                  {user.isAdmin
+                    ? 'This account is recognized as an admin and can save campaign overrides.'
+                    : 'This account is not recognized as an admin. Campaign override saves will be blocked until the deployment is using your ADMIN_EMAILS value.'}
+                </p>
+              </div>
               <div className="mb-5 rounded-2xl border border-cyan-400/20 bg-cyan-500/[0.08] px-4 py-4 text-sm text-cyan-100/85">
                 <p className="font-medium text-cyan-100">Cloud maps are live.</p>
                 <p className="mt-1 text-cyan-100/65">
