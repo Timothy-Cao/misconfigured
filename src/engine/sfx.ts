@@ -33,6 +33,10 @@ interface SfxDef {
   cooldown: number;
 }
 
+const SFX_VOLUME_KEY = 'misconfigured-sfx-volume';
+const DEFAULT_SFX_VOLUME = 0.35;
+const volumeListeners = new Set<(volume: number) => void>();
+
 const SFX: Record<SfxId, SfxDef> = {
   uiHover: { kind: 'tone', type: 'sine', freq: 920, freq2: 980, duration: 0.035, gain: 0.03, cooldown: 80 },
   uiClick: { kind: 'tone', type: 'triangle', freq: 520, freq2: 420, duration: 0.06, gain: 0.04, cooldown: 80 },
@@ -61,6 +65,7 @@ class SfxEngine {
   private ctx: AudioContext | null = null;
   private master: GainNode | null = null;
   private lastPlayed = new Map<SfxId, number>();
+  private volume = DEFAULT_SFX_VOLUME;
 
   private canUseAudio(): boolean {
     return typeof window !== 'undefined' && ('AudioContext' in window || 'webkitAudioContext' in window);
@@ -68,11 +73,12 @@ class SfxEngine {
 
   private ensureContext(): AudioContext | null {
     if (!this.canUseAudio()) return null;
+    this.getVolume();
     if (!this.ctx) {
       const Ctx = (window.AudioContext || (window as typeof window & { webkitAudioContext: typeof AudioContext }).webkitAudioContext);
       this.ctx = new Ctx();
       this.master = this.ctx.createGain();
-      this.master.gain.value = 0.12;
+      this.master.gain.value = this.volume;
       this.master.connect(this.ctx.destination);
     }
     if (this.ctx.state === 'suspended') {
@@ -127,10 +133,52 @@ class SfxEngine {
     osc.start(now);
     osc.stop(now + def.duration);
   }
+
+  getVolume(): number {
+    if (typeof window !== 'undefined') {
+      const raw = window.localStorage.getItem(SFX_VOLUME_KEY);
+      if (raw !== null) {
+        const parsed = Number(raw);
+        if (Number.isFinite(parsed)) {
+          this.volume = Math.max(0, Math.min(1, parsed));
+        }
+      }
+    }
+    return this.volume;
+  }
+
+  setVolume(volume: number): void {
+    this.volume = Math.max(0, Math.min(1, volume));
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(SFX_VOLUME_KEY, String(this.volume));
+    }
+    if (this.master) {
+      this.master.gain.value = this.volume;
+    }
+    for (const listener of volumeListeners) {
+      listener(this.volume);
+    }
+  }
 }
 
 const engine = new SfxEngine();
 
 export function playSfx(id: SfxId): void {
   engine.play(id);
+}
+
+export function getSfxVolume(): number {
+  return engine.getVolume();
+}
+
+export function setSfxVolume(volume: number): void {
+  engine.setVolume(volume);
+}
+
+export function subscribeToSfxVolume(listener: (volume: number) => void): () => void {
+  volumeListeners.add(listener);
+  listener(engine.getVolume());
+  return () => {
+    volumeListeners.delete(listener);
+  };
 }
