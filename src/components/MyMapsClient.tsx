@@ -31,10 +31,6 @@ export default function MyMapsClient({ initialLevels, initialWarning }: MyMapsCl
 
   useEffect(() => {
     function goBackOrHome() {
-      if (window.history.length > 1) {
-        router.back();
-        return;
-      }
       router.push('/');
     }
 

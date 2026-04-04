@@ -9,10 +9,6 @@ export default function EditorPage() {
 
   useEffect(() => {
     function goBackOrHome() {
-      if (window.history.length > 1) {
-        router.back();
-        return;
-      }
       router.push('/');
     }
 
