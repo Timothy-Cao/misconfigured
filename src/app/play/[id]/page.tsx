@@ -134,14 +134,11 @@ export default function PlayPage() {
   const sourceLabel = isCampaignLevel
     ? (remoteLevel ? 'Campaign Override (Server)' : (localOverride ? 'Campaign Override (Local)' : 'Campaign'))
     : 'Community';
+  const returnPath = isCampaignLevel ? '/levels' : '/community';
 
   useEffect(() => {
     function goBack() {
-      if (window.history.length > 1) {
-        router.back();
-        return;
-      }
-      router.push(levelId >= COMMUNITY_LEVEL_START_ID ? '/community' : '/levels');
+      router.push(returnPath);
     }
 
     function handleKeyDown(event: KeyboardEvent) {
@@ -176,7 +173,7 @@ export default function PlayPage() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [canGoNext, gameOver, handleNextLevel, handleRestart, levelComplete, levelId, router]);
+  }, [canGoNext, gameOver, handleNextLevel, handleRestart, levelComplete, returnPath, router]);
 
   if (!level) {
     return (
@@ -188,11 +185,7 @@ export default function PlayPage() {
           {!isRemoteLoading && (
             <button
               onClick={() => {
-                if (window.history.length > 1) {
-                  router.back();
-                  return;
-                }
-                router.push(levelId >= COMMUNITY_LEVEL_START_ID ? '/community' : '/levels');
+                router.push(returnPath);
               }}
               className="mt-4 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-white/70 hover:bg-white/[0.08] hover:text-white transition-all duration-200"
             >
