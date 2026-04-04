@@ -30,3 +30,12 @@ export async function saveCampaignOverrideToApi(id: number, level: LevelData): P
 
   return data.level;
 }
+
+export async function fetchCampaignOverrideIdsFromApi(): Promise<number[]> {
+  const response = await fetch('/api/campaign-overrides', { cache: 'no-store' });
+  const data = await response.json() as { ids?: number[]; warning?: string };
+  if (!response.ok) {
+    throw new Error(data.warning || 'Failed to load campaign override list.');
+  }
+  return data.ids ?? [];
+}

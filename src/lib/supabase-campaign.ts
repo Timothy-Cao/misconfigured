@@ -11,6 +11,10 @@ interface CampaignOverrideRow {
   max_moves: number | null;
 }
 
+interface CampaignOverrideIdRow {
+  id: number;
+}
+
 function getSupabaseConfig() {
   const url = process.env.SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -76,6 +80,19 @@ export async function getCampaignOverrideFromSupabase(id: number): Promise<Level
     const rows = (await response.json()) as CampaignOverrideRow[];
     const row = rows[0];
     return row ? mapRowToLevel(row) : undefined;
+  }
+}
+
+export async function listCampaignOverrideIdsFromSupabase(): Promise<number[]> {
+  try {
+    const response = await supabaseRequest('/rest/v1/campaign_overrides?select=id');
+    const rows = (await response.json()) as CampaignOverrideIdRow[];
+    return rows.map(row => row.id).filter(id => Number.isFinite(id));
+  } catch (error) {
+    if (!isMissingMaxMovesColumn(error)) throw error;
+    const response = await supabaseRequest('/rest/v1/campaign_overrides?select=id');
+    const rows = (await response.json()) as CampaignOverrideIdRow[];
+    return rows.map(row => row.id).filter(id => Number.isFinite(id));
   }
 }
 
