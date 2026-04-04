@@ -226,7 +226,7 @@ export default function PlayPage() {
   }
 
   return (
-    <main className="min-h-[calc(100svh-4rem)] bg-[#0a0a0f] flex flex-col items-center justify-center gap-4 relative overflow-hidden px-3 py-6 sm:min-h-[calc(100svh-5rem)] sm:px-4 sm:py-8">
+    <main className="min-h-[calc(100svh-4rem)] bg-[#0a0a0f] flex flex-col items-center gap-4 relative overflow-hidden px-3 py-4 sm:min-h-[calc(100svh-5rem)] sm:px-4 sm:py-5">
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-purple-500/[0.03] blur-[100px]" />
       <div className="w-full max-w-5xl animate-[fadeIn_0.4s_ease-out]">
         <HUD
@@ -249,8 +249,8 @@ export default function PlayPage() {
           showOverlays={false}
         />
       </div>
-      <div className="flex flex-col items-center gap-4 animate-[fadeIn_0.4s_ease-out]">
-        <div className="flex items-center justify-center gap-2 sm:gap-4">
+      <div className="flex w-full max-w-6xl flex-1 min-h-0 flex-col items-center gap-4 animate-[fadeIn_0.4s_ease-out]">
+        <div className="flex w-full flex-1 min-h-0 items-center justify-center gap-2 sm:gap-4">
           {canGoPrevious && (
             <button
               onClick={handlePreviousLevel}
@@ -262,37 +262,39 @@ export default function PlayPage() {
           )}
           {!canGoPrevious && isCampaignLevel && <div className="hidden h-12 w-12 shrink-0 sm:block sm:h-14 sm:w-14" />}
 
-          <div className="relative">
-            <GameCanvas
-              key={key}
-              level={level}
-              onLevelComplete={handleLevelComplete}
-              onProgressUpdate={handleProgressUpdate}
-              onGameOver={handleGameOver}
-              onLivesUpdate={handleLivesUpdate}
-              onMovesUpdate={handleMovesUpdate}
-              autoRestartOnGameOver={false}
-              captureGlobalMobileSwipes
-            />
-            <HUD
-              levelId={levelId}
-              levelName={level.name}
-              sourceLabel={sourceLabel}
-              levelComplete={levelComplete}
-              settledUnits={settledUnits}
-              totalUnits={level.players.length}
-              completionTime={completionTime}
-              lives={lives}
-              maxLives={maxLives}
-              movesUsed={movesUsed}
-              maxMoves={maxMoves}
-              gameOver={gameOver}
-              gameOverReason={gameOverReason}
-              canGoNext={canGoNext}
-              onRestart={handleRestart}
-              onNextLevel={handleNextLevel}
-              showBar={false}
-            />
+          <div className="relative flex flex-1 min-h-0 min-w-0 self-stretch items-center justify-center">
+            <div className="relative flex h-full w-full items-center justify-center">
+              <GameCanvas
+                key={key}
+                level={level}
+                onLevelComplete={handleLevelComplete}
+                onProgressUpdate={handleProgressUpdate}
+                onGameOver={handleGameOver}
+                onLivesUpdate={handleLivesUpdate}
+                onMovesUpdate={handleMovesUpdate}
+                autoRestartOnGameOver={false}
+                captureGlobalMobileSwipes
+              />
+              <HUD
+                levelId={levelId}
+                levelName={level.name}
+                sourceLabel={sourceLabel}
+                levelComplete={levelComplete}
+                settledUnits={settledUnits}
+                totalUnits={level.players.length}
+                completionTime={completionTime}
+                lives={lives}
+                maxLives={maxLives}
+                movesUsed={movesUsed}
+                maxMoves={maxMoves}
+                gameOver={gameOver}
+                gameOverReason={gameOverReason}
+                canGoNext={canGoNext}
+                onRestart={handleRestart}
+                onNextLevel={handleNextLevel}
+                showBar={false}
+              />
+            </div>
           </div>
 
           {canGoNext && (

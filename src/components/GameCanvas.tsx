@@ -187,13 +187,19 @@ export default function GameCanvas({
       const parentRect = parentElement.getBoundingClientRect();
       const horizontalPadding = 8;
       const verticalPadding = 12;
+      const measuredParentWidth = parentElement.clientWidth;
+      const measuredParentHeight = parentElement.clientHeight;
       const maxW = Math.max(
         BASE_TILE_SIZE,
-        Math.min(parentElement.clientWidth, viewportWidth) - horizontalPadding * 2,
+        Math.min(measuredParentWidth || viewportWidth, viewportWidth) - horizontalPadding * 2,
       );
       const maxH = Math.max(
         BASE_TILE_SIZE,
-        viewportHeight - Math.max(parentRect.top, 0) - verticalPadding,
+        (
+          measuredParentHeight > BASE_TILE_SIZE
+            ? measuredParentHeight
+            : viewportHeight - Math.max(parentRect.top, 0)
+        ) - verticalPadding * 2,
       );
       const nativeW = level.width * BASE_TILE_SIZE;
       const nativeH = level.height * BASE_TILE_SIZE;
