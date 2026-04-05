@@ -225,8 +225,9 @@ describe('move limits', () => {
     expect(getState().movesUsed).toBe(0);
     expect(getState().gameOver).toBe(false);
 
+    update(0.5);
     enqueueManualInput({ kind: 'key', key: 'D' });
-    update(0.6);
+    update(0.1);
     expect(getState().movesUsed).toBe(1);
     expect(getState().outOfMoves).toBe(true);
     expect(getState().gameOver).toBe(false);
@@ -384,6 +385,45 @@ describe('movement edge cases', () => {
     const state = getState();
     expect(state.players[0].col).toBe(2);
     expect(state.players[1].col).toBe(3);
+  });
+});
+
+describe('restart behavior', () => {
+  it('restores collected life pickups so they can be collected again after restart', () => {
+    const level: LevelData = {
+      id: 202,
+      name: 'life-restart-test',
+      width: 5,
+      height: 5,
+      grid: [
+        [0, 0, 0, 0, 0],
+        [0, 1, TileType.LIFE_PICKUP, 1, 0],
+        [0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0],
+      ],
+      players: [{ startX: 1, startY: 1, rotation: 0 }],
+      lives: 1,
+    };
+
+    const canvas = document.createElement('canvas');
+    vi.spyOn(canvas, 'getContext').mockReturnValue({} as CanvasRenderingContext2D);
+    const engine = new GameEngine(canvas, level, TILE, {});
+    const enqueueManualInput = (engine as unknown as { enqueueManualInput: (input: { kind: 'key'; key: 'D' }) => void }).enqueueManualInput.bind(engine);
+    const update = (engine as unknown as { update: (dt: number) => void }).update.bind(engine);
+    const getState = () => (engine as unknown as { state: ReturnType<typeof createInitialState> }).state;
+
+    enqueueManualInput({ kind: 'key', key: 'D' });
+    update(0.5);
+    expect(getState().livesRemaining).toBe(2);
+    expect(level.grid[1][2]).toBe(TileType.LIFE_PICKUP);
+
+    engine.restart();
+    expect(getState().livesRemaining).toBe(1);
+
+    enqueueManualInput({ kind: 'key', key: 'D' });
+    update(0.5);
+    expect(getState().livesRemaining).toBe(2);
   });
 });
 

@@ -1,9 +1,17 @@
-import { type LevelData, type GameState, type PlayerState, type PushableBlock, COLORS, TileType, STEP_INTERVAL, ANIM_DURATION, INPUT_COOLDOWN, INPUT_BUFFER_WINDOW, isPressurePlate, pressurePlateNumber, isToggleSwitch, toggleNumber, isConveyor, conveyorDirection, isRotationTile, rotationTileCW, isRepaintStation, repaintRotation, isColorFilter, colorFilterRotation, isDoor, doorNumber, DIR_DX, DIR_DY, type Rotation } from './types';
+import { type LevelData, type GameState, type PlayerState, type PushableBlock, COLORS, TileType, STEP_INTERVAL, ANIM_DURATION, INPUT_COOLDOWN, INPUT_BUFFER_WINDOW, isPressurePlate, pressurePlateNumber, isToggleSwitch, toggleNumber, isConveyor, conveyorDirection, isRotationTile, rotationTileCW, isRepaintStation, repaintRotation, isColorFilter, isDoor, doorNumber, DIR_DX, DIR_DY, type Rotation } from './types';
 
 import { InputManager, remapInput, type BufferedAction } from './input';
 import { getTileAt, isWalkable, canMoveTo } from './physics';
 import { render } from './renderer';
 import { playSfx } from './sfx';
+
+function cloneLevelData(level: LevelData): LevelData {
+  return {
+    ...level,
+    grid: level.grid.map(row => [...row]),
+    players: level.players.map(player => ({ ...player })),
+  };
+}
 
 function collectPushableBlocks(level: LevelData): PushableBlock[] {
   const blocks: PushableBlock[] = [];
@@ -500,16 +508,16 @@ export class GameEngine {
     options: GameEngineOptions = {},
   ) {
     this.ctx = canvas.getContext('2d')!;
-    this.level = level;
-    this.originalGrid = level.grid.map(r => [...r]);
-    this.state = createInitialState(level, tileSize);
+    this.level = cloneLevelData(level);
+    this.originalGrid = this.level.grid.map(r => [...r]);
+    this.state = createInitialState(this.level, tileSize);
     this.input = new InputManager();
     this.callbacks = callbacks;
-    this.stepTimers = Array(level.players.length).fill(0);
+    this.stepTimers = Array(this.level.players.length).fill(0);
     this.speedMultiplier = Math.max(0.25, options.speedMultiplier ?? 1);
 
-    canvas.width = level.width * tileSize;
-    canvas.height = level.height * tileSize;
+    canvas.width = this.level.width * tileSize;
+    canvas.height = this.level.height * tileSize;
   }
 
   setSpeedMultiplier(multiplier: number): void {
