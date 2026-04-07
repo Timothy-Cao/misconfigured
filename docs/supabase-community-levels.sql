@@ -221,3 +221,53 @@ on public.level_best_scores
 for select
 to anon, authenticated
 using (true);
+
+create table if not exists public.user_level_best_scores (
+  user_id uuid not null references auth.users(id) on delete cascade,
+  level_hash text not null,
+  best_moves integer not null check (best_moves >= 0),
+  source text,
+  source_level_id bigint,
+  level_name text,
+  achieved_at timestamptz not null default now(),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  primary key (user_id, level_hash)
+);
+
+create index if not exists user_level_best_scores_level_hash_idx
+on public.user_level_best_scores (level_hash);
+
+create index if not exists user_level_best_scores_source_idx
+on public.user_level_best_scores (source, source_level_id);
+
+drop trigger if exists set_user_level_best_scores_updated_at on public.user_level_best_scores;
+
+create trigger set_user_level_best_scores_updated_at
+before update on public.user_level_best_scores
+for each row
+execute function public.set_level_best_scores_updated_at();
+
+alter table public.user_level_best_scores enable row level security;
+
+drop policy if exists "user level best scores are owner read" on public.user_level_best_scores;
+create policy "user level best scores are owner read"
+on public.user_level_best_scores
+for select
+to authenticated
+using (auth.uid() = user_id);
+
+drop policy if exists "user level best scores are owner insert" on public.user_level_best_scores;
+create policy "user level best scores are owner insert"
+on public.user_level_best_scores
+for insert
+to authenticated
+with check (auth.uid() = user_id);
+
+drop policy if exists "user level best scores are owner update" on public.user_level_best_scores;
+create policy "user level best scores are owner update"
+on public.user_level_best_scores
+for update
+to authenticated
+using (auth.uid() = user_id)
+with check (auth.uid() = user_id);

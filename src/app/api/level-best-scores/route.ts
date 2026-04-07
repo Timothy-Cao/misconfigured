@@ -1,5 +1,5 @@
 import { getCurrentAuthUser } from '@/lib/auth';
-import { listLevelBestScoresFromSupabase, submitLevelBestScoreToSupabase } from '@/lib/supabase-best-scores';
+import { listLevelBestScoresFromSupabase, submitLevelBestScoreToSupabase, submitUserLevelBestScoreToSupabase } from '@/lib/supabase-best-scores';
 
 export const dynamic = 'force-dynamic';
 
@@ -51,6 +51,21 @@ export async function POST(request: Request) {
       playerUserId: user?.id ?? null,
       playerDisplayName: user?.displayName ?? user?.email ?? null,
     });
+
+    if (user) {
+      try {
+        await submitUserLevelBestScoreToSupabase({
+          userId: user.id,
+          levelHash,
+          moves,
+          source: body.source ?? null,
+          sourceLevelId: body.sourceLevelId ?? null,
+          levelName: body.levelName ?? null,
+        });
+      } catch (error) {
+        console.error('Failed to save user level best score:', error);
+      }
+    }
 
     return Response.json(result);
   } catch (error) {
