@@ -34,13 +34,13 @@ describe('isLevelUnlocked', () => {
     expect(isLevelUnlocked(1, { completedLevels: [], currentLevel: 1 })).toBe(true);
   });
 
-  it('later levels stay locked when there is no progress', () => {
-    expect(isLevelUnlocked(25, { completedLevels: [], currentLevel: 1 })).toBe(false);
+  it('later levels are unlocked even when there is no progress', () => {
+    expect(isLevelUnlocked(25, { completedLevels: [], currentLevel: 1 })).toBe(true);
   });
 
-  it('unlocks the current frontier level from saved progress', () => {
+  it('keeps levels unlocked regardless of saved progress frontier', () => {
     expect(isLevelUnlocked(4, { completedLevels: [1, 2, 3], currentLevel: 4 })).toBe(true);
-    expect(isLevelUnlocked(5, { completedLevels: [1, 2, 3], currentLevel: 4 })).toBe(false);
+    expect(isLevelUnlocked(5, { completedLevels: [1, 2, 3], currentLevel: 4 })).toBe(true);
   });
 
   it('unlocks the next level after the previous one is completed', () => {

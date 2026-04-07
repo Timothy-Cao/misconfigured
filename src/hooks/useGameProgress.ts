@@ -30,9 +30,9 @@ export function saveProgress(progress: GameProgress): void {
 }
 
 export function isLevelUnlocked(levelId: number, progress: GameProgress): boolean {
-  if (levelId <= 1) return true;
-  if (progress.currentLevel >= levelId) return true;
-  return progress.completedLevels.includes(levelId - 1);
+  void levelId;
+  void progress;
+  return true;
 }
 
 export function useGameProgress() {

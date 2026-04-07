@@ -31,7 +31,7 @@ export default function LevelsPage() {
           <h1 className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent mb-2">
             Select Level
           </h1>
-          <p className="text-white/30 text-sm sm:text-base">Finish levels to unlock the path ahead. Press Esc to go back.</p>
+          <p className="text-white/30 text-sm sm:text-base">All campaign levels are available right away. Press Esc to go back.</p>
         </div>
 
         <div className="rounded-[28px] border border-white/10 bg-white/[0.03] px-6 py-8 sm:px-10 sm:py-10 animate-[fadeInUp_0.6s_ease-out_0.1s_both]">
