@@ -12,17 +12,6 @@ export interface LevelBestScore {
   achievedAt: string | null;
 }
 
-export interface UserLevelBestScore {
-  userId: string;
-  levelHash: string;
-  bestMoves: number;
-  source: string | null;
-  sourceLevelId: number | null;
-  levelName: string | null;
-  solutionMoves: string | null;
-  achievedAt: string | null;
-}
-
 interface LevelBestScoreRow {
   level_hash: string;
   best_moves: number;
@@ -31,17 +20,6 @@ interface LevelBestScoreRow {
   level_name: string | null;
   player_user_id: string | null;
   player_display_name: string | null;
-  solution_moves?: string | null;
-  achieved_at: string | null;
-}
-
-interface UserLevelBestScoreRow {
-  user_id: string;
-  level_hash: string;
-  best_moves: number;
-  source: string | null;
-  source_level_id: number | null;
-  level_name: string | null;
   solution_moves?: string | null;
   achieved_at: string | null;
 }
@@ -55,19 +33,6 @@ function mapRow(row: LevelBestScoreRow): LevelBestScore {
     levelName: row.level_name,
     playerUserId: row.player_user_id,
     playerDisplayName: row.player_display_name,
-    solutionMoves: row.solution_moves ?? null,
-    achievedAt: row.achieved_at,
-  };
-}
-
-function mapUserRow(row: UserLevelBestScoreRow): UserLevelBestScore {
-  return {
-    userId: row.user_id,
-    levelHash: row.level_hash,
-    bestMoves: Number(row.best_moves),
-    source: row.source,
-    sourceLevelId: row.source_level_id == null ? null : Number(row.source_level_id),
-    levelName: row.level_name,
     solutionMoves: row.solution_moves ?? null,
     achievedAt: row.achieved_at,
   };
@@ -175,83 +140,4 @@ export async function submitLevelBestScoreToSupabase(input: {
   }
 
   return { score: mapRow(row), improved: !existing || Number(existing.best_moves) > bestMoves };
-}
-
-export async function submitUserLevelBestScoreToSupabase(input: {
-  userId: string;
-  levelHash: string;
-  moves: number;
-  solutionMoves?: string | null;
-  source?: string | null;
-  sourceLevelId?: number | null;
-  levelName?: string | null;
-}): Promise<{ score: UserLevelBestScore; improved: boolean }> {
-  const bestMoves = Math.max(0, Math.floor(input.moves));
-  const admin = getSupabaseAdminClient();
-  const withSolutionColumn = input.solutionMoves != null;
-  const selectColumns = withSolutionColumn
-    ? 'user_id,level_hash,best_moves,source,source_level_id,level_name,solution_moves,achieved_at'
-    : 'user_id,level_hash,best_moves,source,source_level_id,level_name,achieved_at';
-
-  const { data: existingData, error: existingError } = await admin
-    .from('user_level_best_scores')
-    .select(selectColumns)
-    .eq('user_id', input.userId)
-    .eq('level_hash', input.levelHash)
-    .limit(1);
-
-  if (existingError) {
-    if (withSolutionColumn && isMissingSolutionMovesColumn(existingError)) {
-      return submitUserLevelBestScoreToSupabase({ ...input, solutionMoves: null });
-    }
-    throw existingError instanceof Error ? existingError : new Error('Failed to load current user level best score.');
-  }
-
-  const existingRows = (existingData ?? []) as unknown as UserLevelBestScoreRow[];
-  const existing = existingRows[0] ?? null;
-  if (
-    existing &&
-    (
-      Number(existing.best_moves) < bestMoves ||
-      (Number(existing.best_moves) === bestMoves && (existing.solution_moves || !input.solutionMoves))
-    )
-  ) {
-    return { score: mapUserRow(existing), improved: false };
-  }
-
-  const upsertRow: Record<string, unknown> = {
-    user_id: input.userId,
-    level_hash: input.levelHash,
-    best_moves: bestMoves,
-    source: input.source ?? null,
-    source_level_id: input.sourceLevelId ?? null,
-    level_name: input.levelName ?? null,
-    achieved_at: new Date().toISOString(),
-  };
-  if (input.solutionMoves != null) {
-    upsertRow.solution_moves = input.solutionMoves;
-  }
-
-  const { data, error } = await admin
-    .from('user_level_best_scores')
-    .upsert(upsertRow, {
-      onConflict: 'user_id,level_hash',
-    })
-    .select(selectColumns)
-    .limit(1);
-
-  if (error) {
-    if (withSolutionColumn && isMissingSolutionMovesColumn(error)) {
-      return submitUserLevelBestScoreToSupabase({ ...input, solutionMoves: null });
-    }
-    throw error instanceof Error ? error : new Error('Failed to save user level best score.');
-  }
-
-  const rows = (data ?? []) as unknown as UserLevelBestScoreRow[];
-  const row = rows[0];
-  if (!row) {
-    throw new Error('User level best score save returned no data.');
-  }
-
-  return { score: mapUserRow(row), improved: !existing || Number(existing.best_moves) > bestMoves };
 }
