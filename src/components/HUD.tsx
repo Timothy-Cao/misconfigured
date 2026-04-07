@@ -12,6 +12,8 @@ interface HUDProps {
   maxLives: number;
   movesUsed: number;
   maxMoves: number | null;
+  bestMoves?: number | null;
+  isNewBest?: boolean;
   gameOver: boolean;
   gameOverReason: 'lives' | 'moves' | null;
   canGoNext: boolean;
@@ -32,7 +34,7 @@ function formatTime(seconds: number): string {
     : `${s}.${String(ms).padStart(2, '0')}s`;
 }
 
-export default function HUD({ levelId, levelName, sourceLabel, levelComplete, settledUnits, totalUnits, completionTime, lives, maxLives, movesUsed, maxMoves, gameOver, gameOverReason, canGoNext, onRestart, onNextLevel, simulationSpeed = 1, onToggleSimulationSpeed, showBar = true, showOverlays = true }: HUDProps) {
+export default function HUD({ levelId, levelName, sourceLabel, levelComplete, settledUnits, totalUnits, completionTime, lives, maxLives, movesUsed, maxMoves, bestMoves = null, isNewBest = false, gameOver, gameOverReason, canGoNext, onRestart, onNextLevel, simulationSpeed = 1, onToggleSimulationSpeed, showBar = true, showOverlays = true }: HUDProps) {
   const displayName = levelName || `Level ${String(levelId).padStart(2, '0')}`;
   const isWarningSource = sourceLabel?.toLowerCase().includes('warning') ?? false;
   const doneAccentClass = settledUnits === totalUnits
@@ -88,6 +90,15 @@ export default function HUD({ levelId, levelName, sourceLabel, levelComplete, se
                         : 'border-amber-400/30 bg-amber-500/10 text-amber-200/80'
                     }`}>
                       Moves {movesUsed}/{maxMoves}
+                    </span>
+                  )}
+                  {bestMoves !== null && (
+                    <span className={`inline-flex shrink-0 items-center justify-center rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] sm:text-xs ${
+                      isNewBest
+                        ? 'border-cyan-300/50 bg-cyan-400/15 text-cyan-100'
+                        : 'border-cyan-300/25 bg-cyan-400/10 text-cyan-100/70'
+                    }`}>
+                      {isNewBest ? 'New Best' : `Best ${bestMoves}`}
                     </span>
                   )}
                 </div>
@@ -179,6 +190,15 @@ export default function HUD({ levelId, levelName, sourceLabel, levelComplete, se
             </h2>
             <p className="text-white/50 font-mono text-lg mb-8 animate-[fadeInUp_0.5s_ease-out_0.25s_both]">
               {formatTime(completionTime)}
+            </p>
+            <p className={`-mt-5 mb-8 text-sm font-black uppercase tracking-[0.2em] ${
+              isNewBest ? 'text-cyan-200' : 'text-white/35'
+            }`}>
+              {bestMoves !== null
+                ? isNewBest
+                  ? `New best: ${bestMoves} moves`
+                  : `Best: ${bestMoves} moves`
+                : `${movesUsed} moves`}
             </p>
             <div className="flex flex-col gap-3 justify-center sm:flex-row animate-[fadeInUp_0.5s_ease-out_0.3s_both]">
               <button

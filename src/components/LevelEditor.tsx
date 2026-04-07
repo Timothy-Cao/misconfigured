@@ -8,6 +8,8 @@ import { fetchCampaignOverrideFromApi, saveCampaignOverrideToApi } from '@/lib/c
 import { deleteOwnedCommunityLevelFromApi, fetchCommunityLevelFromApi, fetchOwnedCloudLevelsFromApi, saveOwnedCommunityLevelToApi } from '@/lib/community-api';
 import { getSupabaseBrowserClient } from '@/lib/supabase/browser';
 import { type AuthUserSummary, type OwnedCloudLevelSummary } from '@/lib/auth';
+import { submitLevelBestScoreToApi } from '@/lib/best-score-api';
+import { getLevelHash } from '@/lib/level-hash';
 import { type Session, type User } from '@supabase/supabase-js';
 
 const MAX_SIZE = 20;
@@ -190,6 +192,7 @@ export default function LevelEditor() {
   const touchSpawnTapRef = useRef(false);
   const loadedCloudQueryIdRef = useRef<number | null>(null);
   const baselineDraftSnapshotRef = useRef<string | null>(null);
+  const previewMovesUsedRef = useRef(0);
   const [verifiedDraftSnapshot, setVerifiedDraftSnapshot] = useState<string | null>(null);
 
   useEffect(() => {
@@ -1617,6 +1620,7 @@ export default function LevelEditor() {
     setPreviewGameOver(false);
     setPreviewCompletionTime(0);
     setPreviewMovesUsed(0);
+    previewMovesUsedRef.current = 0;
     setPreviewMoveLimit(null);
     setPreviewGameOverReason(null);
   }, []);
@@ -1637,6 +1641,7 @@ export default function LevelEditor() {
     setPreviewLives(level.lives ?? 1);
     setPreviewMaxLives(level.lives ?? 1);
     setPreviewMovesUsed(0);
+    previewMovesUsedRef.current = 0;
     setPreviewMoveLimit(level.maxMoves ?? null);
     setPreviewComplete(false);
     setPreviewGameOver(false);
@@ -2166,6 +2171,13 @@ export default function LevelEditor() {
                         setPreviewComplete(true);
                         setPreviewCompletionTime(completionTime);
                         setVerifiedDraftSnapshot(currentDraftSnapshot);
+                        void submitLevelBestScoreToApi({
+                          levelHash: getLevelHash(previewLevel),
+                          moves: previewMovesUsedRef.current,
+                          source: publishScope === 'campaign' ? 'campaign-test' : 'editor-test',
+                          sourceLevelId: publishScope === 'campaign' ? saveTargetId : cloudTargetId,
+                          levelName: previewLevel.name,
+                        });
                       }}
                       onProgressUpdate={setPreviewSettledUnits}
                       onGameOver={(reason) => {
@@ -2177,6 +2189,7 @@ export default function LevelEditor() {
                         setPreviewMaxLives(maxLives);
                       }}
                       onMovesUpdate={(movesUsed, maxMoves) => {
+                        previewMovesUsedRef.current = movesUsed;
                         setPreviewMovesUsed(movesUsed);
                         setPreviewMoveLimit(maxMoves);
                       }}

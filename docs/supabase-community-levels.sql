@@ -179,3 +179,45 @@ using (true);
 -- Admin writes can stay server-side through the service role for now.
 -- When campaign editing moves fully into authenticated UI flows, add a
 -- policy keyed off profiles.is_admin or perform writes in secure server routes.
+
+create table if not exists public.level_best_scores (
+  level_hash text primary key,
+  best_moves integer not null check (best_moves >= 0),
+  source text,
+  source_level_id bigint,
+  level_name text,
+  player_user_id uuid references auth.users(id) on delete set null,
+  player_display_name text,
+  achieved_at timestamptz not null default now(),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists level_best_scores_source_idx
+on public.level_best_scores (source, source_level_id);
+
+create or replace function public.set_level_best_scores_updated_at()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
+
+drop trigger if exists set_level_best_scores_updated_at on public.level_best_scores;
+
+create trigger set_level_best_scores_updated_at
+before update on public.level_best_scores
+for each row
+execute function public.set_level_best_scores_updated_at();
+
+alter table public.level_best_scores enable row level security;
+
+drop policy if exists "level best scores are public read" on public.level_best_scores;
+create policy "level best scores are public read"
+on public.level_best_scores
+for select
+to anon, authenticated
+using (true);

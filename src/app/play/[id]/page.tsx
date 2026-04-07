@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import GameCanvas from '@/components/GameCanvas';
 import HUD from '@/components/HUD';
 import { COMMUNITY_LEVEL_START_ID, getBuiltInLevel, getCommunityLevel, getLocalCampaignOverride, TOTAL_LEVELS } from '@/levels';
@@ -9,6 +9,8 @@ import { useGameProgress } from '@/hooks/useGameProgress';
 import { type LevelData } from '@/engine/types';
 import { fetchCampaignOverrideFromApi } from '@/lib/campaign-api';
 import { fetchCommunityLevelFromApi } from '@/lib/community-api';
+import { fetchLevelBestScoresFromApi, submitLevelBestScoreToApi } from '@/lib/best-score-api';
+import { getLevelHash } from '@/lib/level-hash';
 
 export default function PlayPage() {
   const params = useParams();
@@ -39,15 +41,19 @@ export default function PlayPage() {
   const [maxLives, setMaxLives] = useState(1);
   const [movesUsed, setMovesUsed] = useState(0);
   const [maxMoves, setMaxMoves] = useState<number | null>(null);
+  const [bestMoves, setBestMoves] = useState<number | null>(null);
+  const [isNewBest, setIsNewBest] = useState(false);
   const [gameOver, setGameOver] = useState(false);
   const [gameOverReason, setGameOverReason] = useState<'lives' | 'moves' | null>(null);
   const [simulationSpeed, setSimulationSpeed] = useState(1);
+  const movesUsedRef = useRef(0);
   const usingLocalCampaignBackup = isCampaignLevel && !!loadError && !!localOverride;
   const level = isCampaignLevel
     ? (remoteLevel === undefined
       ? undefined
       : (remoteLevel ?? (usingLocalCampaignBackup ? localOverride : builtInCampaignLevel)))
     : (remoteLevel ?? localCommunityLevel ?? undefined);
+  const levelHash = useMemo(() => level ? getLevelHash(level) : null, [level]);
 
   useEffect(() => {
     let cancelled = false;
@@ -69,7 +75,10 @@ export default function PlayPage() {
         setLives(startingLives);
         setMaxLives(startingLives);
         setMovesUsed(0);
+        movesUsedRef.current = 0;
         setMaxMoves(resolvedLevel?.maxMoves ?? null);
+        setBestMoves(null);
+        setIsNewBest(false);
         setGameOver(false);
         setGameOverReason(null);
         if (levelId < COMMUNITY_LEVEL_START_ID) {
@@ -89,11 +98,50 @@ export default function PlayPage() {
     };
   }, [builtInCampaignLevel, levelId, localCommunityLevel]);
 
+  useEffect(() => {
+    let cancelled = false;
+    async function loadBestScore() {
+      if (!levelHash) {
+        setBestMoves(null);
+        setIsNewBest(false);
+        return;
+      }
+      try {
+        const scores = await fetchLevelBestScoresFromApi([levelHash]);
+        if (cancelled) return;
+        setBestMoves(scores.get(levelHash)?.bestMoves ?? null);
+        setIsNewBest(false);
+      } catch {
+        if (cancelled) return;
+        setBestMoves(null);
+        setIsNewBest(false);
+      }
+    }
+    loadBestScore();
+    return () => {
+      cancelled = true;
+    };
+  }, [levelHash]);
+
   const handleLevelComplete = useCallback((time: number) => {
     completeLevel(levelId);
     setLevelComplete(true);
     setCompletionTime(time);
-  }, [levelId, completeLevel]);
+    if (levelHash && level) {
+      const finalMoves = movesUsedRef.current;
+      void submitLevelBestScoreToApi({
+        levelHash,
+        moves: finalMoves,
+        source: isCampaignLevel ? 'campaign' : 'community',
+        sourceLevelId: levelId,
+        levelName: level.name,
+      }).then(result => {
+        if (!result) return;
+        setBestMoves(result.score.bestMoves);
+        setIsNewBest(result.improved);
+      });
+    }
+  }, [completeLevel, isCampaignLevel, level, levelHash, levelId]);
 
   const handleProgressUpdate = useCallback((settled: number) => {
     setSettledUnits(settled);
@@ -105,6 +153,7 @@ export default function PlayPage() {
   }, []);
 
   const handleMovesUpdate = useCallback((nextMovesUsed: number, nextMaxMoves: number | null) => {
+    movesUsedRef.current = nextMovesUsed;
     setMovesUsed(nextMovesUsed);
     setMaxMoves(nextMaxMoves);
   }, []);
@@ -122,7 +171,9 @@ export default function PlayPage() {
     setLives(startingLives);
     setMaxLives(startingLives);
     setMovesUsed(0);
+    movesUsedRef.current = 0;
     setMaxMoves(level?.maxMoves ?? null);
+    setIsNewBest(false);
     setGameOver(false);
     setGameOverReason(null);
     setKey(k => k + 1);
@@ -138,7 +189,10 @@ export default function PlayPage() {
       setSettledUnits(0);
       setCompletionTime(0);
       setMovesUsed(0);
+      movesUsedRef.current = 0;
       setMaxMoves(null);
+      setBestMoves(null);
+      setIsNewBest(false);
       setGameOver(false);
       setGameOverReason(null);
       router.push(`/play/${levelId + 1}`);
@@ -153,7 +207,10 @@ export default function PlayPage() {
       setSettledUnits(0);
       setCompletionTime(0);
       setMovesUsed(0);
+      movesUsedRef.current = 0;
       setMaxMoves(null);
+      setBestMoves(null);
+      setIsNewBest(false);
       setGameOver(false);
       setGameOverReason(null);
       router.push(`/play/${levelId - 1}`);
@@ -246,6 +303,8 @@ export default function PlayPage() {
           maxLives={maxLives}
           movesUsed={movesUsed}
           maxMoves={maxMoves}
+          bestMoves={bestMoves}
+          isNewBest={isNewBest}
           gameOver={gameOver}
           gameOverReason={gameOverReason}
           canGoNext={canGoNext}
@@ -295,6 +354,8 @@ export default function PlayPage() {
                 maxLives={maxLives}
                 movesUsed={movesUsed}
                 maxMoves={maxMoves}
+                bestMoves={bestMoves}
+                isNewBest={isNewBest}
                 gameOver={gameOver}
                 gameOverReason={gameOverReason}
                 canGoNext={canGoNext}
