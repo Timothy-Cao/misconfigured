@@ -303,7 +303,7 @@ export default function PlayPage() {
   }
 
   return (
-    <main className="min-h-[calc(100svh-4rem)] bg-[#0a0a0f] flex flex-col items-center gap-4 relative overflow-hidden px-3 py-4 sm:min-h-[calc(100svh-5rem)] sm:px-4 sm:py-5">
+    <main className="min-h-[calc(100svh-4rem)] bg-[#0a0a0f] flex flex-col items-center gap-4 relative overflow-x-hidden px-3 py-4 sm:min-h-[calc(100svh-5rem)] sm:px-4 sm:py-5">
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-purple-500/[0.03] blur-[100px]" />
       <div className="w-full max-w-5xl animate-[fadeIn_0.4s_ease-out]">
         <HUD
