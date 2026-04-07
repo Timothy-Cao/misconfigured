@@ -1,7 +1,183 @@
 {
-  "version": 1,
-  "updatedAt": "2026-04-04T08:31:00.000Z",
+  "version": 2,
+  "updatedAt": "2026-04-07T23:31:42.492Z",
+  "source": "supabase.level_best_scores",
   "campaignSolutions": {
-    "15": "sdawaw"
+    "1": {
+      "levelHash": "146d0b97c10037",
+      "levelName": "First steps",
+      "bestMoves": 6,
+      "solutionMoves": "WWWAAA",
+      "achievedAt": "2026-04-07T21:07:33.912+00:00",
+      "playerDisplayName": "Timothy Cao"
+    },
+    "2": {
+      "levelHash": "186864d85049e5",
+      "levelName": "Friends!",
+      "bestMoves": 6,
+      "solutionMoves": "WWAWAA",
+      "achievedAt": "2026-04-07T21:10:39.021+00:00",
+      "playerDisplayName": "Timothy Cao"
+    },
+    "3": {
+      "levelHash": "0ae6adf0e2cace",
+      "levelName": "Red = Die",
+      "bestMoves": 14,
+      "solutionMoves": "AAAWWWWDDDDDDD",
+      "achievedAt": "2026-04-07T21:10:49.592+00:00",
+      "playerDisplayName": "Timothy Cao"
+    },
+    "4": {
+      "levelHash": "12e74df444d25a",
+      "levelName": "Death Maze",
+      "bestMoves": 22,
+      "solutionMoves": "DDWWAWWAAWWDDWWDWWAAAA",
+      "achievedAt": "2026-04-07T21:11:05.984+00:00",
+      "playerDisplayName": "Timothy Cao"
+    },
+    "5": {
+      "levelHash": "0910a668d8fd51",
+      "levelName": "Color Filter",
+      "bestMoves": 45,
+      "solutionMoves": null,
+      "achievedAt": "2026-04-07T07:02:45.093+00:00",
+      "playerDisplayName": "Timothy Cao"
+    },
+    "6": {
+      "levelHash": "14bdac738d62b0",
+      "levelName": "Conveyor Belt",
+      "bestMoves": 13,
+      "solutionMoves": "DWW..S.S.AWW..DWWWA",
+      "achievedAt": "2026-04-07T21:54:52.015+00:00",
+      "playerDisplayName": "Timothy Cao"
+    },
+    "7": {
+      "levelHash": "0f166f1ec1f71e",
+      "levelName": "Respawn Point",
+      "bestMoves": 9,
+      "solutionMoves": "DDWSDWWWW",
+      "achievedAt": "2026-04-07T21:55:00.644+00:00",
+      "playerDisplayName": "Timothy Cao"
+    },
+    "8": {
+      "levelHash": "0589e584e4c9c0",
+      "levelName": "Ice and Fire",
+      "bestMoves": 9,
+      "solutionMoves": "DDDDDDWAW",
+      "achievedAt": "2026-04-07T21:55:09.703+00:00",
+      "playerDisplayName": "Timothy Cao"
+    },
+    "9": {
+      "levelHash": "0764a0c3289445",
+      "levelName": "Respawn Point 2",
+      "bestMoves": 18,
+      "solutionMoves": "ASSDDAWAWDDDDDWAWD",
+      "achievedAt": "2026-04-07T21:55:24.066+00:00",
+      "playerDisplayName": "Timothy Cao"
+    },
+    "10": {
+      "levelHash": "09ff15df988843",
+      "levelName": "Ice and Fire 2",
+      "bestMoves": 9,
+      "solutionMoves": "DWAAAWDWA",
+      "achievedAt": "2026-04-07T21:55:31.603+00:00",
+      "playerDisplayName": "Timothy Cao"
+    },
+    "11": {
+      "levelHash": "0182ea6eacad67",
+      "levelName": "Ice and Fire 3",
+      "bestMoves": 13,
+      "solutionMoves": "DWDDSDWAAWDWA",
+      "achievedAt": "2026-04-07T21:55:41.793+00:00",
+      "playerDisplayName": "Timothy Cao"
+    },
+    "12": {
+      "levelHash": "07847cd52b0e0d",
+      "levelName": "Open the Gates 2",
+      "bestMoves": 47,
+      "solutionMoves": "SSSSSSSDDDDDDDWWWWASSSSAAAAAWWWAAAASAASSWDWWWWA",
+      "achievedAt": "2026-04-07T21:57:42.994+00:00",
+      "playerDisplayName": "Timothy Cao"
+    },
+    "13": {
+      "levelHash": "09050a316df6a9",
+      "levelName": "switcheroo",
+      "bestMoves": 240,
+      "solutionMoves": null,
+      "achievedAt": "2026-04-07T15:57:14.552+00:00",
+      "playerDisplayName": "Timothy Cao"
+    },
+    "14": {
+      "levelHash": "0ad5d1e7f56fae",
+      "levelName": "Skating Rink",
+      "bestMoves": 11,
+      "solutionMoves": "WWWWWWDWASW",
+      "achievedAt": "2026-04-07T21:08:54.016+00:00",
+      "playerDisplayName": null
+    },
+    "15": {
+      "levelHash": "108b0d504b1516",
+      "levelName": "Rotation Station",
+      "bestMoves": 49,
+      "solutionMoves": "WWAWWDSDDDDSSSSAAWASAWSWSSSSSAAAWWWWWAAASSSSDDDDD",
+      "achievedAt": "2026-04-07T22:04:12.215+00:00",
+      "playerDisplayName": "Timothy Cao"
+    },
+    "16": {
+      "levelHash": "14a64523924429",
+      "levelName": "Rotation Station 2",
+      "bestMoves": 39,
+      "solutionMoves": "AWSADAASWAWASWADAAAAWWWWASDWSDWASWWSWWW",
+      "achievedAt": "2026-04-07T22:06:50.298+00:00",
+      "playerDisplayName": "Timothy Cao"
+    },
+    "17": {
+      "levelHash": "0e6e53f1c63cd3",
+      "levelName": "Disappearing Roads",
+      "bestMoves": 81,
+      "solutionMoves": "ASSAASSSSDDAAAAAAAASSSSSSWWWWAAAAAASSSWWWWWWWWASSDDDDDDDDDDDDDAAAAAAWWAWWWWDDDWWD",
+      "achievedAt": "2026-04-07T22:12:10.384+00:00",
+      "playerDisplayName": "Timothy Cao"
+    },
+    "18": {
+      "levelHash": "0919616a56c1c3",
+      "levelName": "Quadruple axel",
+      "bestMoves": 7,
+      "solutionMoves": "SWAWDAD",
+      "achievedAt": "2026-04-07T21:47:51.404+00:00",
+      "playerDisplayName": "Timothy Cao"
+    },
+    "19": {
+      "levelHash": "05e574f85681e7",
+      "levelName": "6 Move Wonder",
+      "bestMoves": 6,
+      "solutionMoves": "SDAWAW",
+      "achievedAt": "2026-04-07T21:48:13.25+00:00",
+      "playerDisplayName": "Timothy Cao"
+    },
+    "20": {
+      "levelHash": "1a8fbb820d959b",
+      "levelName": "One use road",
+      "bestMoves": 65,
+      "solutionMoves": "SDWWDDDDDDDDDDDSSSWWAWWWAAAAAAAAAAAWDDDDDDDDDDDSSSDSSSSSSSSSSSAAA",
+      "achievedAt": "2026-04-07T22:14:31.823+00:00",
+      "playerDisplayName": "Timothy Cao"
+    },
+    "21": {
+      "levelHash": "02502a8a2d7f6a",
+      "levelName": "Open the Gates 3",
+      "bestMoves": 44,
+      "solutionMoves": "SDDWWWWWWDWDDDDDSSSDSSSSSAAWWWAAAWWWAAAAWWSS",
+      "achievedAt": "2026-04-07T22:16:34.555+00:00",
+      "playerDisplayName": "Timothy Cao"
+    },
+    "22": {
+      "levelHash": "0fc7c12df7629d",
+      "levelName": "Open the gates: Conga Line!",
+      "bestMoves": 110,
+      "solutionMoves": "SWWWWSSSAAWWASWAWASWAWASADAASSDWWSSSAADADAAADADDASWDWDASWDDDDDDDDAAAWWWWWWWWWWWWWWWWWWWWWWWWWWDDDWWWDSSAAAWAWW",
+      "achievedAt": "2026-04-07T22:53:56.217+00:00",
+      "playerDisplayName": "Timothy Cao"
+    }
   }
 }

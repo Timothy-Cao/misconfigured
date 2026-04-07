@@ -1,6 +1,6 @@
 {
-  "version": 1,
-  "exportedAt": "2026-04-07T20:08:38.511Z",
+  "version": 2,
+  "exportedAt": "2026-04-07T23:31:42.492Z",
   "source": "supabase",
   "campaignOverrides": {
     "1": {
@@ -4189,10 +4189,10 @@
         }
       ],
       "lives": 1,
-      "isPublished": false,
       "ownerId": null,
-      "createdAt": "2026-04-03T22:46:41.452098+00:00",
-      "updatedAt": "2026-04-03T22:46:41.452098+00:00"
+      "isPublished": false,
+      "createdAt": null,
+      "updatedAt": null
     },
     {
       "id": 1002,
@@ -4313,10 +4313,10 @@
         }
       ],
       "lives": 1,
-      "isPublished": false,
       "ownerId": null,
-      "createdAt": "2026-04-03T22:50:01.086181+00:00",
-      "updatedAt": "2026-04-03T22:58:46.519497+00:00"
+      "isPublished": false,
+      "createdAt": null,
+      "updatedAt": null
     }
   ]
 }
