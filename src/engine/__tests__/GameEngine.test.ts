@@ -326,6 +326,51 @@ describe('move limits', () => {
     expect(getState().players[0].col).toBe(3);
     expect(getState().movesUsed).toBe(2);
   });
+
+  it('can replay scripted moves with passive conveyor beats', () => {
+    const level: LevelData = {
+      id: 102,
+      name: 'replay-script-test',
+      width: 6,
+      height: 5,
+      grid: [
+        [0, 0, 0, 0, 0, 0],
+        [0, 1, 31, 1, 3, 0],
+        [0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0],
+      ],
+      players: [{ startX: 1, startY: 1, rotation: 0 }],
+    };
+
+    const passiveSteps: string[] = [];
+    const canvas = document.createElement('canvas');
+    vi.spyOn(canvas, 'getContext').mockReturnValue({} as CanvasRenderingContext2D);
+    const engine = new GameEngine(
+      canvas,
+      level,
+      TILE,
+      { onPassiveReplayStep: () => passiveSteps.push('.') },
+      { replayScript: 'D.D' },
+    );
+    const update = (engine as unknown as { update: (dt: number) => void }).update.bind(engine);
+    const getState = () => (engine as unknown as { state: ReturnType<typeof createInitialState> }).state;
+
+    update(0.5);
+    expect(getState().players[0].col).toBe(2);
+    expect(getState().movesUsed).toBe(1);
+
+    update(0.5);
+    expect(getState().players[0].col).toBe(3);
+    expect(passiveSteps).toEqual(['.']);
+
+    update(0.5);
+    expect(getState().players[0].col).toBe(4);
+    expect(getState().movesUsed).toBe(2);
+
+    update(0.2);
+    expect(getState().levelComplete).toBe(true);
+  });
 });
 
 describe('movement edge cases', () => {

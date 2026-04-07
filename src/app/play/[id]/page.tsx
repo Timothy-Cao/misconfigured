@@ -1,13 +1,13 @@
 'use client';
 
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import GameCanvas from '@/components/GameCanvas';
 import HUD from '@/components/HUD';
 import { COMMUNITY_LEVEL_START_ID, getBuiltInLevel, getCommunityLevel, getLocalCampaignOverride, TOTAL_LEVELS } from '@/levels';
 import { useGameProgress } from '@/hooks/useGameProgress';
 import { type LevelData } from '@/engine/types';
-import { type BufferedAction } from '@/engine/input';
+import { type ReplayAction } from '@/engine/input';
 import { fetchCampaignOverrideFromApi } from '@/lib/campaign-api';
 import { fetchCommunityLevelFromApi } from '@/lib/community-api';
 import { fetchLevelBestScoresFromApi, submitLevelBestScoreToApi } from '@/lib/best-score-api';
@@ -16,7 +16,9 @@ import { getLevelHash } from '@/lib/level-hash';
 export default function PlayPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const levelId = Number(params.id);
+  const replayMode = searchParams.get('replay') === 'best';
   const builtInCampaignLevel = useMemo(
     () => (levelId < COMMUNITY_LEVEL_START_ID ? getBuiltInLevel(levelId) : undefined),
     [levelId],
@@ -43,12 +45,14 @@ export default function PlayPage() {
   const [movesUsed, setMovesUsed] = useState(0);
   const [maxMoves, setMaxMoves] = useState<number | null>(null);
   const [bestMoves, setBestMoves] = useState<number | null>(null);
+  const [bestSolutionMoves, setBestSolutionMoves] = useState<string | null>(null);
+  const [bestScoreLoading, setBestScoreLoading] = useState(false);
   const [isNewBest, setIsNewBest] = useState(false);
   const [gameOver, setGameOver] = useState(false);
   const [gameOverReason, setGameOverReason] = useState<'lives' | 'moves' | null>(null);
   const [simulationSpeed, setSimulationSpeed] = useState(1);
   const movesUsedRef = useRef(0);
-  const solutionMovesRef = useRef<BufferedAction[]>([]);
+  const solutionMovesRef = useRef<ReplayAction[]>([]);
   const usingLocalCampaignBackup = isCampaignLevel && !!loadError && !!localOverride;
   const level = isCampaignLevel
     ? (remoteLevel === undefined
@@ -81,6 +85,8 @@ export default function PlayPage() {
         solutionMovesRef.current = [];
         setMaxMoves(resolvedLevel?.maxMoves ?? null);
         setBestMoves(null);
+        setBestSolutionMoves(null);
+        setBestScoreLoading(true);
         setIsNewBest(false);
         setGameOver(false);
         setGameOverReason(null);
@@ -106,18 +112,29 @@ export default function PlayPage() {
     async function loadBestScore() {
       if (!levelHash) {
         setBestMoves(null);
+        setBestSolutionMoves(null);
+        setBestScoreLoading(false);
         setIsNewBest(false);
         return;
       }
+      setBestScoreLoading(true);
+      setBestSolutionMoves(null);
       try {
         const scores = await fetchLevelBestScoresFromApi([levelHash]);
         if (cancelled) return;
-        setBestMoves(scores.get(levelHash)?.bestMoves ?? null);
+        const score = scores.get(levelHash);
+        setBestMoves(score?.bestMoves ?? null);
+        setBestSolutionMoves(score?.solutionMoves ?? null);
         setIsNewBest(false);
       } catch {
         if (cancelled) return;
         setBestMoves(null);
+        setBestSolutionMoves(null);
         setIsNewBest(false);
+      } finally {
+        if (!cancelled) {
+          setBestScoreLoading(false);
+        }
       }
     }
     loadBestScore();
@@ -127,9 +144,12 @@ export default function PlayPage() {
   }, [levelHash]);
 
   const handleLevelComplete = useCallback((time: number) => {
-    completeLevel(levelId);
     setLevelComplete(true);
     setCompletionTime(time);
+    if (replayMode) {
+      return;
+    }
+    completeLevel(levelId);
     if (levelHash && level) {
       const finalMoves = movesUsedRef.current;
       const solutionMoves = solutionMovesRef.current.join('');
@@ -146,7 +166,7 @@ export default function PlayPage() {
         setIsNewBest(result.improved);
       });
     }
-  }, [completeLevel, isCampaignLevel, level, levelHash, levelId]);
+  }, [completeLevel, isCampaignLevel, level, levelHash, levelId, replayMode]);
 
   const handleProgressUpdate = useCallback((settled: number) => {
     setSettledUnits(settled);
@@ -166,8 +186,12 @@ export default function PlayPage() {
     setMaxMoves(nextMaxMoves);
   }, []);
 
-  const handleCountedMove = useCallback((move: BufferedAction) => {
+  const handleCountedMove = useCallback((move: ReplayAction) => {
     solutionMovesRef.current = [...solutionMovesRef.current, move];
+  }, []);
+
+  const handlePassiveReplayStep = useCallback(() => {
+    solutionMovesRef.current = [...solutionMovesRef.current, '.'];
   }, []);
 
   const handleGameOver = useCallback((reason: 'lives' | 'moves') => {
@@ -206,6 +230,8 @@ export default function PlayPage() {
       solutionMovesRef.current = [];
       setMaxMoves(null);
       setBestMoves(null);
+      setBestSolutionMoves(null);
+      setBestScoreLoading(false);
       setIsNewBest(false);
       setGameOver(false);
       setGameOverReason(null);
@@ -225,6 +251,8 @@ export default function PlayPage() {
       solutionMovesRef.current = [];
       setMaxMoves(null);
       setBestMoves(null);
+      setBestSolutionMoves(null);
+      setBestScoreLoading(false);
       setIsNewBest(false);
       setGameOver(false);
       setGameOverReason(null);
@@ -239,6 +267,7 @@ export default function PlayPage() {
   const sourceLabel = isCampaignLevel
     ? (usingLocalCampaignBackup ? 'Local Backup Warning' : undefined)
     : undefined;
+  const displaySourceLabel = replayMode ? 'Best Replay' : sourceLabel;
   const returnPath = isCampaignLevel ? '/levels' : '/community';
 
   useEffect(() => {
@@ -302,6 +331,38 @@ export default function PlayPage() {
     );
   }
 
+  if (replayMode && bestScoreLoading) {
+    return (
+      <main className="min-h-[calc(100svh-4rem)] bg-[#0a0a0f] flex items-center justify-center px-6 sm:min-h-[calc(100svh-5rem)]">
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-6 py-6 text-center">
+          <p className="text-cyan-200/80 text-sm font-mono uppercase tracking-[0.2em]">Loading Best Replay</p>
+          <p className="mt-3 text-white/35 text-sm">{level.name}</p>
+        </div>
+      </main>
+    );
+  }
+
+  if (replayMode && bestSolutionMoves === null) {
+    return (
+      <main className="min-h-[calc(100svh-4rem)] bg-[#0a0a0f] flex items-center justify-center px-6 sm:min-h-[calc(100svh-5rem)]">
+        <div className="max-w-md rounded-2xl border border-white/10 bg-white/[0.03] px-6 py-6 text-center">
+          <p className="text-amber-200/90 text-sm font-mono uppercase tracking-[0.2em]">No Replay Yet</p>
+          <h1 className="mt-3 text-2xl font-black text-white">{level.name}</h1>
+          <p className="mt-3 text-white/35 text-sm">
+            This level does not have a saved best-solution replay yet. Tie or beat the current best to auto-record one.
+          </p>
+          <button
+            type="button"
+            onClick={() => router.push(`/play/${levelId}`)}
+            className="mt-5 rounded-xl border border-white/15 bg-white/[0.05] px-5 py-2 text-sm text-white/75 transition-all duration-200 hover:bg-white/[0.09] hover:text-white"
+          >
+            Play Normally
+          </button>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-[calc(100svh-4rem)] bg-[#0a0a0f] flex flex-col items-center gap-4 relative overflow-x-hidden px-3 py-4 sm:min-h-[calc(100svh-5rem)] sm:px-4 sm:py-5">
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-purple-500/[0.03] blur-[100px]" />
@@ -309,7 +370,7 @@ export default function PlayPage() {
         <HUD
           levelId={levelId}
           levelName={level.name}
-          sourceLabel={sourceLabel}
+          sourceLabel={displaySourceLabel}
           levelComplete={levelComplete}
           settledUnits={settledUnits}
           totalUnits={level.players.length}
@@ -354,14 +415,16 @@ export default function PlayPage() {
                 onLivesUpdate={handleLivesUpdate}
                 onMovesUpdate={handleMovesUpdate}
                 onCountedMove={handleCountedMove}
+                onPassiveReplayStep={handlePassiveReplayStep}
                 autoRestartOnGameOver={false}
                 captureGlobalMobileSwipes
                 simulationSpeed={simulationSpeed}
+                replayScript={replayMode ? bestSolutionMoves : null}
               />
               <HUD
                 levelId={levelId}
                 levelName={level.name}
-                sourceLabel={sourceLabel}
+                sourceLabel={displaySourceLabel}
                 levelComplete={levelComplete}
                 settledUnits={settledUnits}
                 totalUnits={level.players.length}

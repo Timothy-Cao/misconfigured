@@ -1,6 +1,6 @@
 import { type LevelData, type GameState, type PlayerState, type PushableBlock, COLORS, TileType, STEP_INTERVAL, ANIM_DURATION, INPUT_COOLDOWN, INPUT_BUFFER_WINDOW, isPressurePlate, pressurePlateNumber, isToggleSwitch, toggleNumber, isConveyor, conveyorDirection, isRotationTile, rotationTileCW, isRepaintStation, repaintRotation, isColorFilter, isControlledWall, isControlledWallOpen, DIR_DX, DIR_DY, type Rotation } from './types';
 
-import { InputManager, remapInput, type BufferedAction } from './input';
+import { InputManager, remapInput, type BufferedAction, type ReplayAction } from './input';
 import { getTileAt, isWalkable, canMoveTo } from './physics';
 import { render } from './renderer';
 import { playSfx } from './sfx';
@@ -443,10 +443,12 @@ export interface GameEngineCallbacks {
   onLivesUpdate?: (lives: number, maxLives: number) => void;
   onMovesUpdate?: (movesUsed: number, maxMoves: number | null) => void;
   onCountedMove?: (move: BufferedAction) => void;
+  onPassiveReplayStep?: () => void;
 }
 
 interface GameEngineOptions {
   speedMultiplier?: number;
+  replayScript?: string | null;
 }
 
 interface PendingMove {
@@ -467,6 +469,20 @@ function manualInputToBufferedAction(input: QueuedManualInputBase): BufferedActi
   if (input.kind === 'key') return input.key;
   if (Math.abs(input.dx) > Math.abs(input.dy)) return input.dx > 0 ? 'D' : 'A';
   return input.dy > 0 ? 'S' : 'W';
+}
+
+function parseReplayScript(script: string | null | undefined): ReplayAction[] {
+  if (!script) return [];
+  return script
+    .toUpperCase()
+    .split('')
+    .filter((action): action is ReplayAction => (
+      action === 'W' ||
+      action === 'A' ||
+      action === 'S' ||
+      action === 'D' ||
+      action === '.'
+    ));
 }
 
 function comparePendingMoves(a: PendingMove, b: PendingMove, state: GameState): number {
@@ -505,6 +521,9 @@ export class GameEngine {
   private outOfMovesStillnessTime: number = 0;
   private outOfMovesSnapshot: string | null = null;
   private speedMultiplier: number;
+  private replayActions: ReplayAction[];
+  private replayIndex: number = 0;
+  private replayWaitingForConveyorTick: boolean = false;
 
   constructor(
     canvas: HTMLCanvasElement,
@@ -521,9 +540,14 @@ export class GameEngine {
     this.callbacks = callbacks;
     this.stepTimers = Array(this.level.players.length).fill(0);
     this.speedMultiplier = Math.max(0.25, options.speedMultiplier ?? 1);
+    this.replayActions = parseReplayScript(options.replayScript);
 
     canvas.width = this.level.width * tileSize;
     canvas.height = this.level.height * tileSize;
+  }
+
+  private isReplayMode(): boolean {
+    return this.replayActions.length > 0;
   }
 
   setSpeedMultiplier(multiplier: number): void {
@@ -531,7 +555,9 @@ export class GameEngine {
   }
 
   start(): void {
-    this.input.attach();
+    if (!this.isReplayMode()) {
+      this.input.attach();
+    }
     this.lastTime = performance.now();
     this.loop(this.lastTime);
   }
@@ -555,14 +581,47 @@ export class GameEngine {
     this.conveyorTickRemaining = INPUT_COOLDOWN;
     this.outOfMovesStillnessTime = 0;
     this.outOfMovesSnapshot = null;
+    this.replayIndex = 0;
+    this.replayWaitingForConveyorTick = false;
     this.input.reset();
     toggleCooldown.clear();
     rotationCooldown.clear();
   }
 
   queueSwipe(dx: number, dy: number): void {
+    if (this.isReplayMode()) return;
     if (dx === 0 && dy === 0) return;
     this.enqueueManualInput({ kind: 'swipe', dx, dy });
+  }
+
+  private queueNextReplayActionIfReady(boardSettledForManualInput: boolean): void {
+    if (
+      !this.isReplayMode() ||
+      this.replayWaitingForConveyorTick ||
+      this.replayIndex >= this.replayActions.length ||
+      this.queuedManualInput ||
+      this.state.outOfMoves ||
+      !boardSettledForManualInput ||
+      this.inputCooldownRemaining > 0
+    ) {
+      return;
+    }
+
+    const action = this.replayActions[this.replayIndex];
+    this.replayIndex += 1;
+
+    if (action === '.') {
+      if (this.conveyorTicksArmed) {
+        this.replayWaitingForConveyorTick = true;
+      }
+      return;
+    }
+
+    this.queuedManualInput = {
+      kind: 'key',
+      key: action,
+      expiresAt: this.elapsed + INPUT_BUFFER_WINDOW,
+    };
   }
 
   private getBoardSettleRemaining(): number {
@@ -685,16 +744,20 @@ export class GameEngine {
     }
 
     const boardSettledForManualInput = this.isBoardSettledForManualInput();
-    let nextKey: BufferedAction | null;
-    let latestKeyboardInput: BufferedAction | null = null;
-    while ((nextKey = this.input.consumeAction()) !== null) {
-      latestKeyboardInput = nextKey;
-    }
-    if (!latestKeyboardInput) {
-      latestKeyboardInput = this.input.getHeldAction();
-    }
-    if (boardSettledForManualInput && latestKeyboardInput) {
-      this.enqueueManualInput({ kind: 'key', key: latestKeyboardInput });
+    if (this.isReplayMode()) {
+      this.queueNextReplayActionIfReady(boardSettledForManualInput);
+    } else {
+      let nextKey: BufferedAction | null;
+      let latestKeyboardInput: BufferedAction | null = null;
+      while ((nextKey = this.input.consumeAction()) !== null) {
+        latestKeyboardInput = nextKey;
+      }
+      if (!latestKeyboardInput) {
+        latestKeyboardInput = this.input.getHeldAction();
+      }
+      if (boardSettledForManualInput && latestKeyboardInput) {
+        this.enqueueManualInput({ kind: 'key', key: latestKeyboardInput });
+      }
     }
     if (this.queuedManualInput && this.queuedManualInput.expiresAt < this.elapsed) {
       this.queuedManualInput = null;
@@ -847,7 +910,8 @@ export class GameEngine {
       if (newTile !== undefined && isColorFilter(newTile)) filterEntered = true;
     }
 
-    if (this.conveyorTicksArmed && this.conveyorTickRemaining <= 0) {
+    const conveyorTickDue = this.conveyorTicksArmed && this.conveyorTickRemaining <= 0;
+    if (conveyorTickDue) {
       const conveyorMoves: PendingMove[] = [];
       for (let i = 0; i < this.state.players.length; i++) {
         const player = this.state.players[i];
@@ -910,6 +974,13 @@ export class GameEngine {
         }
         if (newTile === TileType.STICKY) stickyEntered = true;
         if (newTile !== undefined && isColorFilter(newTile)) filterEntered = true;
+      }
+
+      if (this.replayWaitingForConveyorTick) {
+        this.replayWaitingForConveyorTick = false;
+      }
+      if (!acceptedManualInput && movedByConveyor) {
+        this.callbacks.onPassiveReplayStep?.();
       }
     }
 

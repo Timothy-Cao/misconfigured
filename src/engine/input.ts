@@ -1,6 +1,7 @@
 import { type Rotation, type MoveVector } from './types';
 
 export type BufferedAction = 'W' | 'A' | 'S' | 'D';
+export type ReplayAction = BufferedAction | '.';
 
 export interface KeyState {
   w: boolean;

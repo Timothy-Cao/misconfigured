@@ -42,7 +42,10 @@ function isMissingSolutionMovesColumn(error: unknown): boolean {
   if (!error || typeof error !== 'object') return false;
   const maybeError = error as { code?: unknown; message?: unknown };
   const message = typeof maybeError.message === 'string' ? maybeError.message : '';
-  return maybeError.code === 'PGRST204' && message.includes('solution_moves');
+  return message.includes('solution_moves') && (
+    maybeError.code === 'PGRST204' ||
+    /column|schema cache|does not exist/i.test(message)
+  );
 }
 
 export async function listLevelBestScoresFromSupabase(hashes: string[]): Promise<LevelBestScore[]> {
@@ -52,10 +55,22 @@ export async function listLevelBestScoresFromSupabase(hashes: string[]): Promise
   const admin = getSupabaseAdminClient();
   const { data, error } = await admin
     .from('level_best_scores')
-    .select('level_hash,best_moves,source,source_level_id,level_name,player_user_id,player_display_name,achieved_at')
+    .select('level_hash,best_moves,source,source_level_id,level_name,player_user_id,player_display_name,solution_moves,achieved_at')
     .in('level_hash', uniqueHashes);
 
   if (error) {
+    if (isMissingSolutionMovesColumn(error)) {
+      const { data: fallbackData, error: fallbackError } = await admin
+        .from('level_best_scores')
+        .select('level_hash,best_moves,source,source_level_id,level_name,player_user_id,player_display_name,achieved_at')
+        .in('level_hash', uniqueHashes);
+
+      if (fallbackError) {
+        throw fallbackError instanceof Error ? fallbackError : new Error('Failed to load level best scores.');
+      }
+
+      return (fallbackData ?? []).map(row => mapRow(row as LevelBestScoreRow));
+    }
     throw error instanceof Error ? error : new Error('Failed to load level best scores.');
   }
 

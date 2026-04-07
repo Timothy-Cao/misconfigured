@@ -3,6 +3,10 @@ import { listLevelBestScoresFromSupabase, submitLevelBestScoreToSupabase } from 
 
 export const dynamic = 'force-dynamic';
 
+function countManualSolutionMoves(solutionMoves: string): number {
+  return solutionMoves.replace(/[^WASD]/g, '').length;
+}
+
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const hashes = url.searchParams
@@ -45,11 +49,11 @@ export async function POST(request: Request) {
       return Response.json({ error: 'Invalid move count.' }, { status: 400 });
     }
 
-    if (solutionMoves !== null && !/^[WASD]*$/.test(solutionMoves)) {
+    if (solutionMoves !== null && !/^[WASD.]*$/.test(solutionMoves)) {
       return Response.json({ error: 'Invalid solution move sequence.' }, { status: 400 });
     }
 
-    if (solutionMoves !== null && solutionMoves.length !== Math.floor(moves)) {
+    if (solutionMoves !== null && countManualSolutionMoves(solutionMoves) !== Math.floor(moves)) {
       return Response.json({ error: 'Solution move sequence does not match move count.' }, { status: 400 });
     }
 

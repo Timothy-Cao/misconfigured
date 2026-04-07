@@ -3,7 +3,7 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import GameCanvas from '@/components/GameCanvas';
 import { TileType, COLORS, type LevelData, type Rotation, isPressurePlate, pressurePlateNumber, pressurePlateTile, isDoor, doorNumber, doorTile, isOpenDoor, openDoorNumber, openDoorTile, isToggleSwitch, isToggleBlock, toggleNumber, toggleSwitchTile, isConveyor, conveyorDirection, conveyorTile, isOneWay, oneWayOrientation, oneWayTile, isRotationTile, rotationTileCW, isRepaintStation, repaintRotation, repaintStationTile, isColorFilter, colorFilterRotation, colorFilterTile, DIR_DX, DIR_DY } from '@/engine/types';
-import { type BufferedAction } from '@/engine/input';
+import { type ReplayAction } from '@/engine/input';
 import { getBuiltInLevel, saveCustomLevel } from '@/levels';
 import { fetchCampaignOverrideFromApi, saveCampaignOverrideToApi } from '@/lib/campaign-api';
 import { deleteOwnedCommunityLevelFromApi, fetchCommunityLevelFromApi, fetchOwnedCloudLevelsFromApi, saveOwnedCommunityLevelToApi } from '@/lib/community-api';
@@ -197,7 +197,7 @@ export default function LevelEditor() {
   const loadedCloudQueryIdRef = useRef<number | null>(null);
   const baselineDraftSnapshotRef = useRef<string | null>(null);
   const previewMovesUsedRef = useRef(0);
-  const previewSolutionMovesRef = useRef<BufferedAction[]>([]);
+  const previewSolutionMovesRef = useRef<ReplayAction[]>([]);
   const [verifiedDraftSnapshot, setVerifiedDraftSnapshot] = useState<string | null>(null);
 
   useEffect(() => {
@@ -2238,6 +2238,9 @@ export default function LevelEditor() {
                       }}
                       onCountedMove={(move) => {
                         previewSolutionMovesRef.current = [...previewSolutionMovesRef.current, move];
+                      }}
+                      onPassiveReplayStep={() => {
+                        previewSolutionMovesRef.current = [...previewSolutionMovesRef.current, '.'];
                       }}
                       autoRestartOnGameOver={false}
                       simulationSpeed={previewSimulationSpeed}

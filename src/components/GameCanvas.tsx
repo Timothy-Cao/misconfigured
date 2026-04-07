@@ -17,9 +17,11 @@ interface GameCanvasProps {
   onLivesUpdate?: (lives: number, maxLives: number) => void;
   onMovesUpdate?: (movesUsed: number, maxMoves: number | null) => void;
   onCountedMove?: (move: BufferedAction) => void;
+  onPassiveReplayStep?: () => void;
   autoRestartOnGameOver?: boolean;
   captureGlobalMobileSwipes?: boolean;
   simulationSpeed?: number;
+  replayScript?: string | null;
 }
 
 export default function GameCanvas({
@@ -30,9 +32,11 @@ export default function GameCanvas({
   onLivesUpdate,
   onMovesUpdate,
   onCountedMove,
+  onPassiveReplayStep,
   autoRestartOnGameOver = true,
   captureGlobalMobileSwipes = false,
   simulationSpeed = 1,
+  replayScript = null,
 }: GameCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -43,6 +47,7 @@ export default function GameCanvas({
   const onLivesUpdateRef = useRef(onLivesUpdate);
   const onMovesUpdateRef = useRef(onMovesUpdate);
   const onCountedMoveRef = useRef(onCountedMove);
+  const onPassiveReplayStepRef = useRef(onPassiveReplayStep);
   const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
   const clearTimeoutRef = useRef<number | null>(null);
   const restartHideTimeoutRef = useRef<number | null>(null);
@@ -108,6 +113,10 @@ export default function GameCanvas({
   useEffect(() => {
     onCountedMoveRef.current = onCountedMove;
   }, [onCountedMove]);
+
+  useEffect(() => {
+    onPassiveReplayStepRef.current = onPassiveReplayStep;
+  }, [onPassiveReplayStep]);
 
   useEffect(() => {
     return () => {
@@ -276,6 +285,9 @@ export default function GameCanvas({
       onLivesUpdate: (lives, maxLives) => onLivesUpdateRef.current?.(lives, maxLives),
       onMovesUpdate: (movesUsed, maxMoves) => onMovesUpdateRef.current?.(movesUsed, maxMoves),
       onCountedMove: (move) => onCountedMoveRef.current?.(move),
+      onPassiveReplayStep: () => onPassiveReplayStepRef.current?.(),
+    }, {
+      replayScript,
     });
     engineRef.current = engine;
     engine.start();
@@ -297,7 +309,7 @@ export default function GameCanvas({
       window.removeEventListener('keydown', handleKeyDown);
       engineRef.current = null;
     };
-  }, [autoRestartOnGameOver, level]);
+  }, [autoRestartOnGameOver, level, replayScript]);
 
   useEffect(() => {
     engineRef.current?.setSpeedMultiplier(simulationSpeed);
