@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import GameCanvas from '@/components/GameCanvas';
 import { TileType, COLORS, type LevelData, type Rotation, isPressurePlate, pressurePlateNumber, pressurePlateTile, isDoor, doorNumber, doorTile, isOpenDoor, openDoorNumber, openDoorTile, isToggleSwitch, isToggleBlock, toggleNumber, toggleSwitchTile, isConveyor, conveyorDirection, conveyorTile, isOneWay, oneWayOrientation, oneWayTile, isRotationTile, rotationTileCW, isRepaintStation, repaintRotation, repaintStationTile, isColorFilter, colorFilterRotation, colorFilterTile, DIR_DX, DIR_DY } from '@/engine/types';
+import { type BufferedAction } from '@/engine/input';
 import { getBuiltInLevel, saveCustomLevel } from '@/levels';
 import { fetchCampaignOverrideFromApi, saveCampaignOverrideToApi } from '@/lib/campaign-api';
 import { deleteOwnedCommunityLevelFromApi, fetchCommunityLevelFromApi, fetchOwnedCloudLevelsFromApi, saveOwnedCommunityLevelToApi } from '@/lib/community-api';
@@ -196,6 +197,7 @@ export default function LevelEditor() {
   const loadedCloudQueryIdRef = useRef<number | null>(null);
   const baselineDraftSnapshotRef = useRef<string | null>(null);
   const previewMovesUsedRef = useRef(0);
+  const previewSolutionMovesRef = useRef<BufferedAction[]>([]);
   const [verifiedDraftSnapshot, setVerifiedDraftSnapshot] = useState<string | null>(null);
 
   useEffect(() => {
@@ -1655,6 +1657,7 @@ export default function LevelEditor() {
     setPreviewCompletionTime(0);
     setPreviewMovesUsed(0);
     previewMovesUsedRef.current = 0;
+    previewSolutionMovesRef.current = [];
     setPreviewMoveLimit(null);
     setPreviewGameOverReason(null);
   }, []);
@@ -1676,6 +1679,7 @@ export default function LevelEditor() {
     setPreviewMaxLives(level.lives ?? 1);
     setPreviewMovesUsed(0);
     previewMovesUsedRef.current = 0;
+    previewSolutionMovesRef.current = [];
     setPreviewMoveLimit(level.maxMoves ?? null);
     setPreviewComplete(false);
     setPreviewGameOver(false);
@@ -2209,6 +2213,7 @@ export default function LevelEditor() {
                         void submitLevelBestScoreToApi({
                           levelHash: getLevelHash(previewLevel),
                           moves: previewMovesUsedRef.current,
+                          solutionMoves: previewSolutionMovesRef.current.join(''),
                           source: publishScope === 'campaign' ? 'campaign-test' : 'editor-test',
                           sourceLevelId: publishScope === 'campaign' ? saveTargetId : cloudTargetId,
                           levelName: previewLevel.name,
@@ -2225,8 +2230,14 @@ export default function LevelEditor() {
                       }}
                       onMovesUpdate={(movesUsed, maxMoves) => {
                         previewMovesUsedRef.current = movesUsed;
+                        if (movesUsed === 0) {
+                          previewSolutionMovesRef.current = [];
+                        }
                         setPreviewMovesUsed(movesUsed);
                         setPreviewMoveLimit(maxMoves);
+                      }}
+                      onCountedMove={(move) => {
+                        previewSolutionMovesRef.current = [...previewSolutionMovesRef.current, move];
                       }}
                       autoRestartOnGameOver={false}
                       simulationSpeed={previewSimulationSpeed}

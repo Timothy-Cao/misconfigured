@@ -24,6 +24,7 @@ export async function fetchLevelBestScoresFromApi(hashes: string[]): Promise<Map
 export async function submitLevelBestScoreToApi(input: {
   levelHash: string;
   moves: number;
+  solutionMoves?: string | null;
   source?: string | null;
   sourceLevelId?: number | null;
   levelName?: string | null;

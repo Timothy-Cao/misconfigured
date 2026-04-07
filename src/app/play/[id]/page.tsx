@@ -7,6 +7,7 @@ import HUD from '@/components/HUD';
 import { COMMUNITY_LEVEL_START_ID, getBuiltInLevel, getCommunityLevel, getLocalCampaignOverride, TOTAL_LEVELS } from '@/levels';
 import { useGameProgress } from '@/hooks/useGameProgress';
 import { type LevelData } from '@/engine/types';
+import { type BufferedAction } from '@/engine/input';
 import { fetchCampaignOverrideFromApi } from '@/lib/campaign-api';
 import { fetchCommunityLevelFromApi } from '@/lib/community-api';
 import { fetchLevelBestScoresFromApi, submitLevelBestScoreToApi } from '@/lib/best-score-api';
@@ -47,6 +48,7 @@ export default function PlayPage() {
   const [gameOverReason, setGameOverReason] = useState<'lives' | 'moves' | null>(null);
   const [simulationSpeed, setSimulationSpeed] = useState(1);
   const movesUsedRef = useRef(0);
+  const solutionMovesRef = useRef<BufferedAction[]>([]);
   const usingLocalCampaignBackup = isCampaignLevel && !!loadError && !!localOverride;
   const level = isCampaignLevel
     ? (remoteLevel === undefined
@@ -76,6 +78,7 @@ export default function PlayPage() {
         setMaxLives(startingLives);
         setMovesUsed(0);
         movesUsedRef.current = 0;
+        solutionMovesRef.current = [];
         setMaxMoves(resolvedLevel?.maxMoves ?? null);
         setBestMoves(null);
         setIsNewBest(false);
@@ -129,9 +132,11 @@ export default function PlayPage() {
     setCompletionTime(time);
     if (levelHash && level) {
       const finalMoves = movesUsedRef.current;
+      const solutionMoves = solutionMovesRef.current.join('');
       void submitLevelBestScoreToApi({
         levelHash,
         moves: finalMoves,
+        solutionMoves,
         source: isCampaignLevel ? 'campaign' : 'community',
         sourceLevelId: levelId,
         levelName: level.name,
@@ -154,8 +159,15 @@ export default function PlayPage() {
 
   const handleMovesUpdate = useCallback((nextMovesUsed: number, nextMaxMoves: number | null) => {
     movesUsedRef.current = nextMovesUsed;
+    if (nextMovesUsed === 0) {
+      solutionMovesRef.current = [];
+    }
     setMovesUsed(nextMovesUsed);
     setMaxMoves(nextMaxMoves);
+  }, []);
+
+  const handleCountedMove = useCallback((move: BufferedAction) => {
+    solutionMovesRef.current = [...solutionMovesRef.current, move];
   }, []);
 
   const handleGameOver = useCallback((reason: 'lives' | 'moves') => {
@@ -172,6 +184,7 @@ export default function PlayPage() {
     setMaxLives(startingLives);
     setMovesUsed(0);
     movesUsedRef.current = 0;
+    solutionMovesRef.current = [];
     setMaxMoves(level?.maxMoves ?? null);
     setIsNewBest(false);
     setGameOver(false);
@@ -190,6 +203,7 @@ export default function PlayPage() {
       setCompletionTime(0);
       setMovesUsed(0);
       movesUsedRef.current = 0;
+      solutionMovesRef.current = [];
       setMaxMoves(null);
       setBestMoves(null);
       setIsNewBest(false);
@@ -208,6 +222,7 @@ export default function PlayPage() {
       setCompletionTime(0);
       setMovesUsed(0);
       movesUsedRef.current = 0;
+      solutionMovesRef.current = [];
       setMaxMoves(null);
       setBestMoves(null);
       setIsNewBest(false);
@@ -338,6 +353,7 @@ export default function PlayPage() {
                 onGameOver={handleGameOver}
                 onLivesUpdate={handleLivesUpdate}
                 onMovesUpdate={handleMovesUpdate}
+                onCountedMove={handleCountedMove}
                 autoRestartOnGameOver={false}
                 captureGlobalMobileSwipes
                 simulationSpeed={simulationSpeed}

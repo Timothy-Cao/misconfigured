@@ -188,6 +188,7 @@ create table if not exists public.level_best_scores (
   level_name text,
   player_user_id uuid references auth.users(id) on delete set null,
   player_display_name text,
+  solution_moves text,
   achieved_at timestamptz not null default now(),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -195,6 +196,9 @@ create table if not exists public.level_best_scores (
 
 create index if not exists level_best_scores_source_idx
 on public.level_best_scores (source, source_level_id);
+
+alter table public.level_best_scores
+add column if not exists solution_moves text;
 
 create or replace function public.set_level_best_scores_updated_at()
 returns trigger
@@ -229,6 +233,7 @@ create table if not exists public.user_level_best_scores (
   source text,
   source_level_id bigint,
   level_name text,
+  solution_moves text,
   achieved_at timestamptz not null default now(),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -240,6 +245,9 @@ on public.user_level_best_scores (level_hash);
 
 create index if not exists user_level_best_scores_source_idx
 on public.user_level_best_scores (source, source_level_id);
+
+alter table public.user_level_best_scores
+add column if not exists solution_moves text;
 
 drop trigger if exists set_user_level_best_scores_updated_at on public.user_level_best_scores;
 

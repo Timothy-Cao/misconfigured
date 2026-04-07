@@ -25,6 +25,7 @@ export async function POST(request: Request) {
     const body = await request.json() as {
       levelHash?: string;
       moves?: number;
+      solutionMoves?: string | null;
       source?: string | null;
       sourceLevelId?: number | null;
       levelName?: string | null;
@@ -32,6 +33,9 @@ export async function POST(request: Request) {
 
     const levelHash = body.levelHash?.trim();
     const moves = Number(body.moves);
+    const solutionMoves = body.solutionMoves == null
+      ? null
+      : body.solutionMoves.trim().toUpperCase();
 
     if (!levelHash) {
       return Response.json({ error: 'Missing level hash.' }, { status: 400 });
@@ -41,10 +45,19 @@ export async function POST(request: Request) {
       return Response.json({ error: 'Invalid move count.' }, { status: 400 });
     }
 
+    if (solutionMoves !== null && !/^[WASD]*$/.test(solutionMoves)) {
+      return Response.json({ error: 'Invalid solution move sequence.' }, { status: 400 });
+    }
+
+    if (solutionMoves !== null && solutionMoves.length !== Math.floor(moves)) {
+      return Response.json({ error: 'Solution move sequence does not match move count.' }, { status: 400 });
+    }
+
     const user = await getCurrentAuthUser();
     const result = await submitLevelBestScoreToSupabase({
       levelHash,
       moves,
+      solutionMoves,
       source: body.source ?? null,
       sourceLevelId: body.sourceLevelId ?? null,
       levelName: body.levelName ?? null,
@@ -58,6 +71,7 @@ export async function POST(request: Request) {
           userId: user.id,
           levelHash,
           moves,
+          solutionMoves,
           source: body.source ?? null,
           sourceLevelId: body.sourceLevelId ?? null,
           levelName: body.levelName ?? null,

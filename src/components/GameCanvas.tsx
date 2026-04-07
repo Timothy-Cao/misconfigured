@@ -3,6 +3,7 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
 import { GameEngine } from '@/engine/GameEngine';
 import { type LevelData } from '@/engine/types';
+import { type BufferedAction } from '@/engine/input';
 
 const BASE_TILE_SIZE = 40;
 const MIN_SCALE = 0.35;
@@ -15,6 +16,7 @@ interface GameCanvasProps {
   onGameOver?: (reason: 'lives' | 'moves') => void;
   onLivesUpdate?: (lives: number, maxLives: number) => void;
   onMovesUpdate?: (movesUsed: number, maxMoves: number | null) => void;
+  onCountedMove?: (move: BufferedAction) => void;
   autoRestartOnGameOver?: boolean;
   captureGlobalMobileSwipes?: boolean;
   simulationSpeed?: number;
@@ -27,6 +29,7 @@ export default function GameCanvas({
   onGameOver,
   onLivesUpdate,
   onMovesUpdate,
+  onCountedMove,
   autoRestartOnGameOver = true,
   captureGlobalMobileSwipes = false,
   simulationSpeed = 1,
@@ -39,6 +42,7 @@ export default function GameCanvas({
   const onGameOverRef = useRef(onGameOver);
   const onLivesUpdateRef = useRef(onLivesUpdate);
   const onMovesUpdateRef = useRef(onMovesUpdate);
+  const onCountedMoveRef = useRef(onCountedMove);
   const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
   const clearTimeoutRef = useRef<number | null>(null);
   const restartHideTimeoutRef = useRef<number | null>(null);
@@ -100,6 +104,10 @@ export default function GameCanvas({
   useEffect(() => {
     onMovesUpdateRef.current = onMovesUpdate;
   }, [onMovesUpdate]);
+
+  useEffect(() => {
+    onCountedMoveRef.current = onCountedMove;
+  }, [onCountedMove]);
 
   useEffect(() => {
     return () => {
@@ -267,6 +275,7 @@ export default function GameCanvas({
       },
       onLivesUpdate: (lives, maxLives) => onLivesUpdateRef.current?.(lives, maxLives),
       onMovesUpdate: (movesUsed, maxMoves) => onMovesUpdateRef.current?.(movesUsed, maxMoves),
+      onCountedMove: (move) => onCountedMoveRef.current?.(move),
     });
     engineRef.current = engine;
     engine.start();

@@ -442,6 +442,7 @@ export interface GameEngineCallbacks {
   onGameOver?: (reason: 'lives' | 'moves') => void;
   onLivesUpdate?: (lives: number, maxLives: number) => void;
   onMovesUpdate?: (movesUsed: number, maxMoves: number | null) => void;
+  onCountedMove?: (move: BufferedAction) => void;
 }
 
 interface GameEngineOptions {
@@ -461,6 +462,12 @@ type QueuedManualInputBase =
   | { kind: 'swipe'; dx: number; dy: number };
 
 type QueuedManualInput = QueuedManualInputBase & { expiresAt: number };
+
+function manualInputToBufferedAction(input: QueuedManualInputBase): BufferedAction {
+  if (input.kind === 'key') return input.key;
+  if (Math.abs(input.dx) > Math.abs(input.dy)) return input.dx > 0 ? 'D' : 'A';
+  return input.dy > 0 ? 'S' : 'W';
+}
 
 function comparePendingMoves(a: PendingMove, b: PendingMove, state: GameState): number {
   if (a.dx === b.dx && a.dy === b.dy) {
@@ -988,6 +995,7 @@ export class GameEngine {
     if (manualMoveChangedState) {
       this.state.movesUsed += 1;
       this.callbacks.onMovesUpdate?.(this.state.movesUsed, this.state.maxMoves);
+      this.callbacks.onCountedMove?.(manualInputToBufferedAction(acceptedManualInput));
       this.conveyorTicksArmed = true;
       this.conveyorTickRemaining = INPUT_COOLDOWN;
       if (this.state.maxMoves !== null && this.state.movesUsed >= this.state.maxMoves) {
