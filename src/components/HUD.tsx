@@ -80,6 +80,11 @@ export default function HUD({ levelId, levelName, sourceLabel, levelComplete, se
                   <span className="truncate text-center text-lg font-black tracking-[0.08em] text-white/90 sm:text-2xl lg:text-3xl">
                     {displayName}
                   </span>
+                  {maxMoves === null && (
+                    <span className="inline-flex shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-white/28 sm:text-xs">
+                      Moves {movesUsed}
+                    </span>
+                  )}
                   <span className={`inline-flex shrink-0 items-center justify-center rounded-full border px-3 py-1 text-xs font-black uppercase tracking-[0.2em] sm:text-sm ${doneAccentClass}`}>
                     Done {settledUnits}/{totalUnits}
                   </span>
