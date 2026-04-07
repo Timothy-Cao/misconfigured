@@ -13,6 +13,15 @@ import { fetchCommunityLevelFromApi } from '@/lib/community-api';
 import { fetchLevelBestScoresFromApi, submitLevelBestScoreToApi } from '@/lib/best-score-api';
 import { getLevelHash } from '@/lib/level-hash';
 
+const REGULAR_SIMULATION_SPEEDS = [1, 2] as const;
+const REPLAY_SIMULATION_SPEEDS = [1, 2, 4, 8] as const;
+
+function getNextSimulationSpeed(current: number, replayMode: boolean): number {
+  const speeds = replayMode ? REPLAY_SIMULATION_SPEEDS : REGULAR_SIMULATION_SPEEDS;
+  const currentIndex = speeds.findIndex(speed => speed === current);
+  return speeds[(currentIndex + 1) % speeds.length] ?? speeds[0];
+}
+
 export default function PlayPage() {
   const params = useParams();
   const router = useRouter();
@@ -60,6 +69,19 @@ export default function PlayPage() {
       : (remoteLevel ?? (usingLocalCampaignBackup ? localOverride : builtInCampaignLevel)))
     : (remoteLevel ?? localCommunityLevel ?? undefined);
   const levelHash = useMemo(() => level ? getLevelHash(level) : null, [level]);
+  const nextSimulationSpeed = useMemo(
+    () => getNextSimulationSpeed(simulationSpeed, replayMode),
+    [replayMode, simulationSpeed],
+  );
+
+  useEffect(() => {
+    if (replayMode) {
+      setSimulationSpeed(2);
+      return;
+    }
+
+    setSimulationSpeed(current => current > 2 ? 1 : current);
+  }, [replayMode]);
 
   useEffect(() => {
     let cancelled = false;
@@ -217,8 +239,8 @@ export default function PlayPage() {
   }, [level]);
 
   const handleToggleSimulationSpeed = useCallback(() => {
-    setSimulationSpeed(current => current === 1 ? 2 : 1);
-  }, []);
+    setSimulationSpeed(current => getNextSimulationSpeed(current, replayMode));
+  }, [replayMode]);
 
   const handleNextLevel = useCallback(() => {
     if (levelId < TOTAL_LEVELS) {
@@ -387,6 +409,7 @@ export default function PlayPage() {
           onRestart={handleRestart}
           onNextLevel={handleNextLevel}
           simulationSpeed={simulationSpeed}
+          nextSimulationSpeed={nextSimulationSpeed}
           onToggleSimulationSpeed={handleToggleSimulationSpeed}
           showOverlays={false}
         />
@@ -441,6 +464,7 @@ export default function PlayPage() {
                 onRestart={handleRestart}
                 onNextLevel={handleNextLevel}
                 simulationSpeed={simulationSpeed}
+                nextSimulationSpeed={nextSimulationSpeed}
                 showBar={false}
               />
             </div>

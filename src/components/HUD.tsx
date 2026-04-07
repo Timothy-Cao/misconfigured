@@ -20,6 +20,7 @@ interface HUDProps {
   onRestart: () => void;
   onNextLevel: () => void;
   simulationSpeed?: number;
+  nextSimulationSpeed?: number;
   onToggleSimulationSpeed?: () => void;
   showBar?: boolean;
   showOverlays?: boolean;
@@ -34,8 +35,9 @@ function formatTime(seconds: number): string {
     : `${s}.${String(ms).padStart(2, '0')}s`;
 }
 
-export default function HUD({ levelId, levelName, sourceLabel, levelComplete, settledUnits, totalUnits, completionTime, lives, maxLives, movesUsed, maxMoves, bestMoves = null, isNewBest = false, gameOver, gameOverReason, canGoNext, onRestart, onNextLevel, simulationSpeed = 1, onToggleSimulationSpeed, showBar = true, showOverlays = true }: HUDProps) {
+export default function HUD({ levelId, levelName, sourceLabel, levelComplete, settledUnits, totalUnits, completionTime, lives, maxLives, movesUsed, maxMoves, bestMoves = null, isNewBest = false, gameOver, gameOverReason, canGoNext, onRestart, onNextLevel, simulationSpeed = 1, nextSimulationSpeed, onToggleSimulationSpeed, showBar = true, showOverlays = true }: HUDProps) {
   const displayName = levelName || `Level ${String(levelId).padStart(2, '0')}`;
+  const nextSpeedLabel = `${(nextSimulationSpeed ?? (simulationSpeed > 1 ? 1 : 2)).toFixed(0)}x`;
   const isWarningSource = sourceLabel?.toLowerCase().includes('warning') ?? false;
   const doneAccentClass = settledUnits === totalUnits
     ? 'border-green-400/40 bg-green-500/12 text-green-300'
@@ -68,7 +70,7 @@ export default function HUD({ levelId, levelName, sourceLabel, levelComplete, se
                           ? 'border-cyan-300/55 bg-cyan-400/20 text-cyan-50 shadow-cyan-500/10 hover:bg-cyan-400/28'
                           : 'border-amber-200/30 bg-amber-400/10 text-amber-100/80 hover:border-amber-200/45 hover:bg-amber-400/16 hover:text-amber-50'
                       }`}
-                      aria-label={`Set simulation speed to ${simulationSpeed > 1 ? '1x' : '2x'}`}
+                      aria-label={`Set simulation speed to ${nextSpeedLabel}`}
                     >
                       <span className="text-white/40">Speed</span>
                       <span>{simulationSpeed.toFixed(0)}x</span>
