@@ -1,4 +1,4 @@
-import { TileType, type TileTypeValue, type LevelData, type PlayerState, isDoor, doorNumber, isToggleBlock, toggleNumber, isOneWay, oneWayOrientation, isColorFilter, colorFilterRotation } from './types';
+import { TileType, type TileTypeValue, type LevelData, type PlayerState, isControlledWall, isControlledWallOpen, isOneWay, oneWayOrientation, isColorFilter, colorFilterRotation } from './types';
 
 export function getTileAt(level: LevelData, col: number, row: number): TileTypeValue {
   if (row < 0 || row >= level.height || col < 0 || col >= level.width) {
@@ -10,15 +10,9 @@ export function getTileAt(level: LevelData, col: number, row: number): TileTypeV
 export function isWalkable(tile: TileTypeValue, activePlates?: Set<number>, toggledSwitches?: Set<number>, crumbledTiles?: Set<string>, col?: number, row?: number): boolean {
   if (tile === TileType.VOID) return false;
   if (tile === TileType.PUSHABLE) return false;
-  if (isDoor(tile)) {
+  if (isControlledWall(tile)) {
     if (!activePlates || !toggledSwitches) return false;
-    const n = doorNumber(tile);
-    return activePlates.has(n) || toggledSwitches.has(n);
-  }
-  if (isToggleBlock(tile)) {
-    if (!activePlates || !toggledSwitches) return false;
-    const n = toggleNumber(tile);
-    return activePlates.has(n) || toggledSwitches.has(n);
+    return isControlledWallOpen(tile, activePlates, toggledSwitches);
   }
   if (tile === TileType.CRUMBLE && crumbledTiles && col !== undefined && row !== undefined) {
     return !crumbledTiles.has(`${row},${col}`);

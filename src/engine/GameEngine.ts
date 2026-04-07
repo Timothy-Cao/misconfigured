@@ -1,4 +1,4 @@
-import { type LevelData, type GameState, type PlayerState, type PushableBlock, COLORS, TileType, STEP_INTERVAL, ANIM_DURATION, INPUT_COOLDOWN, INPUT_BUFFER_WINDOW, isPressurePlate, pressurePlateNumber, isToggleSwitch, toggleNumber, isConveyor, conveyorDirection, isRotationTile, rotationTileCW, isRepaintStation, repaintRotation, isColorFilter, isDoor, doorNumber, DIR_DX, DIR_DY, type Rotation } from './types';
+import { type LevelData, type GameState, type PlayerState, type PushableBlock, COLORS, TileType, STEP_INTERVAL, ANIM_DURATION, INPUT_COOLDOWN, INPUT_BUFFER_WINDOW, isPressurePlate, pressurePlateNumber, isToggleSwitch, toggleNumber, isConveyor, conveyorDirection, isRotationTile, rotationTileCW, isRepaintStation, repaintRotation, isColorFilter, isControlledWall, isControlledWallOpen, DIR_DX, DIR_DY, type Rotation } from './types';
 
 import { InputManager, remapInput, type BufferedAction } from './input';
 import { getTileAt, isWalkable, canMoveTo } from './physics';
@@ -380,9 +380,8 @@ function countOpenDoors(level: LevelData, activePlates: Set<number>, toggledSwit
   for (let row = 0; row < level.height; row++) {
     for (let col = 0; col < level.width; col++) {
       const tile = level.grid[row][col];
-      if (!isDoor(tile)) continue;
-      const n = doorNumber(tile);
-      if (activePlates.has(n) || toggledSwitches.has(n)) {
+      if (!isControlledWall(tile)) continue;
+      if (isControlledWallOpen(tile, activePlates, toggledSwitches)) {
         count += 1;
       }
     }

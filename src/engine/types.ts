@@ -22,6 +22,7 @@ export const TileType = {
   STICKY: 82,
   // Repaint stations: 83-86 (target identity/color = 0..3)
   // Color filters: 90-93 (allowed identity/color = 0..3)
+  // Open doors: 100-108 (door number = tileValue - 99, starts open then flips closed)
 } as const;
 
 export type TileTypeValue = number;
@@ -35,6 +36,21 @@ export function pressurePlateTile(n: number): number { return n + 9; }
 export function isDoor(tile: number): boolean { return tile >= 20 && tile <= 28; }
 export function doorNumber(tile: number): number { return tile - 19; }
 export function doorTile(n: number): number { return n + 19; }
+export function isOpenDoor(tile: number): boolean { return tile >= 100 && tile <= 108; }
+export function openDoorNumber(tile: number): number { return tile - 99; }
+export function openDoorTile(n: number): number { return n + 99; }
+export function isControlledWall(tile: number): boolean { return isDoor(tile) || isOpenDoor(tile) || isToggleBlock(tile); }
+export function controlledWallNumber(tile: number): number {
+  if (isOpenDoor(tile)) return openDoorNumber(tile);
+  if (isDoor(tile)) return doorNumber(tile);
+  return toggleNumber(tile);
+}
+export function controlledWallStartsOpen(tile: number): boolean { return isOpenDoor(tile); }
+export function isControlledWallOpen(tile: number, activePlates: Set<number>, toggledSwitches: Set<number>): boolean {
+  const n = controlledWallNumber(tile);
+  const flipped = activePlates.has(n) !== toggledSwitches.has(n);
+  return controlledWallStartsOpen(tile) !== flipped;
+}
 
 // Conveyor helpers (direction 0=up, 1=right, 2=down, 3=left)
 export function isConveyor(tile: number): boolean { return tile >= 30 && tile <= 33; }

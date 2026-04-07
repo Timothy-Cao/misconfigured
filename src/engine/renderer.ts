@@ -1,4 +1,4 @@
-import { TileType, COLORS, PLAYER_SIZE_RATIO, type LevelData, type GameState, isPressurePlate, pressurePlateNumber, isDoor, doorNumber, isToggleSwitch, isToggleBlock, toggleNumber, isConveyor, conveyorDirection, isOneWay, oneWayOrientation, isRotationTile, rotationTileCW, isRepaintStation, repaintRotation, isColorFilter, colorFilterRotation, DIR_DX, DIR_DY } from './types';
+import { TileType, COLORS, PLAYER_SIZE_RATIO, type LevelData, type GameState, isPressurePlate, pressurePlateNumber, isDoor, doorNumber, isOpenDoor, openDoorNumber, controlledWallNumber, controlledWallStartsOpen, isControlledWallOpen, isToggleSwitch, isToggleBlock, toggleNumber, isConveyor, conveyorDirection, isOneWay, oneWayOrientation, isRotationTile, rotationTileCW, isRepaintStation, repaintRotation, isColorFilter, colorFilterRotation, DIR_DX, DIR_DY } from './types';
 
 const ARROW_ANGLES: Record<number, number> = {
   0: -Math.PI / 2,
@@ -34,9 +34,8 @@ function getTileColor(tile: number, time: number, isOccupiedGoal: boolean, activ
     }
     return '#1a2a3a';
   }
-  if (isDoor(tile)) {
-    const n = doorNumber(tile);
-    const open = activePlates.has(n) || toggledSwitches.has(n);
+  if (isDoor(tile) || isOpenDoor(tile)) {
+    const open = isControlledWallOpen(tile, activePlates, toggledSwitches);
     if (open) return '#1a1a2e';
     return '#2a2040';
   }
@@ -50,8 +49,7 @@ function getTileColor(tile: number, time: number, isOccupiedGoal: boolean, activ
     return '#2a2018';
   }
   if (isToggleBlock(tile)) {
-    const n = toggleNumber(tile);
-    const open = activePlates.has(n) || toggledSwitches.has(n);
+    const open = isControlledWallOpen(tile, activePlates, toggledSwitches);
     if (open) return '#1a1a2e';
     return '#2a2040';
   }
@@ -444,9 +442,10 @@ export function render(
       }
 
       // Door — number and dotted outline when closed
-      if (isDoor(tile)) {
-        const n = doorNumber(tile);
-        const open = activePlates.has(n) || toggledSwitches.has(n);
+      if (isDoor(tile) || isOpenDoor(tile)) {
+        const n = isOpenDoor(tile) ? openDoorNumber(tile) : doorNumber(tile);
+        const open = isControlledWallOpen(tile, activePlates, toggledSwitches);
+        const startsOpen = controlledWallStartsOpen(tile);
 
         if (!open) {
           ctx.save();
@@ -463,7 +462,7 @@ export function render(
         ctx.font = doorFont;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(String(n), cx, cy + 1);
+        ctx.fillText(startsOpen ? `O${n}` : String(n), cx, cy + 1);
       }
 
       // Toggle switch — number with circle indicator
@@ -486,8 +485,8 @@ export function render(
 
       // Toggle block — number and X pattern when solid
       if (isToggleBlock(tile)) {
-        const n = toggleNumber(tile);
-        const open = activePlates.has(n) || toggledSwitches.has(n);
+        const n = controlledWallNumber(tile);
+        const open = isControlledWallOpen(tile, activePlates, toggledSwitches);
 
         if (!open) {
           // Legacy toggle-block tiles render like closed doors

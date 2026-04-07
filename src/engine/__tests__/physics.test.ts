@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { getTileAt, isWalkable, canMoveTo } from '../physics';
-import { TileType, type LevelData, type PlayerState } from '../types';
+import { TileType, openDoorTile, type LevelData, type PlayerState } from '../types';
 
 // Minimal 5x5 test level:
 const testLevel: LevelData = {
@@ -51,6 +51,19 @@ describe('isWalkable', () => {
 
   it('pushable is not walkable', () => {
     expect(isWalkable(TileType.PUSHABLE)).toBe(false);
+  });
+
+  it('supports controlled walls that start closed or open', () => {
+    const noPlates = new Set<number>();
+    const noToggles = new Set<number>();
+    const plateOne = new Set([1]);
+    const toggleOne = new Set([1]);
+
+    expect(isWalkable(20, noPlates, noToggles)).toBe(false);
+    expect(isWalkable(20, plateOne, noToggles)).toBe(true);
+    expect(isWalkable(openDoorTile(1), noPlates, noToggles)).toBe(true);
+    expect(isWalkable(openDoorTile(1), plateOne, noToggles)).toBe(false);
+    expect(isWalkable(openDoorTile(1), plateOne, toggleOne)).toBe(true);
   });
 });
 

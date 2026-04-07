@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import GameCanvas from '@/components/GameCanvas';
-import { TileType, COLORS, type LevelData, type Rotation, isPressurePlate, pressurePlateNumber, pressurePlateTile, isDoor, doorNumber, doorTile, isToggleSwitch, isToggleBlock, toggleNumber, toggleSwitchTile, isConveyor, conveyorDirection, conveyorTile, isOneWay, oneWayOrientation, oneWayTile, isRotationTile, rotationTileCW, isRepaintStation, repaintRotation, repaintStationTile, isColorFilter, colorFilterRotation, colorFilterTile, DIR_DX, DIR_DY } from '@/engine/types';
+import { TileType, COLORS, type LevelData, type Rotation, isPressurePlate, pressurePlateNumber, pressurePlateTile, isDoor, doorNumber, doorTile, isOpenDoor, openDoorNumber, openDoorTile, isToggleSwitch, isToggleBlock, toggleNumber, toggleSwitchTile, isConveyor, conveyorDirection, conveyorTile, isOneWay, oneWayOrientation, oneWayTile, isRotationTile, rotationTileCW, isRepaintStation, repaintRotation, repaintStationTile, isColorFilter, colorFilterRotation, colorFilterTile, DIR_DX, DIR_DY } from '@/engine/types';
 import { getBuiltInLevel, saveCustomLevel } from '@/levels';
 import { fetchCampaignOverrideFromApi, saveCampaignOverrideToApi } from '@/lib/campaign-api';
 import { deleteOwnedCommunityLevelFromApi, fetchCommunityLevelFromApi, fetchOwnedCloudLevelsFromApi, saveOwnedCommunityLevelToApi } from '@/lib/community-api';
@@ -15,7 +15,7 @@ import { type Session, type User } from '@supabase/supabase-js';
 const MAX_SIZE = 20;
 const MIN_SIZE = 4;
 
-type Tool = 'floor' | 'wall' | 'goal' | 'kill' | 'pushable' | 'plate' | 'door' | 'ice' | 'crumble' | 'reverse' | 'sticky' | 'tswitch' | 'conveyor' | 'oneway' | 'rotation' | 'repaint' | 'filter' | 'blackhole' | 'life' | 'spawn';
+type Tool = 'floor' | 'wall' | 'goal' | 'kill' | 'pushable' | 'plate' | 'door' | 'openDoor' | 'ice' | 'crumble' | 'reverse' | 'sticky' | 'tswitch' | 'conveyor' | 'oneway' | 'rotation' | 'repaint' | 'filter' | 'blackhole' | 'life' | 'spawn';
 type Tab = 'config' | 'blocks' | 'publish';
 type PublishScope = 'campaign' | 'community';
 
@@ -33,6 +33,7 @@ const TOOL_LABELS: Record<Tool, string> = {
   pushable: 'Push Block',
   plate: 'Pressure Plate',
   door: 'Door',
+  openDoor: 'Open Door',
   ice: 'Ice',
   crumble: 'Crumble',
   reverse: 'Reverse',
@@ -56,6 +57,7 @@ const TOOL_SHORTCUTS: Record<string, Tool> = {
   t: 'pushable',
   y: 'plate',
   u: 'door',
+  j: 'openDoor',
   i: 'ice',
   o: 'oneway',
   p: 'crumble',
@@ -79,6 +81,7 @@ const SHORTCUT_DISPLAY: Partial<Record<Tool, string>> = {
   pushable: 'T',
   plate: 'Y',
   door: 'U',
+  openDoor: 'J',
   ice: 'I',
   crumble: 'P',
   reverse: 'H',
@@ -101,7 +104,7 @@ const DIRECTION_LABELS = ['Up', 'Right', 'Down', 'Left'];
 const BLOCK_TOOL_GROUPS: { title: string; tools: Tool[] }[] = [
   { title: 'Terrain', tools: ['floor', 'wall', 'goal', 'kill', 'blackhole', 'life'] },
   { title: 'Movement', tools: ['ice', 'sticky', 'conveyor', 'oneway', 'rotation', 'reverse'] },
-  { title: 'Logic', tools: ['pushable', 'plate', 'door', 'tswitch', 'crumble'] },
+  { title: 'Logic', tools: ['pushable', 'plate', 'door', 'openDoor', 'tswitch', 'crumble'] },
   { title: 'Identity', tools: ['repaint', 'filter'] },
 ];
 
@@ -388,6 +391,23 @@ export default function LevelEditor() {
       return;
     }
 
+    if (tool === 'openDoor') {
+      setGrid(prev => {
+        const current = prev[row][col];
+        const next = prev.map(r => [...r]);
+        if (mode === 'erase') {
+          if (isOpenDoor(current)) {
+            next[row][col] = TileType.FLOOR;
+          }
+        } else {
+          if (isOpenDoor(current)) return prev;
+          next[row][col] = openDoorTile(1);
+        }
+        return next;
+      });
+      return;
+    }
+
     if (tool === 'tswitch') {
       setGrid(prev => {
         const current = prev[row][col];
@@ -563,6 +583,8 @@ export default function LevelEditor() {
       mode = isPressurePlate(currentTile) ? 'erase' : 'place';
     } else if (tool === 'door') {
       mode = isDoor(currentTile) ? 'erase' : 'place';
+    } else if (tool === 'openDoor') {
+      mode = isOpenDoor(currentTile) ? 'erase' : 'place';
     } else if (tool === 'tswitch') {
       mode = isToggleSwitch(currentTile) ? 'erase' : 'place';
     } else if (tool === 'conveyor') {
@@ -638,6 +660,8 @@ export default function LevelEditor() {
       mode = isPressurePlate(currentTile) ? 'erase' : 'place';
     } else if (tool === 'door') {
       mode = isDoor(currentTile) ? 'erase' : 'place';
+    } else if (tool === 'openDoor') {
+      mode = isOpenDoor(currentTile) ? 'erase' : 'place';
     } else if (tool === 'tswitch') {
       mode = isToggleSwitch(currentTile) ? 'erase' : 'place';
     } else if (tool === 'conveyor') {
@@ -743,6 +767,13 @@ export default function LevelEditor() {
         next[row][col] = doorTile(nextN);
         return next;
       }
+      if (isOpenDoor(tile)) {
+        const n = openDoorNumber(tile);
+        const nextN = (n % 9) + 1;
+        const next = prev.map(r => [...r]);
+        next[row][col] = openDoorTile(nextN);
+        return next;
+      }
       if (isPressurePlate(tile)) {
         const n = pressurePlateNumber(tile);
         const nextN = (n % 9) + 1;
@@ -815,6 +846,8 @@ export default function LevelEditor() {
           color = '#1a2a3a';
         } else if (isDoor(tile)) {
           color = '#2a2040';
+        } else if (isOpenDoor(tile)) {
+          color = '#1a1a2e';
         } else if (isToggleSwitch(tile)) {
           color = '#2a2018';
         } else if (isConveyor(tile)) {
@@ -985,11 +1018,12 @@ export default function LevelEditor() {
         }
 
         // Door — dotted outline + number
-        if (isDoor(tile)) {
-          const n = doorNumber(tile);
+        if (isDoor(tile) || isOpenDoor(tile)) {
+          const startsOpen = isOpenDoor(tile);
+          const n = startsOpen ? openDoorNumber(tile) : doorNumber(tile);
 
           ctx.save();
-          ctx.strokeStyle = 'rgba(160,120,220,0.5)';
+          ctx.strokeStyle = startsOpen ? 'rgba(120,220,190,0.5)' : 'rgba(160,120,220,0.5)';
           ctx.lineWidth = 2;
           ctx.setLineDash([4, 3]);
           ctx.beginPath();
@@ -999,11 +1033,11 @@ export default function LevelEditor() {
           ctx.restore();
 
           ctx.save();
-          ctx.fillStyle = 'rgba(160,120,220,0.6)';
+          ctx.fillStyle = startsOpen ? 'rgba(120,220,190,0.65)' : 'rgba(160,120,220,0.6)';
           ctx.font = `bold ${tilePx * 0.4}px monospace`;
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
-          ctx.fillText(String(n), cx, cy + 1);
+          ctx.fillText(startsOpen ? `O${n}` : String(n), cx, cy + 1);
           ctx.restore();
         }
 
@@ -1835,7 +1869,7 @@ export default function LevelEditor() {
                       {group.tools.map(t => {
                         const colorMap: Record<string, string> = {
                           floor: '#1a1a2e', wall: '#050508', goal: '#1a6b3a', kill: '#8b2020',
-                          pushable: '#5a4a3a', plate: '#1a2a3a', door: '#2a2040',
+                          pushable: '#5a4a3a', plate: '#1a2a3a', door: '#2a2040', openDoor: '#1a1a2e',
                           ice: '#1a2a3a', crumble: '#2a2020', reverse: '#2a1a2e',
                           sticky: '#3a2818', tswitch: '#2a2018', conveyor: '#1a1a2e', oneway: '#1a1a2e',
                           rotation: '#1e1a2e', repaint: '#3a2432', filter: '#1f2435',
@@ -1843,7 +1877,8 @@ export default function LevelEditor() {
                         };
                         const borderMap: Record<string, string> = {
                           wall: 'border border-white/20', plate: 'border border-cyan-500/40',
-                          door: 'border border-purple-400/40 border-dashed', ice: 'border border-cyan-300/30',
+                          door: 'border border-purple-400/40 border-dashed', openDoor: 'border border-teal-300/40 border-dashed',
+                          ice: 'border border-cyan-300/30',
                           sticky: 'border border-amber-400/40', tswitch: 'border border-orange-400/40',
                           conveyor: 'border border-blue-400/40', oneway: 'border border-yellow-400/40',
                           rotation: 'border border-purple-400/40', repaint: 'border border-fuchsia-400/40',
