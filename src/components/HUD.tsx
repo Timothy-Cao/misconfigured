@@ -63,13 +63,15 @@ export default function HUD({ levelId, levelName, sourceLabel, levelComplete, se
                   {onToggleSimulationSpeed && (
                     <button
                       onClick={onToggleSimulationSpeed}
-                      className={`text-xs px-3 py-2 border rounded-lg transition-all duration-200 ${
+                      className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] shadow-sm transition-all duration-200 ${
                         simulationSpeed > 1
-                          ? 'border-cyan-400/35 bg-cyan-500/12 text-cyan-200 hover:bg-cyan-500/18'
-                          : 'border-white/10 text-white/55 hover:border-white/25 hover:bg-white/5 hover:text-white'
+                          ? 'border-cyan-300/55 bg-cyan-400/20 text-cyan-50 shadow-cyan-500/10 hover:bg-cyan-400/28'
+                          : 'border-amber-200/30 bg-amber-400/10 text-amber-100/80 hover:border-amber-200/45 hover:bg-amber-400/16 hover:text-amber-50'
                       }`}
+                      aria-label={`Set simulation speed to ${simulationSpeed > 1 ? '1x' : '2x'}`}
                     >
-                      {simulationSpeed.toFixed(0)}x
+                      <span className="text-white/40">Speed</span>
+                      <span>{simulationSpeed.toFixed(0)}x</span>
                     </button>
                   )}
                 </div>

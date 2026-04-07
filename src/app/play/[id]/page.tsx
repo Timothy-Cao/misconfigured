@@ -50,7 +50,7 @@ export default function PlayPage() {
   const [isNewBest, setIsNewBest] = useState(false);
   const [gameOver, setGameOver] = useState(false);
   const [gameOverReason, setGameOverReason] = useState<'lives' | 'moves' | null>(null);
-  const [simulationSpeed, setSimulationSpeed] = useState(1);
+  const [simulationSpeed, setSimulationSpeed] = useState(() => replayMode ? 2 : 1);
   const movesUsedRef = useRef(0);
   const solutionMovesRef = useRef<ReplayAction[]>([]);
   const usingLocalCampaignBackup = isCampaignLevel && !!loadError && !!localOverride;

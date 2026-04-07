@@ -2152,13 +2152,15 @@ export default function LevelEditor() {
                   )}
                   <button
                     onClick={() => setPreviewSimulationSpeed(current => current === 1 ? 2 : 1)}
-                    className={`text-xs px-3 py-2 rounded-lg border transition-all duration-200 ${
+                    className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-[11px] font-black uppercase tracking-[0.14em] transition-all duration-200 ${
                       previewSimulationSpeed > 1
-                        ? 'border-cyan-400/35 bg-cyan-500/12 text-cyan-200 hover:bg-cyan-500/18'
-                        : 'border-white/10 bg-white/[0.02] text-white/70 hover:bg-white/8 hover:border-white/20'
+                        ? 'border-cyan-300/55 bg-cyan-400/20 text-cyan-50 hover:bg-cyan-400/28'
+                        : 'border-amber-200/30 bg-amber-400/10 text-amber-100/80 hover:border-amber-200/45 hover:bg-amber-400/16 hover:text-amber-50'
                     }`}
+                    aria-label={`Set playtest speed to ${previewSimulationSpeed > 1 ? '1x' : '2x'}`}
                   >
-                    {previewSimulationSpeed}x Speed
+                    <span className="text-white/40">Speed</span>
+                    <span>{previewSimulationSpeed}x</span>
                   </button>
                   <button
                     onClick={startPreview}
@@ -2184,13 +2186,15 @@ export default function LevelEditor() {
                   </button>
                   <button
                     onClick={() => setPreviewSimulationSpeed(current => current === 1 ? 2 : 1)}
-                    className={`text-xs px-3 py-2 rounded-lg border transition-all duration-200 ${
+                    className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-[11px] font-black uppercase tracking-[0.14em] transition-all duration-200 ${
                       previewSimulationSpeed > 1
-                        ? 'border-cyan-400/35 bg-cyan-500/12 text-cyan-200 hover:bg-cyan-500/18'
-                        : 'border-white/10 bg-white/[0.02] text-white/70 hover:bg-white/8 hover:border-white/20'
+                        ? 'border-cyan-300/55 bg-cyan-400/20 text-cyan-50 hover:bg-cyan-400/28'
+                        : 'border-amber-200/30 bg-amber-400/10 text-amber-100/80 hover:border-amber-200/45 hover:bg-amber-400/16 hover:text-amber-50'
                     }`}
+                    aria-label={`Set playtest speed to ${previewSimulationSpeed > 1 ? '1x' : '2x'}`}
                   >
-                    {previewSimulationSpeed}x Speed
+                    <span className="text-white/40">Speed</span>
+                    <span>{previewSimulationSpeed}x</span>
                   </button>
                 </>
               )}
