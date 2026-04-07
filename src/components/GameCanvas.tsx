@@ -267,8 +267,6 @@ export default function GameCanvas({
       },
       onLivesUpdate: (lives, maxLives) => onLivesUpdateRef.current?.(lives, maxLives),
       onMovesUpdate: (movesUsed, maxMoves) => onMovesUpdateRef.current?.(movesUsed, maxMoves),
-    }, {
-      speedMultiplier: simulationSpeed,
     });
     engineRef.current = engine;
     engine.start();
@@ -290,7 +288,11 @@ export default function GameCanvas({
       window.removeEventListener('keydown', handleKeyDown);
       engineRef.current = null;
     };
-  }, [autoRestartOnGameOver, level, simulationSpeed]);
+  }, [autoRestartOnGameOver, level]);
+
+  useEffect(() => {
+    engineRef.current?.setSpeedMultiplier(simulationSpeed);
+  }, [simulationSpeed]);
 
   const handleTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
     if (event.touches.length !== 1) return;
