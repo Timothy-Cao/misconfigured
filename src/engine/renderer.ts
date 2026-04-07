@@ -1,4 +1,4 @@
-import { TileType, COLORS, PLAYER_SIZE_RATIO, type LevelData, type GameState, isPressurePlate, pressurePlateNumber, isDoor, doorNumber, isOpenDoor, openDoorNumber, controlledWallNumber, controlledWallStartsOpen, isControlledWallOpen, isToggleSwitch, isToggleBlock, toggleNumber, isConveyor, conveyorDirection, isOneWay, oneWayOrientation, isRotationTile, rotationTileCW, isRepaintStation, repaintRotation, isColorFilter, colorFilterRotation, DIR_DX, DIR_DY } from './types';
+import { TileType, COLORS, PLAYER_SIZE_RATIO, type LevelData, type GameState, isPressurePlate, pressurePlateNumber, isDoor, doorNumber, isOpenDoor, openDoorNumber, controlledWallNumber, controlledWallStartsOpen, isControlledWallOpen, isToggleSwitch, isToggleBlock, toggleNumber, isConveyor, conveyorDirection, isOneWay, oneWayOrientation, isRotationTile, rotationTileCW, isRepaintStation, repaintRotation, isColorFilter, colorFilterRotation, DIR_DX } from './types';
 
 const ARROW_ANGLES: Record<number, number> = {
   0: -Math.PI / 2,
@@ -29,8 +29,7 @@ function getTileColor(tile: number, time: number, isOccupiedGoal: boolean, activ
     const n = pressurePlateNumber(tile);
     const active = activePlates.has(n);
     if (active) {
-      const pulse = 0.7 + 0.3 * Math.sin(time * 5);
-      return `rgb(${Math.round(60 + 40 * pulse)}, ${Math.round(180 + 40 * pulse)}, ${Math.round(200 + 55 * pulse)})`;
+      return '#3fbdd3';
     }
     return '#1a2a3a';
   }
@@ -43,8 +42,7 @@ function getTileColor(tile: number, time: number, isOccupiedGoal: boolean, activ
     const n = toggleNumber(tile);
     const active = toggledSwitches.has(n);
     if (active) {
-      const pulse = 0.7 + 0.3 * Math.sin(time * 4);
-      return `rgb(${Math.round(220 + 35 * pulse)}, ${Math.round(140 + 40 * pulse)}, ${Math.round(60 + 30 * pulse)})`;
+      return '#e8953f';
     }
     return '#2a2018';
   }
@@ -54,9 +52,7 @@ function getTileColor(tile: number, time: number, isOccupiedGoal: boolean, activ
     return '#2a2040';
   }
   if (tile === TileType.BLACKHOLE) {
-    const pulse = 0.6 + 0.4 * Math.sin(time * 2);
-    const g = Math.round(120 + 40 * pulse);
-    return `rgb(20, ${g}, 50)`;
+    return '#147a32';
   }
   if (tile === TileType.STICKY) return '#3a2818';
   if (isRepaintStation(tile)) {
@@ -73,28 +69,14 @@ function getTileColor(tile: number, time: number, isOccupiedGoal: boolean, activ
 
   switch (tile) {
     case TileType.FLOOR: return '#1a1a2e';
-    case TileType.KILL: {
-      const pulse = 0.7 + 0.3 * Math.sin(time * 3);
-      const r = Math.round(180 * pulse);
-      return `rgb(${r}, 30, 30)`;
-    }
+    case TileType.KILL: return '#8b2020';
     case TileType.GOAL: {
       if (isOccupiedGoal) {
-        const flash = 0.7 + 0.3 * Math.sin(time * 8);
-        const g = Math.round(200 + 55 * flash);
-        const b = Math.round(120 + 60 * flash);
-        return `rgb(60, ${g}, ${b})`;
+        return '#3bd384';
       }
-      const pulse = 0.6 + 0.4 * Math.sin(time * 2);
-      const g = Math.round(160 + 60 * pulse);
-      return `rgb(40, ${g}, 80)`;
+      return '#1f9b4d';
     }
-    case TileType.CHECKPOINT: {
-      const pulse = 0.7 + 0.3 * Math.sin(time * 2.5);
-      const r = Math.round(200 + 55 * pulse);
-      const g = Math.round(170 + 50 * pulse);
-      return `rgb(${r}, ${g}, 40)`;
-    }
+    case TileType.CHECKPOINT: return '#b99a25';
     case TileType.PUSHABLE: return '#5a4a3a';
     case TileType.ICE: return '#1a2a3a';
     case TileType.CRUMBLE: return isCrumbled ? null : '#2a2020';
@@ -149,14 +131,13 @@ function drawVoidPattern(ctx: CanvasRenderingContext2D, x: number, y: number, s:
 }
 
 /** Draw ice crystal pattern */
-function drawIcePattern(ctx: CanvasRenderingContext2D, cx: number, cy: number, s: number, time: number): void {
-  const shimmer = 0.15 + 0.1 * Math.sin(time * 2);
-  ctx.strokeStyle = `rgba(150,220,255,${shimmer})`;
+function drawIcePattern(ctx: CanvasRenderingContext2D, cx: number, cy: number, s: number): void {
+  ctx.strokeStyle = 'rgba(150,220,255,0.18)';
   ctx.lineWidth = 1;
   const r = s * 0.3;
   // Draw a 6-pointed sparkle
   for (let i = 0; i < 6; i++) {
-    const angle = (i * Math.PI) / 3 + time * 0.3;
+    const angle = (i * Math.PI) / 3;
     ctx.beginPath();
     ctx.moveTo(cx, cy);
     ctx.lineTo(cx + Math.cos(angle) * r, cy + Math.sin(angle) * r);
@@ -172,7 +153,7 @@ export function render(
 ): void {
   const { tileSize, occupiedGoals, activePlates, crumbledTiles, toggledSwitches } = state;
   const time = options.staticPreview ? 0 : state.time;
-  const glowEnabled = !options.staticPreview;
+  const tileGlowEnabled = false;
   const width = level.width * tileSize;
   const height = level.height * tileSize;
   const gap = 2;
@@ -241,7 +222,7 @@ export function render(
         isColorFilter(tile) ||
         (isPressurePlate(tile) && activePlates.has(pressurePlateNumber(tile)))
       ) {
-        if (glowEnabled) {
+        if (tileGlowEnabled) {
           ctx.save();
           if (isOccupiedGoal) {
             ctx.shadowColor = '#88ffcc';
@@ -294,8 +275,7 @@ export function render(
 
       // Kill zone skull (large)
       if (tile === TileType.KILL) {
-        const iconAlpha = 0.3 + 0.15 * Math.sin(time * 3);
-        ctx.fillStyle = `rgba(255,255,255,${iconAlpha})`;
+        ctx.fillStyle = 'rgba(255,255,255,0.34)';
         ctx.font = skullFont;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
@@ -304,8 +284,7 @@ export function render(
 
       // Goal star
       if (tile === TileType.GOAL) {
-        const iconAlpha = isOccupiedGoal ? 0.6 + 0.3 * Math.sin(time * 8) : 0.3 + 0.15 * Math.sin(time * 2);
-        ctx.fillStyle = `rgba(255,255,255,${iconAlpha})`;
+        ctx.fillStyle = isOccupiedGoal ? 'rgba(255,255,255,0.72)' : 'rgba(255,255,255,0.34)';
         ctx.font = iconFont;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
@@ -323,25 +302,9 @@ export function render(
         // Spinning ring
         ctx.beginPath();
         ctx.arc(cx, cy, bhRadius + 2, 0, Math.PI * 2);
-        ctx.strokeStyle = `rgba(100,255,150,${0.3 + 0.2 * Math.sin(time * 3)})`;
+        ctx.strokeStyle = 'rgba(100,255,150,0.36)';
         ctx.lineWidth = 2;
         ctx.stroke();
-        // Spiral arms
-        for (let k = 0; k < 3; k++) {
-          const baseAngle = time * 2 + (k * Math.PI * 2) / 3;
-          ctx.beginPath();
-          for (let t2 = 0; t2 < 1; t2 += 0.05) {
-            const r = bhRadius + t2 * s * 0.2;
-            const a = baseAngle + t2 * 2;
-            const sx = cx + Math.cos(a) * r;
-            const sy = cy + Math.sin(a) * r;
-            if (t2 === 0) ctx.moveTo(sx, sy);
-            else ctx.lineTo(sx, sy);
-          }
-          ctx.strokeStyle = `rgba(100,255,150,${0.15 * (1 - 0)})`;
-          ctx.lineWidth = 1.5;
-          ctx.stroke();
-        }
       }
 
       // Pushable block — brick pattern
@@ -351,7 +314,7 @@ export function render(
 
       // Ice — crystal sparkle
       if (tile === TileType.ICE) {
-        drawIcePattern(ctx, cx, cy, s, time);
+        drawIcePattern(ctx, cx, cy, s);
       }
 
       // Mud — wavy lines
@@ -378,8 +341,7 @@ export function render(
 
       // Reverse — swirl arrows
       if (tile === TileType.REVERSE) {
-        const pulse = 0.2 + 0.1 * Math.sin(time * 3);
-        ctx.fillStyle = `rgba(200,100,255,${pulse})`;
+        ctx.fillStyle = 'rgba(200,100,255,0.24)';
         ctx.font = iconFont;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
@@ -393,7 +355,7 @@ export function render(
           const yy = y + s * (0.22 + i * 0.16);
           ctx.beginPath();
           ctx.moveTo(x + s * 0.18, yy);
-          ctx.lineTo(x + s * 0.82, yy + Math.sin(time * 2 + i) * 1.5);
+          ctx.lineTo(x + s * 0.82, yy);
           ctx.stroke();
         }
       }
@@ -513,7 +475,6 @@ export function render(
       if (isConveyor(tile)) {
         const dir = conveyorDirection(tile);
         const dx = DIR_DX[dir];
-        const dy = DIR_DY[dir];
         const horizontal = dx !== 0;
         const beltX = x;
         const beltY = y;
@@ -528,8 +489,7 @@ export function render(
         const slatSpacing = s * 0.22;
         const slatWidth = horizontal ? s * 0.16 : beltW * 0.9;
         const slatHeight = horizontal ? beltH * 0.9 : s * 0.16;
-        const travel = (time * 1.6) % 1;
-        const offset = travel * slatSpacing * (horizontal ? dx : dy);
+        const offset = 0;
         ctx.fillStyle = 'rgba(120,190,255,0.28)';
 
         for (let k = -6; k <= 6; k++) {
@@ -599,8 +559,7 @@ export function render(
       // Rotation tile — CW or CCW indicator
       if (isRotationTile(tile)) {
         const cw = rotationTileCW(tile);
-        const pulse = 0.25 + 0.1 * Math.sin(time * 3);
-        ctx.fillStyle = `rgba(180,120,255,${pulse})`;
+        ctx.fillStyle = 'rgba(180,120,255,0.28)';
         ctx.font = `bold ${Math.max(16, s * 0.52)}px Arial`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
@@ -609,36 +568,26 @@ export function render(
 
       // Life pickup heart
       if (tile === TileType.LIFE_PICKUP) {
-        const pulse = 0.7 + 0.3 * Math.sin(time * 3);
-        const heartScale = 0.9 + 0.1 * Math.sin(time * 3);
         ctx.save();
         ctx.translate(cx, cy + 1);
-        ctx.scale(heartScale, heartScale);
-        ctx.fillStyle = `rgba(255, 80, 100, ${pulse})`;
+        ctx.fillStyle = 'rgba(255, 80, 100, 0.88)';
         ctx.font = `${Math.max(14, s * 0.5)}px Arial`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText('\u2764', 0, 0);
         ctx.restore();
-        // Subtle glow
-        const glowAlpha = 0.08 + 0.06 * Math.sin(time * 3);
-        ctx.beginPath();
-        ctx.arc(cx, cy, s * 0.35, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(255, 80, 100, ${glowAlpha})`;
-        ctx.fill();
       }
 
       // Checkpoint sparkle dots
       if (tile === TileType.CHECKPOINT) {
         for (let k = 0; k < 3; k++) {
-          const angle = time * 1.5 + (k * Math.PI * 2) / 3;
+          const angle = (k * Math.PI * 2) / 3;
           const dist = tileSize * 0.2;
           const sx = cx + Math.cos(angle) * dist;
           const sy = cy + Math.sin(angle) * dist;
-          const alpha = 0.4 + 0.4 * Math.sin(time * 4 + k);
           ctx.beginPath();
           ctx.arc(sx, sy, 1.5, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(255, 230, 100, ${alpha})`;
+          ctx.fillStyle = 'rgba(255, 230, 100, 0.55)';
           ctx.fill();
         }
       }
