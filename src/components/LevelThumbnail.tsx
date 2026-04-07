@@ -43,13 +43,13 @@ export default function LevelThumbnail({ level, className = '' }: LevelThumbnail
 
   return (
     <div
-      className={`overflow-hidden rounded-xl border border-white/10 bg-[#0a0a0f] shadow-inner ${className}`}
-      style={{ aspectRatio: `${level.width} / ${level.height}` }}
+      className={`flex items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-[#0a0a0f] shadow-inner ${className}`}
       aria-hidden="true"
     >
       <canvas
         ref={canvasRef}
-        className="block h-full w-full"
+        className="block max-h-full max-w-full"
+        style={{ aspectRatio: `${level.width} / ${level.height}` }}
       />
     </div>
   );
