@@ -38,7 +38,7 @@ export default function LevelThumbnail({ level, className = '' }: LevelThumbnail
     const state = createInitialState(renderLevel, tileSize);
     canvas.width = renderLevel.width * tileSize;
     canvas.height = renderLevel.height * tileSize;
-    render(ctx, renderLevel, state);
+    render(ctx, renderLevel, state, { staticPreview: true });
   }, [level, levelHash, tileSize]);
 
   return (

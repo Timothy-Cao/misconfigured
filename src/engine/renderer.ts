@@ -170,8 +170,11 @@ export function render(
   ctx: CanvasRenderingContext2D,
   level: LevelData,
   state: GameState,
+  options: { staticPreview?: boolean } = {},
 ): void {
-  const { tileSize, time, occupiedGoals, activePlates, crumbledTiles, toggledSwitches } = state;
+  const { tileSize, occupiedGoals, activePlates, crumbledTiles, toggledSwitches } = state;
+  const time = options.staticPreview ? 0 : state.time;
+  const glowEnabled = !options.staticPreview;
   const width = level.width * tileSize;
   const height = level.height * tileSize;
   const gap = 2;
@@ -240,34 +243,40 @@ export function render(
         isColorFilter(tile) ||
         (isPressurePlate(tile) && activePlates.has(pressurePlateNumber(tile)))
       ) {
-        ctx.save();
-        if (isOccupiedGoal) {
-          ctx.shadowColor = '#88ffcc';
-          ctx.shadowBlur = 16 + 6 * Math.sin(time * 8);
-        } else if (isPressurePlate(tile)) {
-          ctx.shadowColor = '#55ccee';
-          ctx.shadowBlur = 10 + 4 * Math.sin(time * 5);
-        } else if (tile === TileType.ICE) {
-          ctx.shadowColor = '#66ccff';
-          ctx.shadowBlur = 4 + 2 * Math.sin(time * 2);
-        } else if (tile === TileType.STICKY) {
-          ctx.shadowColor = '#e6a35a';
-          ctx.shadowBlur = 8 + 2 * Math.sin(time * 2.5);
-        } else if (isRepaintStation(tile) || isColorFilter(tile)) {
-          const rotation = isRepaintStation(tile) ? repaintRotation(tile) : colorFilterRotation(tile);
-          ctx.shadowColor = COLORS.players[rotation];
-          ctx.shadowBlur = 10 + 3 * Math.sin(time * 2);
-        } else if (tile === TileType.BLACKHOLE) {
-          ctx.shadowColor = '#22cc66';
-          ctx.shadowBlur = 12 + 6 * Math.sin(time * 2);
+        if (glowEnabled) {
+          ctx.save();
+          if (isOccupiedGoal) {
+            ctx.shadowColor = '#88ffcc';
+            ctx.shadowBlur = 16 + 6 * Math.sin(time * 8);
+          } else if (isPressurePlate(tile)) {
+            ctx.shadowColor = '#55ccee';
+            ctx.shadowBlur = 10 + 4 * Math.sin(time * 5);
+          } else if (tile === TileType.ICE) {
+            ctx.shadowColor = '#66ccff';
+            ctx.shadowBlur = 4 + 2 * Math.sin(time * 2);
+          } else if (tile === TileType.STICKY) {
+            ctx.shadowColor = '#e6a35a';
+            ctx.shadowBlur = 8 + 2 * Math.sin(time * 2.5);
+          } else if (isRepaintStation(tile) || isColorFilter(tile)) {
+            const rotation = isRepaintStation(tile) ? repaintRotation(tile) : colorFilterRotation(tile);
+            ctx.shadowColor = COLORS.players[rotation];
+            ctx.shadowBlur = 10 + 3 * Math.sin(time * 2);
+          } else if (tile === TileType.BLACKHOLE) {
+            ctx.shadowColor = '#22cc66';
+            ctx.shadowBlur = 12 + 6 * Math.sin(time * 2);
+          } else {
+            ctx.shadowColor = tile === TileType.GOAL ? '#4ade80' : '#ff3333';
+            ctx.shadowBlur = 8 + 4 * Math.sin(time * 3);
+          }
+          roundRect(ctx, x, y, s, s, radius);
+          ctx.fillStyle = color;
+          ctx.fill();
+          ctx.restore();
         } else {
-          ctx.shadowColor = tile === TileType.GOAL ? '#4ade80' : '#ff3333';
-          ctx.shadowBlur = 8 + 4 * Math.sin(time * 3);
+          roundRect(ctx, x, y, s, s, radius);
+          ctx.fillStyle = color;
+          ctx.fill();
         }
-        roundRect(ctx, x, y, s, s, radius);
-        ctx.fillStyle = color;
-        ctx.fill();
-        ctx.restore();
       } else {
         roundRect(ctx, x, y, s, s, radius);
         ctx.fillStyle = color;
