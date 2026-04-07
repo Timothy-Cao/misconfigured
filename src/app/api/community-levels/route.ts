@@ -73,7 +73,7 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to save cloud map.';
-    const status = /sign in/i.test(message) ? 401 : /own|publish up to 5/i.test(message) ? 400 : 500;
+    const status = /sign in/i.test(message) ? 401 : /own|publish up to/i.test(message) ? 400 : 500;
     return Response.json({ error: message }, { status });
   }
 }

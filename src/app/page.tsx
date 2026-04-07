@@ -52,7 +52,7 @@ export default function Home() {
             <div className="rounded-2xl border border-white/10 bg-white/[0.02] px-6 py-4 text-left">
               <p className="text-sm font-semibold text-white/75">Cloud maps are live</p>
               <p className="mt-1 text-xs sm:text-sm text-white/35">
-                Sign in with Google to save account-owned maps, keep them private, and publish up to 5 to the Community list.
+                Sign in with Google to save account-owned maps, keep them private, and publish up to 10 to the Community list.
               </p>
             </div>
           </div>

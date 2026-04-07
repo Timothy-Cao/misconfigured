@@ -1,4 +1,5 @@
 import { type LevelData } from '@/engine/types';
+import { MAX_PUBLISHED_COMMUNITY_LEVELS } from '@/lib/community-limits';
 import { getSupabaseAdminClient } from '@/lib/supabase/admin-client';
 
 export interface OwnedCommunityLevelSummary {
@@ -169,8 +170,8 @@ async function ensurePublishedLimit(ownerId: string, nextPublished: boolean, exi
     throw error instanceof Error ? error : new Error('Failed to check published map limit.');
   }
 
-  if ((count ?? 0) >= 5) {
-    throw new Error('You can publish up to 5 community maps at a time.');
+  if ((count ?? 0) >= MAX_PUBLISHED_COMMUNITY_LEVELS) {
+    throw new Error(`You can publish up to ${MAX_PUBLISHED_COMMUNITY_LEVELS} community maps at a time.`);
   }
 }
 

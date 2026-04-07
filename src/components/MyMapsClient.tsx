@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { type OwnedCloudLevelSummary } from '@/lib/auth';
+import { MAX_PUBLISHED_COMMUNITY_LEVELS } from '@/lib/community-limits';
 import { deleteOwnedCommunityLevelFromApi, setCommunityLevelPublishedInApi } from '@/lib/community-api';
 
 interface MyMapsClientProps {
@@ -85,7 +86,7 @@ export default function MyMapsClient({ initialLevels, initialWarning }: MyMapsCl
           {levels.length} cloud map{levels.length === 1 ? '' : 's'} owned
         </p>
         <p className="text-xs text-white/30">
-          Published maps: {publishedCount}/5
+          Published maps: {publishedCount}/{MAX_PUBLISHED_COMMUNITY_LEVELS}
         </p>
       </div>
 

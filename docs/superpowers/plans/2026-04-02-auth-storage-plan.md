@@ -8,7 +8,7 @@ Add Google sign-in and account-backed persistence so players can:
 
 - sign in with Google
 - keep a personal cloud collection of levels they own
-- publish up to 5 of their cloud levels to the public community at a time
+- publish up to 10 of their cloud levels to the public community at a time
 - freely edit and delete their own published or unpublished cloud levels
 - see author names attached to community maps
 
@@ -54,7 +54,7 @@ Use the simplest stack that matches the current Supabase direction:
 - Can save cloud-owned maps.
 - Can load and edit only their own cloud maps.
 - Can publish or unpublish their own cloud maps.
-- Can have at most 5 published community maps at one time.
+- Can have at most 10 published community maps at one time.
 - Can delete their own cloud maps freely.
 
 ### Admin
@@ -113,7 +113,7 @@ Keep the current table, but add optional provenance:
 - Unpublished cloud levels are readable only by their owner.
 - A signed-in user can insert only rows where `owner_id = auth.uid()`.
 - A signed-in user can update/delete only their own rows.
-- A user can publish a level only if they currently have fewer than 5 published levels.
+- A user can publish a level only if they currently have fewer than 10 published levels.
 - Campaign writes are admin-only.
 
 ## Local vs Cloud Storage

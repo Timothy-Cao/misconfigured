@@ -1,0 +1,1 @@
+export const MAX_PUBLISHED_COMMUNITY_LEVELS = 10;

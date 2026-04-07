@@ -78,7 +78,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     return Response.json({ summary });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to update publication status.';
-    const status = /own|publish up to 5/i.test(message) ? 400 : 500;
+    const status = /own|publish up to/i.test(message) ? 400 : 500;
     return Response.json({ error: message }, { status });
   }
 }
