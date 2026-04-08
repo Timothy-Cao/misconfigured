@@ -149,84 +149,101 @@ export default function LevelSelect() {
         <button
           type="button"
           onClick={toggleBestSolutions}
-          className={`rounded-xl border px-4 py-2 text-xs font-black uppercase tracking-[0.18em] transition-all duration-200 ${
+          aria-pressed={showBestSolutions}
+          aria-label={`Switch to ${showBestSolutions ? 'play' : 'solution'} mode`}
+          className={`flex items-center gap-2 rounded-2xl border px-2 py-2 text-xs font-black uppercase tracking-[0.16em] transition-all duration-200 ${
             showBestSolutions
-              ? 'border-cyan-300/40 bg-cyan-400/15 text-cyan-100'
-              : 'border-white/10 bg-white/[0.04] text-white/45 hover:border-white/20 hover:bg-white/[0.08] hover:text-white/75'
+              ? 'border-cyan-300/45 bg-cyan-400/15 text-cyan-100 shadow-[0_0_22px_rgba(34,211,238,0.08)]'
+              : 'border-white/10 bg-white/[0.04] text-white/60 hover:border-white/20 hover:bg-white/[0.08] hover:text-white/85'
           }`}
         >
-          {showBestSolutions ? 'Showing Best Solutions' : 'Show Best Solutions'}
+          <span className={`rounded-xl px-3 py-1.5 transition-all ${
+            showBestSolutions ? 'text-white/40' : 'bg-white/90 text-black'
+          }`}>
+            Play
+          </span>
+          <span className={`rounded-xl px-3 py-1.5 transition-all ${
+            showBestSolutions ? 'bg-cyan-200 text-black' : 'text-white/40'
+          }`}>
+            Solution
+          </span>
         </button>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5 sm:gap-4">
-        {levelCards.map(({ id, level, hash }, i) => {
-          const unlocked = isUnlocked(id);
-          const completed = progress.completedLevels.includes(id);
-          const difficulty = getCampaignDifficulty(id, level?.name);
-          const hasLocalOverride = Boolean(getLocalCampaignOverride(id));
-          const hasServerOverride = serverOverrides.has(id);
-          const showLocalBackupWarning = hasLocalOverride && !hasServerOverride;
-          const bestScore = hash ? bestScores.get(hash) : undefined;
-          const hasBestSolution = Boolean(bestScore?.solutionMoves);
-          const cardHref = showBestSolutions && hasBestSolution ? `/play/${id}?replay=best` : `/play/${id}`;
+      <div className={`rounded-[2rem] border p-3 transition-colors duration-300 sm:p-4 ${
+        showBestSolutions
+          ? 'border-white/20 bg-slate-200/[0.10]'
+          : 'border-transparent bg-transparent'
+      }`}>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5 sm:gap-4">
+          {levelCards.map(({ id, level, hash }, i) => {
+            const unlocked = isUnlocked(id);
+            const completed = progress.completedLevels.includes(id);
+            const difficulty = getCampaignDifficulty(id, level?.name);
+            const hasLocalOverride = Boolean(getLocalCampaignOverride(id));
+            const hasServerOverride = serverOverrides.has(id);
+            const showLocalBackupWarning = hasLocalOverride && !hasServerOverride;
+            const bestScore = hash ? bestScores.get(hash) : undefined;
+            const hasBestSolution = Boolean(bestScore?.solutionMoves);
+            const cardHref = showBestSolutions && hasBestSolution ? `/play/${id}?replay=best` : `/play/${id}`;
 
-          if (!unlocked) {
-            return (
-              <div
-                key={id}
-                className={`relative flex min-h-[132px] flex-col justify-between rounded-2xl p-2 text-white/20 cursor-not-allowed border ring-1 ${DIFFICULTY_CARD_CLASS[difficulty]} select-none`}
-                style={{ animationDelay: `${i * 30}ms` }}
-                aria-label={`Level ${id} locked`}
-              >
-                {level && <LevelThumbnail level={level} className="h-20 w-full opacity-30" />}
-                <span className="font-mono text-lg">{id}</span>
-              </div>
-            );
-          }
-
-          return (
-            <Link
-              key={id}
-              href={cardHref}
-              className={`relative flex min-h-[148px] flex-col justify-between gap-2 rounded-2xl p-2 text-white/85 transition-all duration-300 border ring-1 ${DIFFICULTY_CARD_CLASS[difficulty]} hover:shadow-[0_0_20px_rgba(255,255,255,0.06)] select-none`}
-              style={{ animationDelay: `${i * 30}ms` }}
-              aria-label={showBestSolutions && hasBestSolution ? `Show best solution for level ${id}` : `Play level ${id}`}
-            >
-              {level && <LevelThumbnail level={level} className="h-20 w-full sm:h-24" />}
-              {showLocalBackupWarning && (
-                <span className="absolute top-2 right-2 rounded-full border border-amber-400/40 bg-amber-500/10 px-2 py-0.5 text-[9px] uppercase tracking-[0.2em] text-amber-200/80">
-                  Backup
-                </span>
-              )}
-              <div className="flex items-end justify-between gap-2">
-                <div className="min-w-0">
-                  <div className="font-mono text-lg leading-none sm:text-xl">
-                    <span className={completed ? 'text-green-200' : 'text-white/90'}>
-                      {completed ? '✓' : id}
-                    </span>
-                  </div>
-                  <div className="mt-1 truncate text-[10px] uppercase tracking-[0.14em] text-white/35">
-                    {level?.name ?? `Level ${id}`}
-                  </div>
+            if (!unlocked) {
+              return (
+                <div
+                  key={id}
+                  className={`relative flex min-h-[132px] flex-col justify-between rounded-2xl p-2 text-white/20 cursor-not-allowed border ring-1 ${DIFFICULTY_CARD_CLASS[difficulty]} select-none`}
+                  style={{ animationDelay: `${i * 30}ms` }}
+                  aria-label={`Level ${id} locked`}
+                >
+                  {level && <LevelThumbnail level={level} className="h-20 w-full opacity-30" />}
+                  <span className="font-mono text-lg">{id}</span>
                 </div>
-                <span className={`shrink-0 rounded-full border px-2 py-1 text-[9px] font-black uppercase tracking-[0.14em] ${
-                  showBestSolutions
-                    ? hasBestSolution
-                      ? 'border-cyan-300/40 bg-cyan-400/15 text-cyan-100'
-                      : 'border-white/10 bg-black/20 text-white/25'
-                    : bestScore
-                      ? 'border-cyan-300/30 bg-cyan-400/10 text-cyan-100/80'
-                      : 'border-white/10 bg-black/20 text-white/25'
-                }`}>
-                  {showBestSolutions
-                    ? (hasBestSolution ? 'Best Solution' : 'No Solution')
-                    : (bestScore ? `Best ${bestScore.bestMoves}` : 'No Best')}
-                </span>
-              </div>
-            </Link>
-          );
-        })}
+              );
+            }
+
+            return (
+              <Link
+                key={id}
+                href={cardHref}
+                className={`relative flex min-h-[148px] flex-col justify-between gap-2 rounded-2xl p-2 text-white/85 transition-all duration-300 border ring-1 ${DIFFICULTY_CARD_CLASS[difficulty]} hover:shadow-[0_0_20px_rgba(255,255,255,0.06)] select-none`}
+                style={{ animationDelay: `${i * 30}ms` }}
+                aria-label={showBestSolutions && hasBestSolution ? `Show best solution for level ${id}` : `Play level ${id}`}
+              >
+                {level && <LevelThumbnail level={level} className="h-20 w-full sm:h-24" />}
+                {showLocalBackupWarning && (
+                  <span className="absolute top-2 right-2 rounded-full border border-amber-400/40 bg-amber-500/10 px-2 py-0.5 text-[9px] uppercase tracking-[0.2em] text-amber-200/80">
+                    Backup
+                  </span>
+                )}
+                <div className="flex items-end justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="font-mono text-lg leading-none sm:text-xl">
+                      <span className={completed ? 'text-green-200' : 'text-white/90'}>
+                        {completed ? '✓' : id}
+                      </span>
+                    </div>
+                    <div className="mt-1 truncate text-[10px] uppercase tracking-[0.14em] text-white/35">
+                      {level?.name ?? `Level ${id}`}
+                    </div>
+                  </div>
+                  <span className={`shrink-0 rounded-full border px-2 py-1 text-[9px] font-black uppercase tracking-[0.14em] ${
+                    showBestSolutions
+                      ? hasBestSolution
+                        ? 'border-white/25 bg-white/15 text-white'
+                        : 'border-white/10 bg-black/20 text-white/25'
+                      : bestScore
+                        ? 'border-cyan-300/30 bg-cyan-400/10 text-cyan-100/80'
+                        : 'border-white/10 bg-black/20 text-white/25'
+                  }`}>
+                    {showBestSolutions
+                      ? (hasBestSolution ? `${bestScore?.bestMoves ?? ''} moves` : 'No Solution')
+                      : (bestScore ? `Best ${bestScore.bestMoves}` : 'No Best')}
+                  </span>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
