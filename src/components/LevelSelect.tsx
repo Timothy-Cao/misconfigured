@@ -22,17 +22,10 @@ const DIFFICULTY_LEGEND: Array<{ key: Difficulty; label: string; swatchClassName
 ];
 
 const DIFFICULTY_CARD_CLASS: Record<Difficulty, string> = {
-  tutorial: 'ring-white/35',
-  easy: 'ring-emerald-400/45',
-  medium: 'ring-amber-300/50',
-  hard: 'ring-red-400/55',
-};
-
-const DIFFICULTY_BADGE_CLASS: Record<Difficulty, string> = {
-  tutorial: 'border-white/20 bg-white/10 text-white/75',
-  easy: 'border-emerald-300/30 bg-emerald-400/10 text-emerald-100/80',
-  medium: 'border-amber-300/35 bg-amber-400/10 text-amber-100/85',
-  hard: 'border-red-300/40 bg-red-400/10 text-red-100/90',
+  tutorial: 'border-white/20 bg-white/[0.08] ring-white/35 hover:border-white/35 hover:bg-white/[0.13]',
+  easy: 'border-emerald-300/25 bg-emerald-500/[0.12] ring-emerald-300/45 hover:border-emerald-200/45 hover:bg-emerald-400/[0.18]',
+  medium: 'border-amber-300/30 bg-amber-400/[0.14] ring-amber-300/50 hover:border-amber-200/50 hover:bg-amber-300/[0.20]',
+  hard: 'border-red-300/35 bg-red-500/[0.14] ring-red-300/55 hover:border-red-200/55 hover:bg-red-400/[0.20]',
 };
 
 function getCampaignDifficulty(levelId: number, levelName?: string): Difficulty {
@@ -180,7 +173,7 @@ export default function LevelSelect() {
             return (
               <div
                 key={id}
-                className={`relative flex min-h-[132px] flex-col justify-between rounded-2xl bg-white/[0.03] p-2 text-white/15 cursor-not-allowed border border-white/[0.04] ring-1 ${DIFFICULTY_CARD_CLASS[difficulty]} select-none`}
+                className={`relative flex min-h-[132px] flex-col justify-between rounded-2xl p-2 text-white/20 cursor-not-allowed border ring-1 ${DIFFICULTY_CARD_CLASS[difficulty]} select-none`}
                 style={{ animationDelay: `${i * 30}ms` }}
                 aria-label={`Level ${id} locked`}
               >
@@ -194,20 +187,11 @@ export default function LevelSelect() {
             <Link
               key={id}
               href={cardHref}
-              className={`relative flex min-h-[148px] flex-col justify-between gap-2 rounded-2xl p-2 transition-all duration-300 border ring-1 ${DIFFICULTY_CARD_CLASS[difficulty]} select-none ${
-                showBestSolutions && hasBestSolution
-                  ? 'bg-cyan-500/10 text-cyan-100 border-cyan-300/25 hover:bg-cyan-500/18 hover:border-cyan-200/40 hover:shadow-[0_0_20px_rgba(34,211,238,0.12)]'
-                  : completed
-                    ? 'bg-green-500/10 text-green-400 border-green-500/20 hover:bg-green-500/20 hover:border-green-500/40 hover:shadow-[0_0_20px_rgba(74,222,128,0.1)]'
-                    : 'bg-white/[0.06] text-white/80 border-white/10 hover:bg-white/[0.12] hover:border-white/25 hover:shadow-[0_0_20px_rgba(255,255,255,0.05)]'
-              }`}
+              className={`relative flex min-h-[148px] flex-col justify-between gap-2 rounded-2xl p-2 text-white/85 transition-all duration-300 border ring-1 ${DIFFICULTY_CARD_CLASS[difficulty]} hover:shadow-[0_0_20px_rgba(255,255,255,0.06)] select-none`}
               style={{ animationDelay: `${i * 30}ms` }}
               aria-label={showBestSolutions && hasBestSolution ? `Show best solution for level ${id}` : `Play level ${id}`}
             >
               {level && <LevelThumbnail level={level} className="h-20 w-full sm:h-24" />}
-              <span className={`absolute left-2 top-2 rounded-full border px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.16em] ${DIFFICULTY_BADGE_CLASS[difficulty]}`}>
-                {difficulty === 'tutorial' ? 'Tut' : difficulty}
-              </span>
               {showLocalBackupWarning && (
                 <span className="absolute top-2 right-2 rounded-full border border-amber-400/40 bg-amber-500/10 px-2 py-0.5 text-[9px] uppercase tracking-[0.2em] text-amber-200/80">
                   Backup
@@ -216,7 +200,9 @@ export default function LevelSelect() {
               <div className="flex items-end justify-between gap-2">
                 <div className="min-w-0">
                   <div className="font-mono text-lg leading-none sm:text-xl">
-                    {completed ? '✓' : id}
+                    <span className={completed ? 'text-green-200' : 'text-white/90'}>
+                      {completed ? '✓' : id}
+                    </span>
                   </div>
                   <div className="mt-1 truncate text-[10px] uppercase tracking-[0.14em] text-white/35">
                     {level?.name ?? `Level ${id}`}
