@@ -12,13 +12,14 @@ import { type LevelData } from '@/engine/types';
 
 const SHOW_BEST_SOLUTIONS_STORAGE_KEY = 'misconfigured:show-best-solutions';
 
-type Difficulty = 'tutorial' | 'easy' | 'medium' | 'hard';
+type Difficulty = 'tutorial' | 'easy' | 'medium' | 'hard' | 'impossible';
 
 const DIFFICULTY_LEGEND: Array<{ key: Difficulty; label: string; swatchClassName: string }> = [
   { key: 'tutorial', label: 'Tutorial', swatchClassName: 'bg-white' },
   { key: 'easy', label: 'Easy', swatchClassName: 'bg-emerald-400' },
   { key: 'medium', label: 'Medium', swatchClassName: 'bg-amber-300' },
   { key: 'hard', label: 'Hard', swatchClassName: 'bg-red-400' },
+  { key: 'impossible', label: 'Impossible', swatchClassName: 'bg-black ring-1 ring-white/25' },
 ];
 
 const DIFFICULTY_CARD_CLASS: Record<Difficulty, string> = {
@@ -26,6 +27,7 @@ const DIFFICULTY_CARD_CLASS: Record<Difficulty, string> = {
   easy: 'border-emerald-300/25 bg-emerald-500/[0.12] ring-emerald-300/45 hover:border-emerald-200/45 hover:bg-emerald-400/[0.18]',
   medium: 'border-amber-300/30 bg-amber-400/[0.14] ring-amber-300/50 hover:border-amber-200/50 hover:bg-amber-300/[0.20]',
   hard: 'border-red-300/35 bg-red-500/[0.14] ring-red-300/55 hover:border-red-200/55 hover:bg-red-400/[0.20]',
+  impossible: 'border-white/10 bg-black/70 ring-white/20 hover:border-white/20 hover:bg-black/80',
 };
 
 function getCampaignDifficulty(levelId: number, levelName?: string): Difficulty {
