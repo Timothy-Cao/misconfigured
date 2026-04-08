@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "exportedAt": "2026-04-08T00:00:49.037Z",
+  "exportedAt": "2026-04-08T06:13:13.332Z",
   "source": "supabase",
   "bestScores": [
     {
@@ -46,6 +46,17 @@
       "playerDisplayName": "Timothy Cao",
       "solutionMoves": "DDWWAWWAAWWDDWWDWWAAAA",
       "achievedAt": "2026-04-07T21:11:05.984+00:00"
+    },
+    {
+      "levelHash": "0910a668d8fd51",
+      "bestMoves": 42,
+      "source": "campaign",
+      "sourceLevelId": 5,
+      "levelName": "Color Filter",
+      "playerUserId": "a7eda59b-08e0-4a63-9450-ce69906065ad",
+      "playerDisplayName": "bob joe",
+      "solutionMoves": "SSASAAAAAAWAAAWWWWWWDDAAAASSSSSSSSSDDDDDDD",
+      "achievedAt": "2026-04-08T00:17:09.167+00:00"
     },
     {
       "levelHash": "14bdac738d62b0",
@@ -104,14 +115,14 @@
     },
     {
       "levelHash": "0182ea6eacad67",
-      "bestMoves": 13,
+      "bestMoves": 10,
       "source": "campaign",
       "sourceLevelId": 11,
       "levelName": "Ice and Fire 3",
-      "playerUserId": "15394b2c-6c5c-4035-ba00-d32701d4e60c",
-      "playerDisplayName": "Timothy Cao",
-      "solutionMoves": "DWDDSDWAAWDWA",
-      "achievedAt": "2026-04-07T21:55:41.793+00:00"
+      "playerUserId": "a7eda59b-08e0-4a63-9450-ce69906065ad",
+      "playerDisplayName": "bob joe",
+      "solutionMoves": "WAAWDWADWD",
+      "achievedAt": "2026-04-08T00:23:03.717+00:00"
     },
     {
       "levelHash": "07847cd52b0e0d",
@@ -136,15 +147,15 @@
       "achievedAt": "2026-04-07T21:58:23.023+00:00"
     },
     {
-      "levelHash": "0ad5d1e7f56fae",
-      "bestMoves": 11,
+      "levelHash": "14a64523924429",
+      "bestMoves": 35,
       "source": "campaign",
       "sourceLevelId": 14,
-      "levelName": "Skating Rink",
+      "levelName": "Rotation Station 2",
       "playerUserId": null,
       "playerDisplayName": null,
-      "solutionMoves": "WWWWWWDWASW",
-      "achievedAt": "2026-04-07T21:08:54.016+00:00"
+      "solutionMoves": "AWSADAASWAWADDADAAAWWWWASDASDWASDDD",
+      "achievedAt": "2026-04-08T02:07:21.63+00:00"
     },
     {
       "levelHash": "108b0d504b1516",
@@ -158,26 +169,26 @@
       "achievedAt": "2026-04-07T22:04:12.215+00:00"
     },
     {
-      "levelHash": "14a64523924429",
-      "bestMoves": 39,
+      "levelHash": "0ad5d1e7f56fae",
+      "bestMoves": 11,
       "source": "campaign",
       "sourceLevelId": 16,
-      "levelName": "Rotation Station 2",
-      "playerUserId": "15394b2c-6c5c-4035-ba00-d32701d4e60c",
-      "playerDisplayName": "Timothy Cao",
-      "solutionMoves": "AWSADAASWAWASWADAAAAWWWWASDWSDWASWWSWWW",
-      "achievedAt": "2026-04-07T22:06:50.298+00:00"
+      "levelName": "Skating Rink",
+      "playerUserId": null,
+      "playerDisplayName": null,
+      "solutionMoves": "WWWWWWDWASW",
+      "achievedAt": "2026-04-07T21:08:54.016+00:00"
     },
     {
       "levelHash": "0e6e53f1c63cd3",
-      "bestMoves": 81,
+      "bestMoves": 60,
       "source": "campaign",
       "sourceLevelId": 17,
       "levelName": "Disappearing Roads",
-      "playerUserId": "15394b2c-6c5c-4035-ba00-d32701d4e60c",
-      "playerDisplayName": "Timothy Cao",
-      "solutionMoves": "ASSAASSSSDDAAAAAAAASSSSSSWWWWAAAAAASSSWWWWWWWWASSDDDDDDDDDDDDDAAAAAAWWAWWWWDDDWWD",
-      "achievedAt": "2026-04-07T22:12:10.384+00:00"
+      "playerUserId": null,
+      "playerDisplayName": null,
+      "solutionMoves": "DDDAWDWAAAWAWAWDDDDDDDWAAAAWAAAAAAWWWWWSSSSSSSSWDSSSSAAAAAAA",
+      "achievedAt": "2026-04-08T02:57:09.419+00:00"
     },
     {
       "levelHash": "0919616a56c1c3",
@@ -258,14 +269,14 @@
     },
     {
       "levelHash": "09050a316df6a9",
-      "bestMoves": 161,
+      "bestMoves": 98,
       "source": "campaign",
       "sourceLevelId": 25,
       "levelName": "switcheroo",
       "playerUserId": "15394b2c-6c5c-4035-ba00-d32701d4e60c",
       "playerDisplayName": "Timothy Cao",
-      "solutionMoves": "ASDSADDWWDWWDDASSDSSSSAAAAWDDDDDDDSSWWAADAWWWDDSAWWSDWDDDAWDDSSSSWDDSSAAASDDDWWWWSASSWASWWDDDDSAWWSSWAAASSDWSSSSDWASAWDDDDAWWWAADDWWDAAAADDDDDWDDWDWWASAAAAAWDAAA",
-      "achievedAt": "2026-04-07T23:52:02.733+00:00"
+      "solutionMoves": "ASDSADDWWDWWDDASSDADSSASASAAWDWDDDDDDDWWAWWAWWWAASSSSDDDWWAAWWWDWWDDASSWSADDDDDDDWWAAAAAADSAAAAAAW",
+      "achievedAt": "2026-04-08T01:27:58.866+00:00"
     },
     {
       "levelHash": "13b804d25aedfc",
@@ -279,6 +290,17 @@
       "achievedAt": "2026-04-07T19:14:13.163+00:00"
     },
     {
+      "levelHash": "0845a9b3402276",
+      "bestMoves": 7,
+      "source": "campaign-test",
+      "sourceLevelId": 16,
+      "levelName": "Ice and fire 6",
+      "playerUserId": "15394b2c-6c5c-4035-ba00-d32701d4e60c",
+      "playerDisplayName": "Timothy Cao",
+      "solutionMoves": null,
+      "achievedAt": "2026-04-07T16:44:15.365+00:00"
+    },
+    {
       "levelHash": "170d567ec01fd3",
       "bestMoves": 1,
       "source": "campaign-test",
@@ -290,15 +312,15 @@
       "achievedAt": "2026-04-07T16:38:06.016+00:00"
     },
     {
-      "levelHash": "0845a9b3402276",
-      "bestMoves": 7,
-      "source": "campaign-test",
-      "sourceLevelId": 16,
-      "levelName": "Ice and fire 6",
+      "levelHash": "1e8a01f86d575b",
+      "bestMoves": 29,
+      "source": "editor-test",
+      "sourceLevelId": null,
+      "levelName": "Editor Test",
       "playerUserId": "15394b2c-6c5c-4035-ba00-d32701d4e60c",
       "playerDisplayName": "Timothy Cao",
-      "solutionMoves": null,
-      "achievedAt": "2026-04-07T16:44:15.365+00:00"
+      "solutionMoves": "DDDDDDDDDDDDDDWWWWWWWWWWWAAAA",
+      "achievedAt": "2026-04-08T00:21:25.76+00:00"
     },
     {
       "levelHash": "05e6c6d40fed22",
