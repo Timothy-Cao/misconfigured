@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "exportedAt": "2026-04-08T06:13:13.332Z",
+  "exportedAt": "2026-04-08T16:53:40.308Z",
   "source": "supabase",
   "bestScores": [
     {
@@ -181,14 +181,14 @@
     },
     {
       "levelHash": "0e6e53f1c63cd3",
-      "bestMoves": 60,
+      "bestMoves": 53,
       "source": "campaign",
       "sourceLevelId": 17,
       "levelName": "Disappearing Roads",
-      "playerUserId": null,
-      "playerDisplayName": null,
-      "solutionMoves": "DDDAWDWAAAWAWAWDDDDDDDWAAAAWAAAAAAWWWWWSSSSSSSSWDSSSSAAAAAAA",
-      "achievedAt": "2026-04-08T02:57:09.419+00:00"
+      "playerUserId": "15394b2c-6c5c-4035-ba00-d32701d4e60c",
+      "playerDisplayName": "Timothy Cao",
+      "solutionMoves": "DDDWWWAAAAWDAWDAWDDDDDDWAAAAWAAAWWWWSDWSSSSSAAAAAAASS",
+      "achievedAt": "2026-04-08T15:22:34.623+00:00"
     },
     {
       "levelHash": "0919616a56c1c3",
@@ -290,17 +290,6 @@
       "achievedAt": "2026-04-07T19:14:13.163+00:00"
     },
     {
-      "levelHash": "0845a9b3402276",
-      "bestMoves": 7,
-      "source": "campaign-test",
-      "sourceLevelId": 16,
-      "levelName": "Ice and fire 6",
-      "playerUserId": "15394b2c-6c5c-4035-ba00-d32701d4e60c",
-      "playerDisplayName": "Timothy Cao",
-      "solutionMoves": null,
-      "achievedAt": "2026-04-07T16:44:15.365+00:00"
-    },
-    {
       "levelHash": "170d567ec01fd3",
       "bestMoves": 1,
       "source": "campaign-test",
@@ -310,6 +299,17 @@
       "playerDisplayName": "Timothy Cao",
       "solutionMoves": null,
       "achievedAt": "2026-04-07T16:38:06.016+00:00"
+    },
+    {
+      "levelHash": "0845a9b3402276",
+      "bestMoves": 7,
+      "source": "campaign-test",
+      "sourceLevelId": 16,
+      "levelName": "Ice and fire 6",
+      "playerUserId": "15394b2c-6c5c-4035-ba00-d32701d4e60c",
+      "playerDisplayName": "Timothy Cao",
+      "solutionMoves": null,
+      "achievedAt": "2026-04-07T16:44:15.365+00:00"
     },
     {
       "levelHash": "1e8a01f86d575b",

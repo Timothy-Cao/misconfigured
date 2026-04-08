@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "updatedAt": "2026-04-08T06:13:13.332Z",
+  "updatedAt": "2026-04-08T16:53:40.308Z",
   "source": "supabase.level_best_scores",
   "campaignSolutions": {
     "1": {
@@ -134,10 +134,10 @@
     "17": {
       "levelHash": "0e6e53f1c63cd3",
       "levelName": "Disappearing Roads",
-      "bestMoves": 60,
-      "solutionMoves": "DDDAWDWAAAWAWAWDDDDDDDWAAAAWAAAAAAWWWWWSSSSSSSSWDSSSSAAAAAAA",
-      "achievedAt": "2026-04-08T02:57:09.419+00:00",
-      "playerDisplayName": null
+      "bestMoves": 53,
+      "solutionMoves": "DDDWWWAAAAWDAWDAWDDDDDDWAAAAWAAAWWWWSDWSSSSSAAAAAAASS",
+      "achievedAt": "2026-04-08T15:22:34.623+00:00",
+      "playerDisplayName": "Timothy Cao"
     },
     "18": {
       "levelHash": "0919616a56c1c3",
