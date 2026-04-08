@@ -3,52 +3,51 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { useGameProgress } from '@/hooks/useGameProgress';
-import { TOTAL_LEVELS, getBuiltInLevel, getLocalCampaignOverride } from '@/levels';
-import { fetchCampaignOverrideFromApi, fetchCampaignOverrideIdsFromApi } from '@/lib/campaign-api';
+import { TOTAL_LEVELS, getBackedUpCampaignLevelIds, getBuiltInLevel, getLocalCampaignOverride } from '@/levels';
 import { fetchLevelBestScoresFromApi, type LevelBestScore } from '@/lib/best-score-api';
 import { getLevelHash } from '@/lib/level-hash';
 import LevelThumbnail from '@/components/LevelThumbnail';
-import { type LevelData } from '@/engine/types';
+
+const SHOW_BEST_SOLUTIONS_STORAGE_KEY = 'misconfigured:show-best-solutions';
+
+function readStoredShowBestSolutions(): boolean {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
+  try {
+    return window.localStorage.getItem(SHOW_BEST_SOLUTIONS_STORAGE_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
 
 export default function LevelSelect() {
   const { progress, isUnlocked } = useGameProgress();
-  const [serverOverrides, setServerOverrides] = useState<Set<number>>(new Set());
-  const [overrideLevels, setOverrideLevels] = useState<Map<number, LevelData>>(new Map());
+  const backedUpCampaignLevelIds = useMemo(() => new Set(getBackedUpCampaignLevelIds()), []);
   const [bestScores, setBestScores] = useState<Map<string, LevelBestScore>>(new Map());
-  const [showBestSolutions, setShowBestSolutions] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    async function loadOverrides() {
-      try {
-        const ids = await fetchCampaignOverrideIdsFromApi();
-        if (cancelled) return;
-        setServerOverrides(new Set(ids));
-        const entries = await Promise.all(
-          ids.map(async id => [id, await fetchCampaignOverrideFromApi(id)] as const),
-        );
-        if (cancelled) return;
-        setOverrideLevels(new Map(entries.flatMap(([id, level]) => level ? [[id, level] as const] : [])));
-      } catch {
-        if (cancelled) return;
-        setServerOverrides(new Set());
-        setOverrideLevels(new Map());
-      }
-    }
-    loadOverrides();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const [showBestSolutions, setShowBestSolutions] = useState(readStoredShowBestSolutions);
 
   const levelCards = useMemo(() => {
     return Array.from({ length: TOTAL_LEVELS }, (_, i) => {
       const id = i + 1;
-      const level = overrideLevels.get(id) ?? getLocalCampaignOverride(id) ?? getBuiltInLevel(id);
+      const level = getLocalCampaignOverride(id) ?? getBuiltInLevel(id);
       const hash = level ? getLevelHash(level) : null;
       return { id, level, hash };
     });
-  }, [overrideLevels]);
+  }, []);
+
+  const toggleBestSolutions = () => {
+    setShowBestSolutions(value => {
+      const next = !value;
+      try {
+        window.localStorage.setItem(SHOW_BEST_SOLUTIONS_STORAGE_KEY, String(next));
+      } catch {
+        // Ignore storage failures; the toggle still works for this session.
+      }
+      return next;
+    });
+  };
 
   const levelHashKey = useMemo(
     () => levelCards.map(card => card.hash).filter(Boolean).join(','),
@@ -81,7 +80,7 @@ export default function LevelSelect() {
       <div className="mb-4 flex justify-end">
         <button
           type="button"
-          onClick={() => setShowBestSolutions(value => !value)}
+          onClick={toggleBestSolutions}
           className={`rounded-xl border px-4 py-2 text-xs font-black uppercase tracking-[0.18em] transition-all duration-200 ${
             showBestSolutions
               ? 'border-cyan-300/40 bg-cyan-400/15 text-cyan-100'
@@ -97,8 +96,8 @@ export default function LevelSelect() {
           const unlocked = isUnlocked(id);
           const completed = progress.completedLevels.includes(id);
           const hasLocalOverride = Boolean(getLocalCampaignOverride(id));
-          const hasServerOverride = serverOverrides.has(id);
-          const showLocalBackupWarning = hasLocalOverride && !hasServerOverride;
+          const hasStaticBackup = backedUpCampaignLevelIds.has(id);
+          const showLocalBackupWarning = hasLocalOverride && !hasStaticBackup;
           const bestScore = hash ? bestScores.get(hash) : undefined;
           const hasBestSolution = Boolean(bestScore?.solutionMoves);
           const cardHref = showBestSolutions && hasBestSolution ? `/play/${id}?replay=best` : `/play/${id}`;

@@ -25,6 +25,7 @@ import level23 from './level-23';
 import level24 from './level-24';
 import level25 from './level-25';
 import { builtInCommunityLevels } from './community-levels';
+import cloudLevelBackup from '../../backups/cloud-levels.json';
 
 const builtInLevels: LevelData[] = [
   level01, level02, level03, level04, level05,
@@ -33,6 +34,9 @@ const builtInLevels: LevelData[] = [
   level16, level17, level18, level19, level20,
   level21, level22, level23, level24, level25,
 ];
+
+const backedUpCampaignLevels: Record<string, LevelData> =
+  (cloudLevelBackup as { campaignOverrides?: Record<string, LevelData> }).campaignOverrides ?? {};
 
 const CAMPAIGN_OVERRIDE_VERSION = 2;
 const CUSTOM_LEVELS_KEY = `misconfigured-custom-levels-v${CAMPAIGN_OVERRIDE_VERSION}`;
@@ -179,8 +183,7 @@ export function getLevel(id: number): LevelData | undefined {
   const community = getMergedCommunityLevelsRecord();
   if (community[String(id)]) return cloneLevel(community[String(id)]);
 
-  const builtIn = builtInLevels.find(l => l.id === id);
-  return builtIn ? cloneLevel(builtIn) : undefined;
+  return getBuiltInLevel(id);
 }
 
 export function getLocalCampaignOverride(id: number): LevelData | undefined {
@@ -189,7 +192,22 @@ export function getLocalCampaignOverride(id: number): LevelData | undefined {
   return level ? cloneLevel(level) : undefined;
 }
 
+export function getBackedUpCampaignLevel(id: number): LevelData | undefined {
+  const level = backedUpCampaignLevels[String(id)];
+  return level ? cloneLevel(level) : undefined;
+}
+
+export function getBackedUpCampaignLevelIds(): number[] {
+  return Object.keys(backedUpCampaignLevels)
+    .map(Number)
+    .filter(id => Number.isFinite(id))
+    .sort((a, b) => a - b);
+}
+
 export function getBuiltInLevel(id: number): LevelData | undefined {
+  const backedUp = getBackedUpCampaignLevel(id);
+  if (backedUp) return backedUp;
+
   const builtIn = builtInLevels.find(l => l.id === id);
   return builtIn ? cloneLevel(builtIn) : undefined;
 }
