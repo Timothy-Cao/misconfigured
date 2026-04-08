@@ -141,9 +141,6 @@ export default function LevelSelect() {
             <h1 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
               Campaign Standard
             </h1>
-            <p className="mt-1 text-sm text-white/35 sm:text-base">
-              All campaign levels are available right away.
-            </p>
           </div>
           <button
             type="button"
