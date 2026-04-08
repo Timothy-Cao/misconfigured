@@ -856,7 +856,7 @@ export default function LevelEditor() {
         } else if (isDoor(tile)) {
           color = '#2a2040';
         } else if (isOpenDoor(tile)) {
-          color = '#1a1a2e';
+          color = '#102a34';
         } else if (isToggleSwitch(tile)) {
           color = '#2a2018';
         } else if (isConveyor(tile)) {
@@ -1030,9 +1030,10 @@ export default function LevelEditor() {
         if (isDoor(tile) || isOpenDoor(tile)) {
           const startsOpen = isOpenDoor(tile);
           const n = startsOpen ? openDoorNumber(tile) : doorNumber(tile);
+          const accent = startsOpen ? 'rgba(90,220,210,0.58)' : 'rgba(160,120,220,0.5)';
 
           ctx.save();
-          ctx.strokeStyle = startsOpen ? 'rgba(120,220,190,0.5)' : 'rgba(160,120,220,0.5)';
+          ctx.strokeStyle = accent;
           ctx.lineWidth = 2;
           ctx.setLineDash([4, 3]);
           ctx.beginPath();
@@ -1041,12 +1042,25 @@ export default function LevelEditor() {
           ctx.setLineDash([]);
           ctx.restore();
 
+          if (startsOpen) {
+            ctx.save();
+            ctx.strokeStyle = 'rgba(90,220,210,0.48)';
+            ctx.lineWidth = Math.max(1, tilePx * 0.05);
+            ctx.beginPath();
+            ctx.moveTo(x + s * 0.18, y + s * 0.22);
+            ctx.lineTo(x + s * 0.18, y + s * 0.78);
+            ctx.moveTo(x + s * 0.82, y + s * 0.22);
+            ctx.lineTo(x + s * 0.82, y + s * 0.78);
+            ctx.stroke();
+            ctx.restore();
+          }
+
           ctx.save();
-          ctx.fillStyle = startsOpen ? 'rgba(120,220,190,0.65)' : 'rgba(160,120,220,0.6)';
+          ctx.fillStyle = startsOpen ? 'rgba(130,245,230,0.72)' : 'rgba(160,120,220,0.6)';
           ctx.font = `bold ${tilePx * 0.4}px monospace`;
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
-          ctx.fillText(startsOpen ? `O${n}` : String(n), cx, cy + 1);
+          ctx.fillText(String(n), cx, cy + 1);
           ctx.restore();
         }
 

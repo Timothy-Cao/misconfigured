@@ -35,6 +35,9 @@ function getTileColor(tile: number, time: number, isOccupiedGoal: boolean, activ
   }
   if (isDoor(tile) || isOpenDoor(tile)) {
     const open = isControlledWallOpen(tile, activePlates, toggledSwitches);
+    if (isOpenDoor(tile)) {
+      return open ? '#102a34' : '#163847';
+    }
     if (open) return '#1a1a2e';
     return '#2a2040';
   }
@@ -408,10 +411,11 @@ export function render(
         const n = isOpenDoor(tile) ? openDoorNumber(tile) : doorNumber(tile);
         const open = isControlledWallOpen(tile, activePlates, toggledSwitches);
         const startsOpen = controlledWallStartsOpen(tile);
+        const accent = startsOpen ? 'rgba(90,220,210,0.58)' : 'rgba(160,120,220,0.5)';
 
         if (!open) {
           ctx.save();
-          ctx.strokeStyle = 'rgba(160,120,220,0.5)';
+          ctx.strokeStyle = accent;
           ctx.lineWidth = 2;
           ctx.setLineDash([4, 3]);
           roundRect(ctx, x + 1, y + 1, s - 2, s - 2, radius - 1);
@@ -420,11 +424,26 @@ export function render(
           ctx.restore();
         }
 
-        ctx.fillStyle = open ? 'rgba(255,255,255,0.15)' : 'rgba(160,120,220,0.5)';
+        if (startsOpen) {
+          ctx.save();
+          ctx.strokeStyle = open ? 'rgba(90,220,210,0.34)' : 'rgba(90,220,210,0.65)';
+          ctx.lineWidth = Math.max(1, tileSize * 0.05);
+          ctx.beginPath();
+          ctx.moveTo(x + s * 0.18, y + s * 0.22);
+          ctx.lineTo(x + s * 0.18, y + s * 0.78);
+          ctx.moveTo(x + s * 0.82, y + s * 0.22);
+          ctx.lineTo(x + s * 0.82, y + s * 0.78);
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        ctx.fillStyle = open
+          ? (startsOpen ? 'rgba(130,245,230,0.32)' : 'rgba(255,255,255,0.15)')
+          : accent;
         ctx.font = doorFont;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(startsOpen ? `O${n}` : String(n), cx, cy + 1);
+        ctx.fillText(String(n), cx, cy + 1);
       }
 
       // Toggle switch — number with circle indicator
