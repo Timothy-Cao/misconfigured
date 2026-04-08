@@ -57,7 +57,7 @@ export default async function MyMapsPage() {
                   This is your hub for private saves, publishing to Community, and opening maps in the editor.
                 </p>
               </div>
-              <MyMapsClient initialLevels={levels} initialWarning={warning} />
+              <MyMapsClient initialLevels={levels} initialWarning={warning} isAdmin={user.isAdmin} />
             </>
           )}
         </div>

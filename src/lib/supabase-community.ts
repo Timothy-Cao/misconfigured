@@ -35,6 +35,7 @@ export interface OwnedCommunityLevelRecord extends OwnedCommunityLevelSummary {
 export interface SaveOwnedCommunityLevelInput {
   id?: number | null;
   ownerId: string;
+  isAdmin?: boolean;
   level: LevelData;
   isPublished: boolean;
 }
@@ -77,10 +78,31 @@ function mapRowToOwnedSummary(row: CommunityLevelRow): OwnedCommunityLevelSummar
   };
 }
 
+function getSupabaseErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof Error) {
+    return error.message || fallback;
+  }
+
+  if (error && typeof error === 'object') {
+    const maybeError = error as { message?: unknown; details?: unknown; code?: unknown };
+    const parts = [
+      typeof maybeError.message === 'string' ? maybeError.message : null,
+      typeof maybeError.details === 'string' ? maybeError.details : null,
+      typeof maybeError.code === 'string' ? `code ${maybeError.code}` : null,
+    ].filter(Boolean);
+
+    if (parts.length > 0) {
+      return parts.join(' ');
+    }
+  }
+
+  return fallback;
+}
+
 async function selectRows(query: PromiseLike<{ data: CommunityLevelRow[] | null; error: unknown }>): Promise<CommunityLevelRow[]> {
   const { data, error } = await query;
   if (error) {
-    throw error instanceof Error ? error : new Error('Supabase query failed.');
+    throw new Error(getSupabaseErrorMessage(error, 'Supabase query failed.'));
   }
   return data ?? [];
 }
@@ -149,8 +171,8 @@ export async function getAccessibleCommunityLevelFromSupabase(id: number, viewer
   return row ? mapRowToOwnedRecord(row) : null;
 }
 
-async function ensurePublishedLimit(ownerId: string, nextPublished: boolean, existingId?: number | null): Promise<void> {
-  if (!nextPublished) {
+async function ensurePublishedLimit(ownerId: string, nextPublished: boolean, existingId?: number | null, isAdmin = false): Promise<void> {
+  if (!nextPublished || isAdmin) {
     return;
   }
 
@@ -167,7 +189,7 @@ async function ensurePublishedLimit(ownerId: string, nextPublished: boolean, exi
 
   const { count, error } = await query;
   if (error) {
-    throw error instanceof Error ? error : new Error('Failed to check published map limit.');
+    throw new Error(getSupabaseErrorMessage(error, 'Failed to check published map limit.'));
   }
 
   if ((count ?? 0) >= MAX_PUBLISHED_COMMUNITY_LEVELS) {
@@ -176,7 +198,7 @@ async function ensurePublishedLimit(ownerId: string, nextPublished: boolean, exi
 }
 
 export async function saveOwnedCommunityLevelInSupabase(input: SaveOwnedCommunityLevelInput): Promise<OwnedCommunityLevelRecord> {
-  const { id, ownerId, level, isPublished } = input;
+  const { id, ownerId, isAdmin = false, level, isPublished } = input;
   const admin = getSupabaseAdminClient();
 
   if (id != null) {
@@ -187,7 +209,7 @@ export async function saveOwnedCommunityLevelInSupabase(input: SaveOwnedCommunit
 
     const alreadyPublished = Boolean(existing.is_published);
     if (!alreadyPublished || !isPublished) {
-      await ensurePublishedLimit(ownerId, isPublished, id);
+      await ensurePublishedLimit(ownerId, isPublished, id, isAdmin);
     }
 
     const { data, error } = await admin
@@ -208,7 +230,7 @@ export async function saveOwnedCommunityLevelInSupabase(input: SaveOwnedCommunit
       .limit(1);
 
     if (error) {
-      throw error instanceof Error ? error : new Error('Failed to update cloud map.');
+      throw new Error(getSupabaseErrorMessage(error, 'Failed to update cloud map.'));
     }
 
     const row = data?.[0];
@@ -219,7 +241,7 @@ export async function saveOwnedCommunityLevelInSupabase(input: SaveOwnedCommunit
     return mapRowToOwnedRecord(row as CommunityLevelRow);
   }
 
-  await ensurePublishedLimit(ownerId, isPublished);
+  await ensurePublishedLimit(ownerId, isPublished, null, isAdmin);
 
   const { data, error } = await admin
     .from('community_levels')
@@ -238,7 +260,7 @@ export async function saveOwnedCommunityLevelInSupabase(input: SaveOwnedCommunit
     .limit(1);
 
   if (error) {
-    throw error instanceof Error ? error : new Error('Failed to create cloud map.');
+    throw new Error(getSupabaseErrorMessage(error, 'Failed to create cloud map.'));
   }
 
   const row = data?.[0];
@@ -249,14 +271,14 @@ export async function saveOwnedCommunityLevelInSupabase(input: SaveOwnedCommunit
   return mapRowToOwnedRecord(row as CommunityLevelRow);
 }
 
-export async function setOwnedCommunityLevelPublishedInSupabase(ownerId: string, id: number, isPublished: boolean): Promise<OwnedCommunityLevelSummary> {
+export async function setOwnedCommunityLevelPublishedInSupabase(ownerId: string, id: number, isPublished: boolean, isAdmin = false): Promise<OwnedCommunityLevelSummary> {
   const existing = await getOwnedCommunityLevelRowFromSupabase(id, ownerId);
   if (!existing) {
     throw new Error('You can only manage your own cloud maps.');
   }
 
   if (!existing.is_published || !isPublished) {
-    await ensurePublishedLimit(ownerId, isPublished, id);
+    await ensurePublishedLimit(ownerId, isPublished, id, isAdmin);
   }
 
   const admin = getSupabaseAdminClient();
@@ -271,7 +293,7 @@ export async function setOwnedCommunityLevelPublishedInSupabase(ownerId: string,
     .limit(1);
 
   if (error) {
-    throw error instanceof Error ? error : new Error('Failed to update publication status.');
+    throw new Error(getSupabaseErrorMessage(error, 'Failed to update publication status.'));
   }
 
   const row = data?.[0];
@@ -296,6 +318,6 @@ export async function deleteOwnedCommunityLevelFromSupabase(ownerId: string, id:
     .eq('owner_id', ownerId);
 
   if (error) {
-    throw error instanceof Error ? error : new Error('Failed to delete cloud map.');
+    throw new Error(getSupabaseErrorMessage(error, 'Failed to delete cloud map.'));
   }
 }

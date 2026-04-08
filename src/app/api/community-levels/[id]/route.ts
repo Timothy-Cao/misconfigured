@@ -74,7 +74,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       return Response.json({ error: 'Missing publication status.' }, { status: 400 });
     }
 
-    const summary = await setOwnedCommunityLevelPublishedInSupabase(user.id, numericId, isPublished);
+    const summary = await setOwnedCommunityLevelPublishedInSupabase(user.id, numericId, isPublished, user.isAdmin);
     return Response.json({ summary });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to update publication status.';

@@ -10,6 +10,7 @@ import { deleteOwnedCommunityLevelFromApi, setCommunityLevelPublishedInApi } fro
 interface MyMapsClientProps {
   initialLevels: OwnedCloudLevelSummary[];
   initialWarning: string | null;
+  isAdmin?: boolean;
 }
 
 function formatUpdatedAt(updatedAt: string | null): string {
@@ -19,7 +20,7 @@ function formatUpdatedAt(updatedAt: string | null): string {
   return value.toLocaleString();
 }
 
-export default function MyMapsClient({ initialLevels, initialWarning }: MyMapsClientProps) {
+export default function MyMapsClient({ initialLevels, initialWarning, isAdmin = false }: MyMapsClientProps) {
   const router = useRouter();
   const [levels, setLevels] = useState(initialLevels);
   const [message, setMessage] = useState<string | null>(initialWarning);
@@ -86,7 +87,7 @@ export default function MyMapsClient({ initialLevels, initialWarning }: MyMapsCl
           {levels.length} cloud map{levels.length === 1 ? '' : 's'} owned
         </p>
         <p className="text-xs text-white/30">
-          Published maps: {publishedCount}/{MAX_PUBLISHED_COMMUNITY_LEVELS}
+          Published maps: {isAdmin ? `${publishedCount}/unlimited` : `${publishedCount}/${MAX_PUBLISHED_COMMUNITY_LEVELS}`}
         </p>
       </div>
 

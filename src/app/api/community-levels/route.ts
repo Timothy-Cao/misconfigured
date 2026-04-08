@@ -56,6 +56,7 @@ export async function POST(request: Request) {
     const saved = await saveOwnedCommunityLevelInSupabase({
       id: id != null ? Number(id) : null,
       ownerId: user.id,
+      isAdmin: user.isAdmin,
       level,
       isPublished: Boolean(isPublished),
     });

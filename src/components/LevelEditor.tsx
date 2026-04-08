@@ -1956,7 +1956,7 @@ export default function LevelEditor() {
               )
             ) : (
               <div className="mb-3 rounded-lg border border-cyan-400/20 bg-cyan-500/10 px-3 py-2 text-[11px] leading-relaxed text-cyan-200/80">
-                Cloud maps are owned by your account. Save privately, then publish up to {MAX_PUBLISHED_COMMUNITY_LEVELS} maps from here or My Maps.
+                Cloud maps are owned by your account. Save privately, then publish {authUser?.isAdmin ? 'unlimited community maps as admin' : `up to ${MAX_PUBLISHED_COMMUNITY_LEVELS} maps`} from here or My Maps.
               </div>
             )}
             <div className={`mb-3 rounded-lg border px-3 py-2 text-[11px] leading-relaxed ${
@@ -2008,7 +2008,7 @@ export default function LevelEditor() {
                   {!cloudSignedIn
                     ? 'Sign in with Google to create or manage cloud maps.'
                     : cloudLevels.length > 0
-                      ? `You own ${cloudLevels.length} cloud map${cloudLevels.length === 1 ? '' : 's'}. Published right now: ${cloudLevels.filter(level => level.isPublished).length}/${MAX_PUBLISHED_COMMUNITY_LEVELS}.`
+                      ? `You own ${cloudLevels.length} cloud map${cloudLevels.length === 1 ? '' : 's'}. Published right now: ${cloudLevels.filter(level => level.isPublished).length}/${authUser?.isAdmin ? 'unlimited' : MAX_PUBLISHED_COMMUNITY_LEVELS}.`
                       : 'No cloud maps yet. Saving here will create your first one.'}
                 </div>
                 <label className="flex items-center gap-3 mb-3 rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2 text-sm text-white/75">
