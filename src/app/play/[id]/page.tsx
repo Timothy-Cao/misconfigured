@@ -15,11 +15,53 @@ import { getLevelHash } from '@/lib/level-hash';
 
 const REGULAR_SIMULATION_SPEEDS = [1, 2] as const;
 const REPLAY_SIMULATION_SPEEDS = [1, 2, 4, 8] as const;
+const GAMEPLAY_SPEED_STORAGE_KEY = 'misconfigured:gameplay-speed';
+const REPLAY_SPEED_STORAGE_KEY = 'misconfigured:replay-speed';
 
 function getNextSimulationSpeed(current: number, replayMode: boolean): number {
   const speeds = replayMode ? REPLAY_SIMULATION_SPEEDS : REGULAR_SIMULATION_SPEEDS;
   const currentIndex = speeds.findIndex(speed => speed === current);
   return speeds[(currentIndex + 1) % speeds.length] ?? speeds[0];
+}
+
+function getDefaultSimulationSpeed(replayMode: boolean): number {
+  return replayMode ? 2 : 1;
+}
+
+function getSimulationSpeedStorageKey(replayMode: boolean): string {
+  return replayMode ? REPLAY_SPEED_STORAGE_KEY : GAMEPLAY_SPEED_STORAGE_KEY;
+}
+
+function isValidSimulationSpeed(speed: number, replayMode: boolean): boolean {
+  const speeds = replayMode ? REPLAY_SIMULATION_SPEEDS : REGULAR_SIMULATION_SPEEDS;
+  return speeds.some(candidate => candidate === speed);
+}
+
+function readStoredSimulationSpeed(replayMode: boolean): number {
+  if (typeof window === 'undefined') {
+    return getDefaultSimulationSpeed(replayMode);
+  }
+
+  try {
+    const stored = Number(window.localStorage.getItem(getSimulationSpeedStorageKey(replayMode)));
+    return isValidSimulationSpeed(stored, replayMode)
+      ? stored
+      : getDefaultSimulationSpeed(replayMode);
+  } catch {
+    return getDefaultSimulationSpeed(replayMode);
+  }
+}
+
+function writeStoredSimulationSpeed(replayMode: boolean, speed: number): void {
+  if (typeof window === 'undefined' || !isValidSimulationSpeed(speed, replayMode)) {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(getSimulationSpeedStorageKey(replayMode), String(speed));
+  } catch {
+    // Ignore storage failures; speed still works for the current session.
+  }
 }
 
 export default function PlayPage() {
@@ -59,7 +101,8 @@ export default function PlayPage() {
   const [isNewBest, setIsNewBest] = useState(false);
   const [gameOver, setGameOver] = useState(false);
   const [gameOverReason, setGameOverReason] = useState<'lives' | 'moves' | null>(null);
-  const [simulationSpeed, setSimulationSpeed] = useState(() => replayMode ? 2 : 1);
+  const [simulationSpeed, setSimulationSpeed] = useState(() => getDefaultSimulationSpeed(replayMode));
+  const [loadedSpeedStorageKey, setLoadedSpeedStorageKey] = useState<string | null>(null);
   const movesUsedRef = useRef(0);
   const solutionMovesRef = useRef<ReplayAction[]>([]);
   const usingLocalCampaignBackup = isCampaignLevel && !!loadError && !!localOverride;
@@ -75,13 +118,17 @@ export default function PlayPage() {
   );
 
   useEffect(() => {
-    if (replayMode) {
-      setSimulationSpeed(2);
+    setSimulationSpeed(readStoredSimulationSpeed(replayMode));
+    setLoadedSpeedStorageKey(getSimulationSpeedStorageKey(replayMode));
+  }, [replayMode]);
+
+  useEffect(() => {
+    if (loadedSpeedStorageKey !== getSimulationSpeedStorageKey(replayMode)) {
       return;
     }
 
-    setSimulationSpeed(current => current > 2 ? 1 : current);
-  }, [replayMode]);
+    writeStoredSimulationSpeed(replayMode, simulationSpeed);
+  }, [loadedSpeedStorageKey, replayMode, simulationSpeed]);
 
   useEffect(() => {
     let cancelled = false;
