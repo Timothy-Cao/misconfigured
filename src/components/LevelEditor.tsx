@@ -161,7 +161,7 @@ export default function LevelEditor() {
   const [levelName, setLevelName] = useState('');
   const [levelLives, setLevelLives] = useState(1);
   const [levelMaxMoves, setLevelMaxMoves] = useState(0);
-  const [publishScope, setPublishScope] = useState<PublishScope>('campaign');
+  const [publishScope, setPublishScope] = useState<PublishScope>('community');
   const [saveTargetId, setSaveTargetId] = useState(1);
   const [cloudLevels, setCloudLevels] = useState<OwnedCloudLevelSummary[]>([]);
   const [cloudTargetId, setCloudTargetId] = useState<number | null>(null);
@@ -244,6 +244,12 @@ export default function LevelEditor() {
       cancelled = true;
     };
   }, [refreshCloudLevels]);
+
+  useEffect(() => {
+    if (!authUser?.isAdmin && publishScope === 'campaign') {
+      setPublishScope('community');
+    }
+  }, [authUser?.isAdmin, publishScope]);
 
   useEffect(() => {
     const supabase = getSupabaseBrowserClient();
@@ -1517,6 +1523,11 @@ export default function LevelEditor() {
     }
 
     if (publishScope === 'campaign') {
+      if (!authUser?.isAdmin) {
+        setMessage({ text: 'Campaign saves require your signed-in admin account. Switch to Community to save a cloud map.', type: 'error' });
+        return;
+      }
+
       const levelData = buildLevelData(saveTargetId, `Level ${saveTargetId}`);
       try {
         await saveCampaignOverrideToApi(saveTargetId, levelData);
@@ -1554,7 +1565,7 @@ export default function LevelEditor() {
       const text = error instanceof Error ? error.message : 'Failed to save cloud map.';
       setMessage({ text, type: 'error' });
     }
-  }, [buildLevelData, cloudPublished, cloudSignedIn, cloudTargetId, isDraftVerified, levelName, markCurrentDraftAsBaseline, publishScope, refreshCloudLevels, saveTargetId, validate]);
+  }, [authUser?.isAdmin, buildLevelData, cloudPublished, cloudSignedIn, cloudTargetId, isDraftVerified, levelName, markCurrentDraftAsBaseline, publishScope, refreshCloudLevels, saveTargetId, validate]);
 
   const handleDeleteCommunity = useCallback(async () => {
     setMessage(null);
@@ -1940,7 +1951,7 @@ export default function LevelEditor() {
                 }}
                 className="w-full bg-[#12121a] border border-white/10 rounded-lg px-3 py-1.5 text-white text-sm mt-1 focus:outline-none focus:border-purple-500/50 [&>option]:bg-[#12121a] [&>option]:text-white"
               >
-                <option value="campaign">Campaign Levels</option>
+                {authUser?.isAdmin && <option value="campaign">Campaign Levels</option>}
                 <option value="community">Community Levels</option>
               </select>
             </label>
