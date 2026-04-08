@@ -51,12 +51,20 @@ function readStoredShowBestSolutions(): boolean {
   }
 }
 
-export default function LevelSelect() {
+type LevelSelectProps = {
+  onSolutionModeChange?: (enabled: boolean) => void;
+};
+
+export default function LevelSelect({ onSolutionModeChange }: LevelSelectProps) {
   const { progress, isUnlocked } = useGameProgress();
   const [serverOverrides, setServerOverrides] = useState<Set<number>>(new Set());
   const [overrideLevels, setOverrideLevels] = useState<Map<number, LevelData>>(new Map());
   const [bestScores, setBestScores] = useState<Map<string, LevelBestScore>>(new Map());
   const [showBestSolutions, setShowBestSolutions] = useState(readStoredShowBestSolutions);
+
+  useEffect(() => {
+    onSolutionModeChange?.(showBestSolutions);
+  }, [onSolutionModeChange, showBestSolutions]);
 
   useEffect(() => {
     let cancelled = false;
@@ -130,11 +138,7 @@ export default function LevelSelect() {
   }, [levelCards, levelHashKey]);
 
   return (
-    <div className={`mx-auto max-w-5xl rounded-[2rem] border p-3 transition-colors duration-300 sm:p-4 ${
-      showBestSolutions
-        ? 'border-sky-200/25 bg-sky-300/[0.10]'
-        : 'border-transparent bg-transparent'
-    }`}>
+    <div className="mx-auto max-w-5xl p-3 sm:p-4">
       <div className="mb-4 flex flex-col gap-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">

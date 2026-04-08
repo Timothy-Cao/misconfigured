@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import LevelSelect from '@/components/LevelSelect';
 
 export default function LevelsPage() {
   const router = useRouter();
+  const [solutionMode, setSolutionMode] = useState(false);
 
   useEffect(() => {
     function goHome() {
@@ -27,8 +28,12 @@ export default function LevelsPage() {
       <div className="absolute top-1/4 right-1/4 w-[480px] h-[480px] rounded-full bg-green-500/5 blur-[110px]" />
 
       <div className="relative z-10 w-full max-w-5xl">
-        <div className="rounded-[28px] border border-white/10 bg-white/[0.03] px-4 py-5 sm:px-8 sm:py-8 animate-[fadeInUp_0.6s_ease-out]">
-          <LevelSelect />
+        <div className={`rounded-[28px] border px-4 py-5 transition-colors duration-300 sm:px-8 sm:py-8 animate-[fadeInUp_0.6s_ease-out] ${
+          solutionMode
+            ? 'border-sky-200/25 bg-sky-300/[0.10]'
+            : 'border-white/10 bg-white/[0.03]'
+        }`}>
+          <LevelSelect onSolutionModeChange={setSolutionMode} />
           <p className="mt-5 text-center text-xs text-white/25 sm:text-sm">
             `Esc` goes back. Completed levels show a checkmark.
           </p>
