@@ -30,14 +30,12 @@ export default function Home() {
               className="group px-6 py-4 rounded-2xl border border-white/10 bg-white/[0.04] text-white/85 hover:text-white hover:bg-white/[0.08] hover:border-white/20 transition-all duration-300"
             >
               <span className="block text-base sm:text-lg font-semibold">My Maps</span>
-              <span className="block text-xs sm:text-sm text-white/35 mt-1">Open your cloud maps, then jump into the editor from there</span>
             </Link>
             <Link
               href="/community"
               className="group px-6 py-4 rounded-2xl border border-white/10 bg-white/[0.04] text-white/85 hover:text-white hover:bg-white/[0.08] hover:border-white/20 transition-all duration-300"
             >
               <span className="block text-base sm:text-lg font-semibold">Community Levels</span>
-              <span className="block text-xs sm:text-sm text-white/35 mt-1">Browse published levels and the built-in challenge</span>
             </Link>
           </div>
         </div>
