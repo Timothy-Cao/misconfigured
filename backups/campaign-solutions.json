@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "updatedAt": "2026-04-07T23:31:42.492Z",
+  "updatedAt": "2026-04-08T00:00:49.037Z",
   "source": "supabase.level_best_scores",
   "campaignSolutions": {
     "1": {
@@ -33,14 +33,6 @@
       "bestMoves": 22,
       "solutionMoves": "DDWWAWWAAWWDDWWDWWAAAA",
       "achievedAt": "2026-04-07T21:11:05.984+00:00",
-      "playerDisplayName": "Timothy Cao"
-    },
-    "5": {
-      "levelHash": "0910a668d8fd51",
-      "levelName": "Color Filter",
-      "bestMoves": 45,
-      "solutionMoves": null,
-      "achievedAt": "2026-04-07T07:02:45.093+00:00",
       "playerDisplayName": "Timothy Cao"
     },
     "6": {
@@ -100,11 +92,11 @@
       "playerDisplayName": "Timothy Cao"
     },
     "13": {
-      "levelHash": "09050a316df6a9",
-      "levelName": "switcheroo",
-      "bestMoves": 240,
-      "solutionMoves": null,
-      "achievedAt": "2026-04-07T15:57:14.552+00:00",
+      "levelHash": "1092cacb313806",
+      "levelName": "Crumbling Roads",
+      "bestMoves": 18,
+      "solutionMoves": "WDDDDDSDDDDWWWWWWW",
+      "achievedAt": "2026-04-07T21:58:23.023+00:00",
       "playerDisplayName": "Timothy Cao"
     },
     "14": {
@@ -177,6 +169,30 @@
       "bestMoves": 110,
       "solutionMoves": "SWWWWSSSAAWWASWAWASWAWASADAASSDWWSSSAADADAAADADDASWDWDASWDDDDDDDDAAAWWWWWWWWWWWWWWWWWWWWWWWWWWDDDWWWDSSAAAWAWW",
       "achievedAt": "2026-04-07T22:53:56.217+00:00",
+      "playerDisplayName": "Timothy Cao"
+    },
+    "23": {
+      "levelHash": "1ed429cb7bf784",
+      "levelName": "The purple strait",
+      "bestMoves": 100,
+      "solutionMoves": "WWASDSDDWWWWWWWWAWWWDAAADWAWWWWWDDSSSDDDWDDDDDDSWWDDDSSWWWDAWWWDDDDDWWDDDWWAAAWWWAAAAAWDDSDDDDDDDDSD",
+      "achievedAt": "2026-04-07T23:43:03.137+00:00",
+      "playerDisplayName": "Timothy Cao"
+    },
+    "24": {
+      "levelHash": "160f43911d3339",
+      "levelName": "No, After YOU!",
+      "bestMoves": 70,
+      "solutionMoves": "SDSWAAAASAAAAAAWDSAWDAWAADDDSAAWDDDDSSWSDDDDDDDDDWDAAAAWWDWWWWWDWWWWWA",
+      "achievedAt": "2026-04-07T23:49:15.194+00:00",
+      "playerDisplayName": "Timothy Cao"
+    },
+    "25": {
+      "levelHash": "09050a316df6a9",
+      "levelName": "switcheroo",
+      "bestMoves": 161,
+      "solutionMoves": "ASDSADDWWDWWDDASSDSSSSAAAAWDDDDDDDSSWWAADAWWWDDSAWWSDWDDDAWDDSSSSWDDSSAAASDDDWWWWSASSWASWWDDDDSAWWSSWAAASSDWSSSSDWASAWDDDDAWWWAADDWWDAAAADDDDDWDDWDWWASAAAAAWDAAA",
+      "achievedAt": "2026-04-07T23:52:02.733+00:00",
       "playerDisplayName": "Timothy Cao"
     }
   }

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "exportedAt": "2026-04-07T23:31:42.492Z",
+  "exportedAt": "2026-04-08T00:00:49.037Z",
   "source": "supabase",
   "bestScores": [
     {
@@ -46,17 +46,6 @@
       "playerDisplayName": "Timothy Cao",
       "solutionMoves": "DDWWAWWAAWWDDWWDWWAAAA",
       "achievedAt": "2026-04-07T21:11:05.984+00:00"
-    },
-    {
-      "levelHash": "0910a668d8fd51",
-      "bestMoves": 45,
-      "source": "campaign",
-      "sourceLevelId": 5,
-      "levelName": "Color Filter",
-      "playerUserId": "15394b2c-6c5c-4035-ba00-d32701d4e60c",
-      "playerDisplayName": "Timothy Cao",
-      "solutionMoves": null,
-      "achievedAt": "2026-04-07T07:02:45.093+00:00"
     },
     {
       "levelHash": "14bdac738d62b0",
@@ -145,17 +134,6 @@
       "playerDisplayName": "Timothy Cao",
       "solutionMoves": "WDDDDDSDDDDWWWWWWW",
       "achievedAt": "2026-04-07T21:58:23.023+00:00"
-    },
-    {
-      "levelHash": "09050a316df6a9",
-      "bestMoves": 240,
-      "source": "campaign",
-      "sourceLevelId": 13,
-      "levelName": "switcheroo",
-      "playerUserId": "15394b2c-6c5c-4035-ba00-d32701d4e60c",
-      "playerDisplayName": "Timothy Cao",
-      "solutionMoves": null,
-      "achievedAt": "2026-04-07T15:57:14.552+00:00"
     },
     {
       "levelHash": "0ad5d1e7f56fae",
@@ -257,6 +235,39 @@
       "achievedAt": "2026-04-07T22:53:56.217+00:00"
     },
     {
+      "levelHash": "1ed429cb7bf784",
+      "bestMoves": 100,
+      "source": "campaign",
+      "sourceLevelId": 23,
+      "levelName": "The purple strait",
+      "playerUserId": "15394b2c-6c5c-4035-ba00-d32701d4e60c",
+      "playerDisplayName": "Timothy Cao",
+      "solutionMoves": "WWASDSDDWWWWWWWWAWWWDAAADWAWWWWWDDSSSDDDWDDDDDDSWWDDDSSWWWDAWWWDDDDDWWDDDWWAAAWWWAAAAAWDDSDDDDDDDDSD",
+      "achievedAt": "2026-04-07T23:43:03.137+00:00"
+    },
+    {
+      "levelHash": "160f43911d3339",
+      "bestMoves": 70,
+      "source": "campaign",
+      "sourceLevelId": 24,
+      "levelName": "No, After YOU!",
+      "playerUserId": "15394b2c-6c5c-4035-ba00-d32701d4e60c",
+      "playerDisplayName": "Timothy Cao",
+      "solutionMoves": "SDSWAAAASAAAAAAWDSAWDAWAADDDSAAWDDDDSSWSDDDDDDDDDWDAAAAWWDWWWWWDWWWWWA",
+      "achievedAt": "2026-04-07T23:49:15.194+00:00"
+    },
+    {
+      "levelHash": "09050a316df6a9",
+      "bestMoves": 161,
+      "source": "campaign",
+      "sourceLevelId": 25,
+      "levelName": "switcheroo",
+      "playerUserId": "15394b2c-6c5c-4035-ba00-d32701d4e60c",
+      "playerDisplayName": "Timothy Cao",
+      "solutionMoves": "ASDSADDWWDWWDDASSDSSSSAAAAWDDDDDDDSSWWAADAWWWDDSAWWSDWDDDAWDDSSSSWDDSSAAASDDDWWWWSASSWASWWDDDDSAWWSSWAAASSDWSSSSDWASAWDDDDAWWWAADDWWDAAAADDDDDWDDWDWWASAAAAAWDAAA",
+      "achievedAt": "2026-04-07T23:52:02.733+00:00"
+    },
+    {
       "levelHash": "13b804d25aedfc",
       "bestMoves": 15,
       "source": "campaign-test",
@@ -266,17 +277,6 @@
       "playerDisplayName": "Timothy Cao",
       "solutionMoves": null,
       "achievedAt": "2026-04-07T19:14:13.163+00:00"
-    },
-    {
-      "levelHash": "0845a9b3402276",
-      "bestMoves": 7,
-      "source": "campaign-test",
-      "sourceLevelId": 16,
-      "levelName": "Ice and fire 6",
-      "playerUserId": "15394b2c-6c5c-4035-ba00-d32701d4e60c",
-      "playerDisplayName": "Timothy Cao",
-      "solutionMoves": null,
-      "achievedAt": "2026-04-07T16:44:15.365+00:00"
     },
     {
       "levelHash": "170d567ec01fd3",
@@ -290,26 +290,15 @@
       "achievedAt": "2026-04-07T16:38:06.016+00:00"
     },
     {
-      "levelHash": "1ed429cb7bf784",
-      "bestMoves": 117,
+      "levelHash": "0845a9b3402276",
+      "bestMoves": 7,
       "source": "campaign-test",
-      "sourceLevelId": 20,
-      "levelName": "Open Slot 20",
+      "sourceLevelId": 16,
+      "levelName": "Ice and fire 6",
       "playerUserId": "15394b2c-6c5c-4035-ba00-d32701d4e60c",
       "playerDisplayName": "Timothy Cao",
       "solutionMoves": null,
-      "achievedAt": "2026-04-07T18:22:49.268+00:00"
-    },
-    {
-      "levelHash": "160f43911d3339",
-      "bestMoves": 76,
-      "source": "campaign-test",
-      "sourceLevelId": 23,
-      "levelName": "No, After YOU!",
-      "playerUserId": "15394b2c-6c5c-4035-ba00-d32701d4e60c",
-      "playerDisplayName": "Timothy Cao",
-      "solutionMoves": null,
-      "achievedAt": "2026-04-07T17:18:36.265+00:00"
+      "achievedAt": "2026-04-07T16:44:15.365+00:00"
     },
     {
       "levelHash": "05e6c6d40fed22",
