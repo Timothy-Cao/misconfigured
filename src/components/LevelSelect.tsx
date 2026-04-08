@@ -135,7 +135,39 @@ export default function LevelSelect() {
         ? 'border-sky-200/25 bg-sky-300/[0.10]'
         : 'border-transparent bg-transparent'
     }`}>
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mb-4 flex flex-col gap-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <h1 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+              Campaign Standard
+            </h1>
+            <p className="mt-1 text-sm text-white/35 sm:text-base">
+              All campaign levels are available right away.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={toggleBestSolutions}
+            aria-pressed={showBestSolutions}
+            aria-label={`Switch to ${showBestSolutions ? 'play' : 'solution'} mode`}
+            className={`flex w-fit items-center gap-2 rounded-2xl border px-2 py-2 text-xs font-black uppercase tracking-[0.16em] transition-all duration-200 ${
+              showBestSolutions
+                ? 'border-cyan-300/45 bg-cyan-400/15 text-cyan-100 shadow-[0_0_22px_rgba(34,211,238,0.08)]'
+                : 'border-white/10 bg-white/[0.04] text-white/60 hover:border-white/20 hover:bg-white/[0.08] hover:text-white/85'
+            }`}
+          >
+            <span className={`rounded-xl px-3 py-1.5 transition-all ${
+              showBestSolutions ? 'text-white/40' : 'bg-white/90 text-black'
+            }`}>
+              Play
+            </span>
+            <span className={`rounded-xl px-3 py-1.5 transition-all ${
+              showBestSolutions ? 'bg-cyan-200 text-black' : 'text-white/40'
+            }`}>
+              Solution
+            </span>
+          </button>
+        </div>
         <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-2">
           <span className="mr-1 text-[10px] font-black uppercase tracking-[0.2em] text-white/35">
             Difficulty
@@ -150,28 +182,6 @@ export default function LevelSelect() {
             </span>
           ))}
         </div>
-        <button
-          type="button"
-          onClick={toggleBestSolutions}
-          aria-pressed={showBestSolutions}
-          aria-label={`Switch to ${showBestSolutions ? 'play' : 'solution'} mode`}
-          className={`flex items-center gap-2 rounded-2xl border px-2 py-2 text-xs font-black uppercase tracking-[0.16em] transition-all duration-200 ${
-            showBestSolutions
-              ? 'border-cyan-300/45 bg-cyan-400/15 text-cyan-100 shadow-[0_0_22px_rgba(34,211,238,0.08)]'
-              : 'border-white/10 bg-white/[0.04] text-white/60 hover:border-white/20 hover:bg-white/[0.08] hover:text-white/85'
-          }`}
-        >
-          <span className={`rounded-xl px-3 py-1.5 transition-all ${
-            showBestSolutions ? 'text-white/40' : 'bg-white/90 text-black'
-          }`}>
-            Play
-          </span>
-          <span className={`rounded-xl px-3 py-1.5 transition-all ${
-            showBestSolutions ? 'bg-cyan-200 text-black' : 'text-white/40'
-          }`}>
-            Solution
-          </span>
-        </button>
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5 sm:gap-4">
