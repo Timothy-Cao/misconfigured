@@ -8,6 +8,7 @@ import { COMMUNITY_LEVEL_START_ID, getBuiltInLevel, getCommunityLevel, getLocalC
 import { useGameProgress } from '@/hooks/useGameProgress';
 import { type LevelData } from '@/engine/types';
 import { type ReplayAction } from '@/engine/input';
+import { fetchCampaignOverrideFromApi } from '@/lib/campaign-api';
 import { fetchCommunityLevelFromApi } from '@/lib/community-api';
 import { fetchLevelBestScoresFromApi, submitLevelBestScoreToApi } from '@/lib/best-score-api';
 import { getLevelHash } from '@/lib/level-hash';
@@ -104,11 +105,11 @@ export default function PlayPage() {
   const [loadedSpeedStorageKey, setLoadedSpeedStorageKey] = useState<string | null>(null);
   const movesUsedRef = useRef(0);
   const solutionMovesRef = useRef<ReplayAction[]>([]);
-  const usingLocalCampaignBackup = isCampaignLevel && Boolean(localOverride);
+  const usingLocalCampaignBackup = isCampaignLevel && !!loadError && !!localOverride;
   const level = isCampaignLevel
     ? (remoteLevel === undefined
       ? undefined
-      : (remoteLevel ?? localOverride ?? builtInCampaignLevel))
+      : (remoteLevel ?? (usingLocalCampaignBackup ? localOverride : builtInCampaignLevel)))
     : (remoteLevel ?? localCommunityLevel ?? undefined);
   const levelHash = useMemo(() => level ? getLevelHash(level) : null, [level]);
   const nextSimulationSpeed = useMemo(
@@ -138,11 +139,11 @@ export default function PlayPage() {
 
       try {
         const nextLevel = levelId < COMMUNITY_LEVEL_START_ID
-          ? null
+          ? await fetchCampaignOverrideFromApi(levelId)
           : await fetchCommunityLevelFromApi(levelId);
         if (cancelled) return;
         const resolvedLevel = levelId < COMMUNITY_LEVEL_START_ID
-          ? (localOverride ?? builtInCampaignLevel)
+          ? (nextLevel ?? builtInCampaignLevel)
           : (nextLevel ?? localCommunityLevel);
         const startingLives = resolvedLevel?.lives ?? 1;
         setRemoteLevel(nextLevel ?? null);
@@ -165,6 +166,7 @@ export default function PlayPage() {
         }
       } catch (error) {
         if (cancelled) return;
+        setRemoteLevel(null);
         setLoadError(error instanceof Error ? error.message : 'Failed to load level.');
       }
     }
@@ -173,7 +175,7 @@ export default function PlayPage() {
     return () => {
       cancelled = true;
     };
-  }, [builtInCampaignLevel, levelId, localCommunityLevel, localOverride]);
+  }, [builtInCampaignLevel, levelId, localCommunityLevel]);
 
   useEffect(() => {
     let cancelled = false;
