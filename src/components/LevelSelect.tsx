@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { useGameProgress } from '@/hooks/useGameProgress';
 import { TOTAL_LEVELS, getBuiltInLevel, getLocalCampaignOverride } from '@/levels';
-import { fetchCampaignOverrideFromApi, fetchCampaignOverrideIdsFromApi } from '@/lib/campaign-api';
+import { fetchCampaignSnapshotFromApi } from '@/lib/campaign-api';
 import { fetchLevelBestScoresFromApi, type LevelBestScore } from '@/lib/best-score-api';
 import { getLevelHash } from '@/lib/level-hash';
 import LevelThumbnail from '@/components/LevelThumbnail';
@@ -68,23 +68,19 @@ export default function LevelSelect({ onSolutionModeChange }: LevelSelectProps) 
 
   useEffect(() => {
     let cancelled = false;
-    async function loadOverrides() {
+    async function loadCampaignSnapshot() {
       try {
-        const ids = await fetchCampaignOverrideIdsFromApi();
+        const snapshot = await fetchCampaignSnapshotFromApi();
         if (cancelled) return;
-        setServerOverrides(new Set(ids));
-        const entries = await Promise.all(
-          ids.map(async id => [id, await fetchCampaignOverrideFromApi(id)] as const),
-        );
-        if (cancelled) return;
-        setOverrideLevels(new Map(entries.flatMap(([id, level]) => level ? [[id, level] as const] : [])));
+        setServerOverrides(snapshot.overrideIds);
+        setOverrideLevels(snapshot.levels);
       } catch {
         if (cancelled) return;
         setServerOverrides(new Set());
         setOverrideLevels(new Map());
       }
     }
-    loadOverrides();
+    loadCampaignSnapshot();
     return () => {
       cancelled = true;
     };
@@ -117,6 +113,8 @@ export default function LevelSelect({ onSolutionModeChange }: LevelSelectProps) 
   );
 
   useEffect(() => {
+    if (!showBestSolutions) return;
+
     let cancelled = false;
     async function loadBestScores() {
       const hashes = levelCards.map(card => card.hash).filter((hash): hash is string => Boolean(hash));
@@ -135,7 +133,7 @@ export default function LevelSelect({ onSolutionModeChange }: LevelSelectProps) 
     return () => {
       cancelled = true;
     };
-  }, [levelCards, levelHashKey]);
+  }, [levelCards, levelHashKey, showBestSolutions]);
 
   return (
     <div className="mx-auto max-w-5xl p-3 sm:p-4">

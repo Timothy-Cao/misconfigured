@@ -1,5 +1,22 @@
 import { type LevelData } from '@/engine/types';
 
+export async function fetchCampaignSnapshotFromApi(): Promise<{
+  levels: Map<number, LevelData>;
+  overrideIds: Set<number>;
+}> {
+  const response = await fetch('/api/campaign-snapshot', { cache: 'no-store' });
+  const data = await response.json() as { levels?: LevelData[]; overrideIds?: number[]; error?: string; warning?: string };
+
+  if (!response.ok) {
+    throw new Error(data.error || data.warning || 'Failed to load campaign snapshot.');
+  }
+
+  return {
+    levels: new Map((data.levels ?? []).map(level => [level.id, level])),
+    overrideIds: new Set((data.overrideIds ?? []).filter(id => Number.isFinite(id))),
+  };
+}
+
 export async function fetchCampaignOverrideFromApi(id: number): Promise<LevelData | undefined> {
   const response = await fetch(`/api/campaign-overrides/${id}`, { cache: 'no-store' });
   if (response.status === 404) {

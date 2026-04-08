@@ -96,6 +96,23 @@ export async function listCampaignOverrideIdsFromSupabase(): Promise<number[]> {
   }
 }
 
+export async function listCampaignOverridesFromSupabase(): Promise<LevelData[]> {
+  try {
+    const response = await supabaseRequest(
+      '/rest/v1/campaign_overrides?select=id,name,width,height,grid,players,lives,max_moves&order=id.asc',
+    );
+    const rows = (await response.json()) as CampaignOverrideRow[];
+    return rows.map(mapRowToLevel);
+  } catch (error) {
+    if (!isMissingMaxMovesColumn(error)) throw error;
+    const response = await supabaseRequest(
+      '/rest/v1/campaign_overrides?select=id,name,width,height,grid,players,lives&order=id.asc',
+    );
+    const rows = (await response.json()) as CampaignOverrideRow[];
+    return rows.map(mapRowToLevel);
+  }
+}
+
 export async function upsertCampaignOverrideInSupabase(level: LevelData): Promise<LevelData> {
   try {
     const response = await supabaseRequest('/rest/v1/campaign_overrides', {
