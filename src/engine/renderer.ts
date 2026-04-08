@@ -474,6 +474,7 @@ export function render(
       if (isConveyor(tile)) {
         const dir = conveyorDirection(tile);
         const dx = DIR_DX[dir];
+        const sign = dx !== 0 ? Math.sign(dx) : (dir === 2 ? 1 : -1);
         const horizontal = dx !== 0;
         const beltX = x;
         const beltY = y;
@@ -488,7 +489,8 @@ export function render(
         const slatSpacing = s * 0.22;
         const slatWidth = horizontal ? s * 0.16 : beltW * 0.9;
         const slatHeight = horizontal ? beltH * 0.9 : s * 0.16;
-        const offset = 0;
+        const beltTravel = (time * s * 1.8 * sign) % slatSpacing;
+        const offset = beltTravel > 0 ? beltTravel - slatSpacing : beltTravel;
         ctx.fillStyle = 'rgba(120,190,255,0.28)';
 
         for (let k = -6; k <= 6; k++) {
