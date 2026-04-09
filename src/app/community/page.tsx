@@ -137,13 +137,7 @@ export default function CommunityPage() {
                     </p>
                     </div>
                   </div>
-                  <div className="flex flex-col items-stretch gap-2 sm:items-end">
-                    <Link
-                      href={`/play/${level.id}`}
-                      className="inline-flex items-center justify-center px-4 py-2 rounded-xl border border-cyan-400/30 bg-cyan-500/15 text-cyan-200 hover:bg-cyan-500/25 transition-all duration-200 text-sm sm:text-base"
-                    >
-                      Play
-                    </Link>
+                  <div className="flex flex-wrap items-center gap-2 sm:justify-end">
                     {viewer?.isAdmin && !level.isBuiltIn && (
                       <button
                         type="button"
@@ -154,6 +148,12 @@ export default function CommunityPage() {
                         {deletingId === level.id ? 'Deleting...' : 'Delete'}
                       </button>
                     )}
+                    <Link
+                      href={`/play/${level.id}`}
+                      className="inline-flex items-center justify-center px-4 py-2 rounded-xl border border-cyan-400/30 bg-cyan-500/15 text-cyan-200 hover:bg-cyan-500/25 transition-all duration-200 text-sm sm:text-base"
+                    >
+                      Play
+                    </Link>
                   </div>
                 </div>
               ))}
