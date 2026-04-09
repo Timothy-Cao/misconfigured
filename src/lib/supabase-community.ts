@@ -11,6 +11,12 @@ export interface OwnedCommunityLevelSummary {
   updatedAt: string | null;
 }
 
+export interface CommunityLevelListItem extends LevelData {
+  creatorInitials: string | null;
+  creatorName: string | null;
+  isBuiltIn: boolean;
+}
+
 interface CommunityLevelRow {
   id: number;
   owner_id: string | null;
@@ -24,6 +30,12 @@ interface CommunityLevelRow {
   is_published: boolean | null;
   created_at?: string | null;
   updated_at?: string | null;
+}
+
+interface ProfileRow {
+  id: string;
+  display_name: string | null;
+  email: string | null;
 }
 
 export interface OwnedCommunityLevelRecord extends OwnedCommunityLevelSummary {
@@ -78,6 +90,22 @@ function mapRowToOwnedSummary(row: CommunityLevelRow): OwnedCommunityLevelSummar
   };
 }
 
+function getCreatorInitials(name: string | null, email: string | null): string | null {
+  const source = (name?.trim() || email?.trim() || '').trim();
+  if (!source) return null;
+
+  const words = source
+    .replace(/[@._-]+/g, ' ')
+    .split(/\s+/)
+    .filter(Boolean);
+
+  if (words.length === 0) return null;
+  if (words.length === 1) {
+    return words[0].slice(0, 2).toUpperCase();
+  }
+  return `${words[0][0] ?? ''}${words[1][0] ?? ''}`.toUpperCase();
+}
+
 function getSupabaseErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof Error) {
     return error.message || fallback;
@@ -117,6 +145,45 @@ export async function listPublishedCommunityLevelsFromSupabase(): Promise<LevelD
       .order('id', { ascending: true }),
   );
   return rows.map(mapRowToLevel);
+}
+
+export async function listPublishedCommunityLevelItemsFromSupabase(): Promise<CommunityLevelListItem[]> {
+  const admin = getSupabaseAdminClient();
+  const rows = await selectRows(
+    admin
+      .from('community_levels')
+      .select('id,owner_id,name,width,height,grid,players,lives,max_moves,is_published,created_at,updated_at')
+      .eq('is_published', true)
+      .order('id', { ascending: true }),
+  );
+
+  const ownerIds = Array.from(new Set(
+    rows.map(row => row.owner_id).filter((ownerId): ownerId is string => Boolean(ownerId)),
+  ));
+
+  let profileMap = new Map<string, ProfileRow>();
+  if (ownerIds.length > 0) {
+    const { data, error } = await admin
+      .from('profiles')
+      .select('id,display_name,email')
+      .in('id', ownerIds);
+
+    if (error) {
+      throw new Error(getSupabaseErrorMessage(error, 'Failed to load community creator profiles.'));
+    }
+
+    profileMap = new Map((data ?? []).map(profile => [profile.id, profile as ProfileRow]));
+  }
+
+  return rows.map((row) => {
+    const profile = row.owner_id ? profileMap.get(row.owner_id) ?? null : null;
+    return {
+      ...mapRowToLevel(row),
+      creatorInitials: getCreatorInitials(profile?.display_name ?? null, profile?.email ?? null),
+      creatorName: profile?.display_name ?? profile?.email ?? null,
+      isBuiltIn: false,
+    };
+  });
 }
 
 export async function listOwnedCommunityLevelsFromSupabase(ownerId: string): Promise<OwnedCommunityLevelSummary[]> {
@@ -320,4 +387,37 @@ export async function deleteOwnedCommunityLevelFromSupabase(ownerId: string, id:
   if (error) {
     throw new Error(getSupabaseErrorMessage(error, 'Failed to delete cloud map.'));
   }
+}
+
+export async function deleteCommunityLevelFromSupabase(requesterId: string, id: number, isAdmin = false): Promise<void> {
+  const admin = getSupabaseAdminClient();
+
+  if (isAdmin) {
+    const { data, error } = await admin
+      .from('community_levels')
+      .select('id')
+      .eq('id', id)
+      .limit(1);
+
+    if (error) {
+      throw new Error(getSupabaseErrorMessage(error, 'Failed to load community level for deletion.'));
+    }
+
+    if (!data || data.length === 0) {
+      throw new Error('Community level not found.');
+    }
+
+    const { error: deleteError } = await admin
+      .from('community_levels')
+      .delete()
+      .eq('id', id);
+
+    if (deleteError) {
+      throw new Error(getSupabaseErrorMessage(deleteError, 'Failed to delete cloud map.'));
+    }
+
+    return;
+  }
+
+  await deleteOwnedCommunityLevelFromSupabase(requesterId, id);
 }

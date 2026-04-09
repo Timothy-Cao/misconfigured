@@ -1,6 +1,6 @@
 import { getCurrentAuthUser } from '@/lib/auth';
 import {
-  deleteOwnedCommunityLevelFromSupabase,
+  deleteCommunityLevelFromSupabase,
   getAccessibleCommunityLevelFromSupabase,
   setOwnedCommunityLevelPublishedInSupabase,
 } from '@/lib/supabase-community';
@@ -101,7 +101,7 @@ export async function DELETE(_request: Request, context: { params: Promise<{ id:
   }
 
   try {
-    await deleteOwnedCommunityLevelFromSupabase(user.id, numericId);
+    await deleteCommunityLevelFromSupabase(user.id, numericId, user.isAdmin);
     return Response.json({ ok: true });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to delete cloud map.';

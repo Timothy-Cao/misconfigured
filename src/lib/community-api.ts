@@ -1,5 +1,6 @@
 import { type LevelData } from '@/engine/types';
 import { type OwnedCloudLevelSummary } from '@/lib/auth';
+import { type CommunityLevelListItem } from '@/lib/supabase-community';
 
 interface SaveCommunityLevelResponse {
   level?: LevelData;
@@ -7,9 +8,9 @@ interface SaveCommunityLevelResponse {
   error?: string;
 }
 
-export async function fetchCommunityLevelsFromApi(): Promise<LevelData[]> {
+export async function fetchCommunityLevelsFromApi(): Promise<CommunityLevelListItem[]> {
   const response = await fetch('/api/community-levels', { cache: 'no-store' });
-  const data = await response.json() as { levels?: LevelData[]; error?: string };
+  const data = await response.json() as { levels?: CommunityLevelListItem[]; error?: string };
 
   if (!response.ok) {
     throw new Error(data.error || 'Failed to load community levels.');
