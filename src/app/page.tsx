@@ -7,10 +7,21 @@ export default function Home() {
       <div className="absolute top-1/3 left-1/3 w-[360px] h-[360px] rounded-full bg-cyan-500/5 blur-[110px] animate-[pulse_4s_ease-in-out_infinite]" />
 
       <div className="relative z-10 w-full max-w-3xl text-center rounded-[28px] border border-white/10 bg-white/[0.03] px-6 py-10 sm:px-10 sm:py-12 shadow-[0_0_50px_rgba(0,0,0,0.25)]">
+        <div className="mb-5 inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/[0.05] px-4 py-2 text-left shadow-[0_0_24px_rgba(0,0,0,0.18)] animate-[fadeInUp_0.8s_ease-out_0.05s_both]">
+          <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-rose-400 to-cyan-400 text-sm font-black text-[#0a0a0f]">
+            T
+          </span>
+          <span className="text-xs font-semibold uppercase tracking-[0.24em] text-white/70 sm:text-sm">
+            A Tim Cao Game
+          </span>
+        </div>
         <h1 className="text-6xl sm:text-7xl lg:text-8xl font-black tracking-tight bg-gradient-to-r from-rose-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent mb-4 animate-[fadeInUp_0.8s_ease-out]">
           Misconfigured
         </h1>
-        <p className="text-white/40 text-base sm:text-lg lg:text-xl tracking-wide animate-[fadeInUp_0.8s_ease-out_0.2s_both]">
+        <p className="text-white/60 text-base sm:text-lg lg:text-xl tracking-wide animate-[fadeInUp_0.8s_ease-out_0.2s_both]">
+          Timothy Cao&apos;s simultaneous-motion puzzle game
+        </p>
+        <p className="mt-2 text-white/40 text-sm sm:text-base lg:text-lg tracking-wide animate-[fadeInUp_0.8s_ease-out_0.25s_both]">
           One input. Many units. Different directions.
         </p>
 
@@ -59,9 +70,9 @@ export default function Home() {
         href="https://timcao.com"
         target="_blank"
         rel="noreferrer"
-        className="absolute bottom-6 z-10 text-sm sm:text-base font-medium tracking-[0.18em] uppercase text-white/18 hover:text-white/38 transition-colors duration-300 animate-[fadeInUp_0.8s_ease-out_0.7s_both]"
+        className="absolute bottom-6 z-10 text-sm sm:text-base font-medium tracking-[0.18em] uppercase text-white/30 hover:text-white/52 transition-colors duration-300 animate-[fadeInUp_0.8s_ease-out_0.7s_both]"
       >
-        a tim cao game
+        timcao.com
       </a>
     </main>
   );
