@@ -122,12 +122,14 @@ export default function MyMapsClient({ initialLevels, initialWarning, isAdmin = 
               <div className="flex flex-wrap gap-2">
                 <Link
                   href={`/play/${level.id}`}
+                  prefetch={false}
                   className="inline-flex items-center justify-center rounded-xl border border-cyan-400/30 bg-cyan-500/15 px-4 py-2 text-sm text-cyan-200 hover:bg-cyan-500/25 transition-all duration-200"
                 >
                   Play
                 </Link>
                 <Link
                   href={`/editor?communityId=${level.id}`}
+                  prefetch={false}
                   className="inline-flex items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-white/75 hover:border-white/20 hover:bg-white/[0.08] hover:text-white transition-all duration-200"
                 >
                   Edit

@@ -150,6 +150,7 @@ export default function CommunityPage() {
                     )}
                     <Link
                       href={`/play/${level.id}`}
+                      prefetch={false}
                       className="inline-flex items-center justify-center px-4 py-2 rounded-xl border border-cyan-400/30 bg-cyan-500/15 text-cyan-200 hover:bg-cyan-500/25 transition-all duration-200 text-sm sm:text-base"
                     >
                       Play

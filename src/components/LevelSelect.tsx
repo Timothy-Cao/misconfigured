@@ -213,6 +213,7 @@ export default function LevelSelect({ onSolutionModeChange }: LevelSelectProps) 
             <Link
               key={id}
               href={cardHref}
+              prefetch={false}
               className={`relative flex min-h-[148px] flex-col justify-between gap-2 rounded-2xl p-2 text-white/85 transition-all duration-300 border ring-1 ${DIFFICULTY_CARD_CLASS[difficulty]} hover:shadow-[0_0_20px_rgba(255,255,255,0.06)] select-none`}
               style={{ animationDelay: `${i * 30}ms` }}
               aria-label={showBestSolutions && hasBestSolution ? `Show best solution for level ${id}` : `Play level ${id}`}
