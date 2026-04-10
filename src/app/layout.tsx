@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Analytics } from '@vercel/analytics/next';
 import AppHeader from '@/components/AppHeader';
 import AudioSettings from '@/components/AudioSettings';
 import UiSfx from '@/components/UiSfx';
@@ -21,6 +22,7 @@ export default async function RootLayout({
         <AppHeader />
         <AudioSettings />
         {children}
+        <Analytics />
       </body>
     </html>
   );
