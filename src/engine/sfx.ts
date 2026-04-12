@@ -35,6 +35,7 @@ interface SfxDef {
 
 const SFX_VOLUME_KEY = 'misconfigured-sfx-volume';
 const DEFAULT_SFX_VOLUME = 0.35;
+const SFX_OUTPUT_BOOST = 2.2;
 const volumeListeners = new Set<(volume: number) => void>();
 
 const SFX: Record<SfxId, SfxDef> = {
@@ -100,10 +101,11 @@ class SfxEngine {
     const now = ctx.currentTime;
     const attack = def.attack ?? 0.01;
     const decay = def.decay ?? def.duration;
+    const boostedGain = Math.min(0.35, def.gain * SFX_OUTPUT_BOOST);
 
     const gain = ctx.createGain();
     gain.gain.setValueAtTime(0.0001, now);
-    gain.gain.linearRampToValueAtTime(def.gain, now + attack);
+    gain.gain.linearRampToValueAtTime(boostedGain, now + attack);
     gain.gain.exponentialRampToValueAtTime(0.0001, now + decay);
     gain.connect(this.master);
 
