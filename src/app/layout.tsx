@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Analytics } from '@vercel/analytics/next';
 import AppHeader from '@/components/AppHeader';
 import AudioSettings from '@/components/AudioSettings';
+import BackgroundMusic from '@/components/BackgroundMusic';
 import UiSfx from '@/components/UiSfx';
 import './globals.css';
 
@@ -18,6 +19,7 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <body className="bg-[#0a0a0f] text-white antialiased">
+        <BackgroundMusic />
         <UiSfx />
         <AppHeader />
         <AudioSettings />

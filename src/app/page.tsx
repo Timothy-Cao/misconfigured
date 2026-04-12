@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import MusicVolumeControl from '@/components/MusicVolumeControl';
 
 export default function Home() {
   return (
@@ -39,6 +40,8 @@ export default function Home() {
             </Link>
           </div>
         </div>
+
+        <MusicVolumeControl />
 
         <div className="mt-8 flex justify-center gap-3 animate-[fadeInUp_0.8s_ease-out_0.6s_both]">
           {['#ff9a56', '#4ecdc4', '#3b82f6', '#a855f7'].map((color, i) => (
