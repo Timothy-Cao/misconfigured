@@ -1,6 +1,7 @@
 type SfxId =
   | 'uiHover'
   | 'uiClick'
+  | 'levelFinish'
   | 'move'
   | 'bump'
   | 'push'
@@ -33,12 +34,19 @@ interface SfxDef {
   cooldown: number;
 }
 
+interface SampleDef {
+  kind: 'sample';
+  src: string;
+  volume: number;
+  cooldown: number;
+}
+
 const SFX_VOLUME_KEY = 'misconfigured-sfx-volume';
 const DEFAULT_SFX_VOLUME = 0.35;
 const SFX_OUTPUT_BOOST = 2.2;
 const volumeListeners = new Set<(volume: number) => void>();
 
-const SFX: Record<SfxId, SfxDef> = {
+const SFX: Record<Exclude<SfxId, 'levelFinish'>, SfxDef> = {
   uiHover: { kind: 'tone', type: 'sine', freq: 920, freq2: 980, duration: 0.035, gain: 0.03, cooldown: 80 },
   uiClick: { kind: 'tone', type: 'triangle', freq: 520, freq2: 420, duration: 0.06, gain: 0.04, cooldown: 80 },
   move: { kind: 'tone', type: 'triangle', freq: 220, freq2: 260, duration: 0.07, gain: 0.06, cooldown: 50 },
@@ -60,6 +68,15 @@ const SFX: Record<SfxId, SfxDef> = {
   death: { kind: 'noise', duration: 0.18, gain: 0.09, cooldown: 220 },
   life: { kind: 'tone', type: 'sine', freq: 880, freq2: 1040, duration: 0.14, gain: 0.07, cooldown: 240 },
   sticky: { kind: 'tone', type: 'square', freq: 180, freq2: 140, duration: 0.08, gain: 0.06, cooldown: 160 },
+};
+
+const SAMPLE_SFX: Record<'levelFinish', SampleDef> = {
+  levelFinish: {
+    kind: 'sample',
+    src: '/level_finish.mp3',
+    volume: 0.55,
+    cooldown: 600,
+  },
 };
 
 class SfxEngine {
@@ -89,6 +106,11 @@ class SfxEngine {
   }
 
   play(id: SfxId): void {
+    if (id === 'levelFinish') {
+      this.playSample(id);
+      return;
+    }
+
     const def = SFX[id];
     const nowMs = performance.now();
     const last = this.lastPlayed.get(id) ?? 0;
@@ -134,6 +156,22 @@ class SfxEngine {
     osc.connect(gain);
     osc.start(now);
     osc.stop(now + def.duration);
+  }
+
+  private playSample(id: 'levelFinish'): void {
+    const def = SAMPLE_SFX[id];
+    const nowMs = performance.now();
+    const last = this.lastPlayed.get(id) ?? 0;
+    if (nowMs - last < def.cooldown) return;
+    this.lastPlayed.set(id, nowMs);
+
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const audio = new Audio(def.src);
+    audio.volume = Math.max(0, Math.min(1, this.getVolume() * def.volume));
+    void audio.play().catch(() => {});
   }
 
   getVolume(): number {

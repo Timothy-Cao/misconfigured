@@ -1081,6 +1081,7 @@ export class GameEngine {
     if (allAnimsDone && !this.state.gameOver && checkWinCondition(this.state)) {
       this.state.levelComplete = true;
       this.state.completionTime = this.elapsed;
+      playSfx('levelFinish');
       this.callbacks.onLevelComplete?.(this.elapsed);
     }
 
