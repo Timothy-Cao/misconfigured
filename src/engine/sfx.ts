@@ -3,6 +3,7 @@ type SfxId =
   | 'uiClick'
   | 'levelFinish'
   | 'move'
+  | 'rotate'
   | 'bump'
   | 'push'
   | 'plate'
@@ -49,7 +50,8 @@ const volumeListeners = new Set<(volume: number) => void>();
 const SFX: Record<Exclude<SfxId, 'levelFinish'>, SfxDef> = {
   uiHover: { kind: 'tone', type: 'sine', freq: 920, freq2: 980, duration: 0.035, gain: 0.03, cooldown: 80 },
   uiClick: { kind: 'tone', type: 'triangle', freq: 520, freq2: 420, duration: 0.06, gain: 0.04, cooldown: 80 },
-  move: { kind: 'tone', type: 'triangle', freq: 220, freq2: 260, duration: 0.07, gain: 0.06, cooldown: 50 },
+  move: { kind: 'tone', type: 'triangle', freq: 220, freq2: 260, duration: 0.07, gain: 0.075, cooldown: 50 },
+  rotate: { kind: 'tone', type: 'triangle', freq: 480, freq2: 720, duration: 0.09, gain: 0.06, cooldown: 100 },
   bump: { kind: 'tone', type: 'square', freq: 140, freq2: 110, duration: 0.09, gain: 0.07, cooldown: 90 },
   push: { kind: 'tone', type: 'sawtooth', freq: 170, freq2: 120, duration: 0.12, gain: 0.08, cooldown: 120 },
   plate: { kind: 'tone', type: 'sine', freq: 520, freq2: 420, duration: 0.08, gain: 0.06, cooldown: 80 },

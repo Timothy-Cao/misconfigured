@@ -1047,6 +1047,11 @@ export class GameEngine {
     const doorOpened = postOpenDoors > prevOpenDoors;
     const doorClosed = postOpenDoors < prevOpenDoors;
     const reverseTriggered = this.state.players.some((p, i) => !prevReversed[i] && p.reversed);
+    const rotationTriggered = this.state.players.some((p, i) => {
+      if (p.rotation === prevRotations[i]) return false;
+      const tile = this.level.grid[p.row]?.[p.col];
+      return tile !== undefined && isRotationTile(tile);
+    });
     const repaintTriggered = this.state.players.some((p, i) => {
       if (p.rotation === prevRotations[i]) return false;
       const tile = this.level.grid[p.row]?.[p.col];
@@ -1128,6 +1133,7 @@ export class GameEngine {
     if (movedBySlide) playSfx('ice');
     if (crumbleTriggered) playSfx('crumble');
     if (reverseTriggered) playSfx('reverse');
+    if (rotationTriggered) playSfx('rotate');
     if (repaintTriggered) playSfx('repaint');
     if (filterEntered) playSfx('filter');
     if (checkpointTriggered) playSfx('checkpoint');
