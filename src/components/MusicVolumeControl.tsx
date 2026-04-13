@@ -102,7 +102,7 @@ export default function MusicVolumeControl() {
       </div>
 
       <p className="mt-4 text-left text-xs text-white/30">
-        Background music loops across the whole site. Music defaults to 20%, while sound effects stay separate so you can balance them.
+        Background music loops across the whole site. Both sliders default to 60%, and music plays back at a gentler quarter-strength so it stays in the background.
       </p>
     </div>
   );

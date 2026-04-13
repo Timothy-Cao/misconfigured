@@ -87,4 +87,4 @@ export default function AudioSettings() {
   );
 }
 
-const DEFAULT_RESET_VOLUME = 35 / 100;
+const DEFAULT_RESET_VOLUME = 60 / 100;

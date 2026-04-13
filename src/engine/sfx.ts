@@ -43,7 +43,7 @@ interface SampleDef {
 }
 
 const SFX_VOLUME_KEY = 'misconfigured-sfx-volume';
-const DEFAULT_SFX_VOLUME = 0.35;
+const DEFAULT_SFX_VOLUME = 0.6;
 const SFX_OUTPUT_BOOST = 2.2;
 const volumeListeners = new Set<(volume: number) => void>();
 

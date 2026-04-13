@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   activateMusicPlayback,
-  getMusicVolume,
+  getAppliedMusicVolume,
   isMusicActivated,
   subscribeToMusicActivation,
   subscribeToMusicVolume,
@@ -19,7 +19,7 @@ export default function BackgroundMusic() {
   useEffect(() => {
     return subscribeToMusicVolume((volume) => {
       if (audioRef.current) {
-        audioRef.current.volume = volume;
+        audioRef.current.volume = volume * 0.25;
       }
     });
   }, []);
@@ -53,7 +53,7 @@ export default function BackgroundMusic() {
     }
     const player = audioElement;
 
-    player.volume = getMusicVolume();
+    player.volume = getAppliedMusicVolume();
     player.src = PLAYLIST[trackIndexRef.current] ?? PLAYLIST[0];
 
     function handleEnded() {
@@ -77,7 +77,7 @@ export default function BackgroundMusic() {
       return;
     }
 
-    audio.volume = getMusicVolume();
+    audio.volume = getAppliedMusicVolume();
     void audio.play().catch(() => {});
   }, [activated]);
 

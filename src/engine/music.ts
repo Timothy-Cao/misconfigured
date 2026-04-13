@@ -1,5 +1,6 @@
 const MUSIC_VOLUME_KEY = 'misconfigured-music-volume';
-const DEFAULT_MUSIC_VOLUME = 0.2;
+const DEFAULT_MUSIC_VOLUME = 0.6;
+const MUSIC_OUTPUT_SCALE = 0.25;
 
 const volumeListeners = new Set<(volume: number) => void>();
 const activationListeners = new Set<(active: boolean) => void>();
@@ -88,4 +89,8 @@ export function subscribeToMusicActivation(listener: (active: boolean) => void):
   return () => {
     activationListeners.delete(listener);
   };
+}
+
+export function getAppliedMusicVolume(): number {
+  return getMusicVolume() * MUSIC_OUTPUT_SCALE;
 }
