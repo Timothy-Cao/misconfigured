@@ -36,27 +36,12 @@ export default function MusicVolumeControl() {
 
   return (
     <div className="mt-7 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-4 sm:px-5">
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <div className="text-left">
-          <p className="text-[10px] font-black uppercase tracking-[0.22em] text-white/30">
-            Audio
-          </p>
-          <p className="mt-1 text-sm text-white/70 sm:text-base">
-            Music and sound effects
-          </p>
-        </div>
-        <div className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-xs font-mono text-white/70">
-          M {musicVolume}% / S {sfxVolume}%
-        </div>
-      </div>
-
       <div className="space-y-4">
         <div>
-          <div className="mb-2 flex items-center justify-between gap-3 text-left">
+          <div className="mb-2 text-left">
             <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/55">
               Music
             </span>
-            <span className="text-xs font-mono text-white/55">{musicVolume}%</span>
           </div>
           <input
             type="range"
@@ -78,11 +63,10 @@ export default function MusicVolumeControl() {
         </div>
 
         <div>
-          <div className="mb-2 flex items-center justify-between gap-3 text-left">
+          <div className="mb-2 text-left">
             <span className="text-xs font-semibold uppercase tracking-[0.16em] text-white/55">
-              Sound Effects
+              SFX
             </span>
-            <span className="text-xs font-mono text-white/55">{sfxVolume}%</span>
           </div>
           <input
             type="range"
@@ -100,10 +84,6 @@ export default function MusicVolumeControl() {
           />
         </div>
       </div>
-
-      <p className="mt-4 text-left text-xs text-white/30">
-        Background music loops across the whole site. Both sliders default to 60%, and music plays back at a gentler quarter-strength so it stays in the background.
-      </p>
     </div>
   );
 }
