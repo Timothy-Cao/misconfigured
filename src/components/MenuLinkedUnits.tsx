@@ -24,9 +24,9 @@ const INPUT_LOOP: Array<BufferedAction | '.'> = [
 ];
 
 const DEMO_UNITS: DemoUnit[] = [
-  { id: 'left-up', rotation: 0, baseX: -136, baseY: -8 },
-  { id: 'right-right', rotation: 1, baseX: 136, baseY: -54 },
-  { id: 'right-down', rotation: 2, baseX: 164, baseY: 42 },
+  { id: 'left-up', rotation: 0, baseX: -454, baseY: -8 },
+  { id: 'right-right', rotation: 1, baseX: 454, baseY: -54 },
+  { id: 'right-down', rotation: 2, baseX: 490, baseY: 42 },
 ];
 
 const ROTATION_ICON: Record<Rotation, string> = {
