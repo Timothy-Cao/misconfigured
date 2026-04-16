@@ -12,7 +12,7 @@ export default function Home() {
           Misconfigured
         </h1>
         <p className="text-white/40 text-base sm:text-lg lg:text-xl tracking-wide animate-[fadeInUp_0.8s_ease-out_0.2s_both]">
-          One input. Many units. Different directions.
+          1 button, multiple units.
         </p>
 
         <div className="mt-8 sm:mt-10 flex flex-col gap-3 sm:gap-4 animate-[fadeInUp_0.8s_ease-out_0.4s_both]">
