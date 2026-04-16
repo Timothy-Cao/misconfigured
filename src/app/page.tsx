@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import MenuLinkedUnits from '@/components/MenuLinkedUnits';
 import MusicVolumeControl from '@/components/MusicVolumeControl';
 
 export default function Home() {
@@ -8,10 +7,9 @@ export default function Home() {
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[720px] h-[720px] rounded-full bg-purple-500/5 blur-[140px] animate-pulse" />
       <div className="absolute top-1/3 left-1/3 w-[360px] h-[360px] rounded-full bg-cyan-500/5 blur-[110px] animate-[pulse_4s_ease-in-out_infinite]" />
 
-      <div className="relative z-10 w-full max-w-5xl">
-        <MenuLinkedUnits />
+      <div className="relative z-10 w-full max-w-3xl">
         <div className="mx-auto w-full max-w-3xl text-center rounded-[28px] border border-white/10 bg-white/[0.03] px-6 py-10 sm:px-10 sm:py-12 shadow-[0_0_50px_rgba(0,0,0,0.25)]">
-          <h1 className="text-6xl sm:text-7xl lg:text-8xl font-black tracking-tight bg-gradient-to-r from-rose-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent mb-4 animate-[fadeInUp_0.8s_ease-out]">
+          <h1 className="mb-4 pb-1 text-6xl font-black leading-[1.06] tracking-tight bg-gradient-to-r from-rose-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent animate-[fadeInUp_0.8s_ease-out] sm:text-7xl lg:text-8xl">
             Misconfigured
           </h1>
 
