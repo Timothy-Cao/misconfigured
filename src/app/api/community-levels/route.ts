@@ -2,6 +2,7 @@ import { type LevelData } from '@/engine/types';
 import { getCurrentAuthUser } from '@/lib/auth';
 import { type CommunityLevelListItem, listPublishedCommunityLevelItemsFromSupabase, saveOwnedCommunityLevelInSupabase } from '@/lib/supabase-community';
 import { builtInCommunityLevels, getBuiltInCommunityLevel } from '@/levels/community-levels';
+import { getPublicReadCacheHeaders } from '@/lib/public-cache';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,7 +29,9 @@ function mergeBuiltInCommunityLevels(levels: CommunityLevelListItem[]): Communit
 export async function GET() {
   try {
     const levels = await listPublishedCommunityLevelItemsFromSupabase();
-    return Response.json({ levels: mergeBuiltInCommunityLevels(levels) });
+    return Response.json({ levels: mergeBuiltInCommunityLevels(levels) }, {
+      headers: getPublicReadCacheHeaders(),
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to load community levels.';
     return Response.json({ error: message }, { status: 500 });

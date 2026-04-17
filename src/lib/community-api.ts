@@ -1,6 +1,9 @@
 import { type LevelData } from '@/engine/types';
 import { type OwnedCloudLevelSummary } from '@/lib/auth';
 import { type CommunityLevelListItem } from '@/lib/supabase-community';
+import { cloneLevelData } from '@/lib/level-clone';
+import { PUBLIC_READ_CACHE_TTL_MS } from '@/lib/public-cache';
+import { TtlCache } from '@/lib/ttl-cache';
 
 interface SaveCommunityLevelResponse {
   level?: LevelData;
@@ -8,15 +11,37 @@ interface SaveCommunityLevelResponse {
   error?: string;
 }
 
+const publishedCommunityLevelsCache = new TtlCache<CommunityLevelListItem[]>(PUBLIC_READ_CACHE_TTL_MS);
+
+function cloneCommunityLevelListItem(level: CommunityLevelListItem): CommunityLevelListItem {
+  return {
+    ...cloneLevelData(level),
+    creatorInitials: level.creatorInitials,
+    creatorName: level.creatorName,
+    isBuiltIn: level.isBuiltIn,
+  };
+}
+
+function invalidateCommunityListApiCache(): void {
+  publishedCommunityLevelsCache.clear();
+}
+
 export async function fetchCommunityLevelsFromApi(): Promise<CommunityLevelListItem[]> {
-  const response = await fetch('/api/community-levels', { cache: 'no-store' });
+  const cached = publishedCommunityLevelsCache.get('published');
+  if (cached !== undefined) {
+    return cached.map(cloneCommunityLevelListItem);
+  }
+
+  const response = await fetch('/api/community-levels');
   const data = await response.json() as { levels?: CommunityLevelListItem[]; error?: string };
 
   if (!response.ok) {
     throw new Error(data.error || 'Failed to load community levels.');
   }
 
-  return data.levels ?? [];
+  const levels = data.levels ?? [];
+  publishedCommunityLevelsCache.set('published', levels);
+  return levels.map(cloneCommunityLevelListItem);
 }
 
 export async function fetchCommunityLevelFromApi(id: number): Promise<LevelData | undefined> {
@@ -62,6 +87,7 @@ export async function saveOwnedCommunityLevelToApi(options: {
     throw new Error(data.error || 'Failed to save cloud map.');
   }
 
+  invalidateCommunityListApiCache();
   return {
     level: data.level,
     summary: data.summary,
@@ -82,6 +108,7 @@ export async function setCommunityLevelPublishedInApi(id: number, isPublished: b
     throw new Error(data.error || 'Failed to update publication status.');
   }
 
+  invalidateCommunityListApiCache();
   return data.summary;
 }
 
@@ -94,4 +121,6 @@ export async function deleteOwnedCommunityLevelFromApi(id: number): Promise<void
   if (!response.ok) {
     throw new Error(data.error || 'Failed to delete cloud map.');
   }
+
+  invalidateCommunityListApiCache();
 }

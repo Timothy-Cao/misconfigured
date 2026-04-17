@@ -1,4 +1,5 @@
 import { getCurrentAuthUser } from '@/lib/auth';
+import { getPublicReadCacheHeaders } from '@/lib/public-cache';
 import { listLevelBestScoresFromSupabase, submitLevelBestScoreToSupabase } from '@/lib/supabase-best-scores';
 
 export const dynamic = 'force-dynamic';
@@ -17,10 +18,15 @@ export async function GET(request: Request) {
 
   try {
     const scores = await listLevelBestScoresFromSupabase(hashes);
-    return Response.json({ scores });
+    return Response.json({ scores }, {
+      headers: getPublicReadCacheHeaders(),
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to load level best scores.';
-    return Response.json({ scores: [], warning: message }, { status: 200 });
+    return Response.json({ scores: [], warning: message }, {
+      status: 200,
+      headers: getPublicReadCacheHeaders(),
+    });
   }
 }
 

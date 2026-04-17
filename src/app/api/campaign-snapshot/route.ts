@@ -1,6 +1,7 @@
 import { TOTAL_LEVELS, getBuiltInLevel } from '@/levels';
 import { type LevelData } from '@/engine/types';
 import { listCampaignOverridesFromSupabase } from '@/lib/supabase-campaign';
+import { getPublicReadCacheHeaders } from '@/lib/public-cache';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,7 +33,9 @@ function buildCampaignSnapshot(overrides: LevelData[]) {
 export async function GET() {
   try {
     const overrides = await listCampaignOverridesFromSupabase();
-    return Response.json(buildCampaignSnapshot(overrides));
+    return Response.json(buildCampaignSnapshot(overrides), {
+      headers: getPublicReadCacheHeaders(),
+    });
   } catch (error) {
     const fallbackLevels: LevelData[] = [];
     for (let id = 1; id <= TOTAL_LEVELS; id += 1) {
@@ -43,6 +46,9 @@ export async function GET() {
     }
 
     const message = error instanceof Error ? error.message : 'Failed to load campaign snapshot.';
-    return Response.json({ levels: fallbackLevels, overrideIds: [], warning: message }, { status: 200 });
+    return Response.json({ levels: fallbackLevels, overrideIds: [], warning: message }, {
+      status: 200,
+      headers: getPublicReadCacheHeaders(),
+    });
   }
 }

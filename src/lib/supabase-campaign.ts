@@ -1,4 +1,7 @@
 import { type LevelData } from '@/engine/types';
+import { cloneLevelData } from '@/lib/level-clone';
+import { PUBLIC_READ_CACHE_TTL_MS } from '@/lib/public-cache';
+import { TtlCache } from '@/lib/ttl-cache';
 
 interface CampaignOverrideRow {
   id: number;
@@ -14,6 +17,10 @@ interface CampaignOverrideRow {
 interface CampaignOverrideIdRow {
   id: number;
 }
+
+const campaignOverrideListCache = new TtlCache<LevelData[]>(PUBLIC_READ_CACHE_TTL_MS);
+const campaignOverrideByIdCache = new TtlCache<LevelData | null>(PUBLIC_READ_CACHE_TTL_MS);
+const campaignOverrideIdsCache = new TtlCache<number[]>(PUBLIC_READ_CACHE_TTL_MS);
 
 function getSupabaseConfig() {
   const url = process.env.SUPABASE_URL;
@@ -43,6 +50,22 @@ function mapRowToLevel(row: CampaignOverrideRow): LevelData {
   };
 }
 
+function cloneLevels(levels: LevelData[]): LevelData[] {
+  return levels.map(cloneLevelData);
+}
+
+export function invalidateCampaignSupabaseCache(id?: number): void {
+  campaignOverrideListCache.clear();
+  campaignOverrideIdsCache.clear();
+
+  if (id == null) {
+    campaignOverrideByIdCache.clear();
+    return;
+  }
+
+  campaignOverrideByIdCache.delete(String(id));
+}
+
 async function supabaseRequest(path: string, init: RequestInit = {}) {
   const { url, serviceRoleKey } = getSupabaseConfig();
   const response = await fetch(`${url}${path}`, {
@@ -65,13 +88,20 @@ async function supabaseRequest(path: string, init: RequestInit = {}) {
 }
 
 export async function getCampaignOverrideFromSupabase(id: number): Promise<LevelData | undefined> {
+  const cached = campaignOverrideByIdCache.get(String(id));
+  if (cached !== undefined) {
+    return cached ? cloneLevelData(cached) : undefined;
+  }
+
   try {
     const response = await supabaseRequest(
       `/rest/v1/campaign_overrides?select=id,name,width,height,grid,players,lives,max_moves&id=eq.${id}&limit=1`,
     );
     const rows = (await response.json()) as CampaignOverrideRow[];
     const row = rows[0];
-    return row ? mapRowToLevel(row) : undefined;
+    const level = row ? mapRowToLevel(row) : undefined;
+    campaignOverrideByIdCache.set(String(id), level ?? null);
+    return level ? cloneLevelData(level) : undefined;
   } catch (error) {
     if (!isMissingMaxMovesColumn(error)) throw error;
     const response = await supabaseRequest(
@@ -79,37 +109,65 @@ export async function getCampaignOverrideFromSupabase(id: number): Promise<Level
     );
     const rows = (await response.json()) as CampaignOverrideRow[];
     const row = rows[0];
-    return row ? mapRowToLevel(row) : undefined;
+    const level = row ? mapRowToLevel(row) : undefined;
+    campaignOverrideByIdCache.set(String(id), level ?? null);
+    return level ? cloneLevelData(level) : undefined;
   }
 }
 
 export async function listCampaignOverrideIdsFromSupabase(): Promise<number[]> {
+  const cached = campaignOverrideIdsCache.get('all');
+  if (cached !== undefined) {
+    return [...cached];
+  }
+
   try {
     const response = await supabaseRequest('/rest/v1/campaign_overrides?select=id');
     const rows = (await response.json()) as CampaignOverrideIdRow[];
-    return rows.map(row => row.id).filter(id => Number.isFinite(id));
+    const ids = rows.map(row => row.id).filter(id => Number.isFinite(id));
+    campaignOverrideIdsCache.set('all', ids);
+    return [...ids];
   } catch (error) {
     if (!isMissingMaxMovesColumn(error)) throw error;
     const response = await supabaseRequest('/rest/v1/campaign_overrides?select=id');
     const rows = (await response.json()) as CampaignOverrideIdRow[];
-    return rows.map(row => row.id).filter(id => Number.isFinite(id));
+    const ids = rows.map(row => row.id).filter(id => Number.isFinite(id));
+    campaignOverrideIdsCache.set('all', ids);
+    return [...ids];
   }
 }
 
 export async function listCampaignOverridesFromSupabase(): Promise<LevelData[]> {
+  const cached = campaignOverrideListCache.get('all');
+  if (cached !== undefined) {
+    return cloneLevels(cached);
+  }
+
   try {
     const response = await supabaseRequest(
       '/rest/v1/campaign_overrides?select=id,name,width,height,grid,players,lives,max_moves&order=id.asc',
     );
     const rows = (await response.json()) as CampaignOverrideRow[];
-    return rows.map(mapRowToLevel);
+    const levels = rows.map(mapRowToLevel);
+    campaignOverrideListCache.set('all', levels);
+    for (const level of levels) {
+      campaignOverrideByIdCache.set(String(level.id), level);
+    }
+    campaignOverrideIdsCache.set('all', levels.map(level => level.id));
+    return cloneLevels(levels);
   } catch (error) {
     if (!isMissingMaxMovesColumn(error)) throw error;
     const response = await supabaseRequest(
       '/rest/v1/campaign_overrides?select=id,name,width,height,grid,players,lives&order=id.asc',
     );
     const rows = (await response.json()) as CampaignOverrideRow[];
-    return rows.map(mapRowToLevel);
+    const levels = rows.map(mapRowToLevel);
+    campaignOverrideListCache.set('all', levels);
+    for (const level of levels) {
+      campaignOverrideByIdCache.set(String(level.id), level);
+    }
+    campaignOverrideIdsCache.set('all', levels.map(level => level.id));
+    return cloneLevels(levels);
   }
 }
 
@@ -138,7 +196,10 @@ export async function upsertCampaignOverrideInSupabase(level: LevelData): Promis
       throw new Error('Supabase did not return the saved campaign override.');
     }
 
-    return mapRowToLevel(row);
+    const savedLevel = mapRowToLevel(row);
+    invalidateCampaignSupabaseCache(level.id);
+    campaignOverrideByIdCache.set(String(savedLevel.id), savedLevel);
+    return cloneLevelData(savedLevel);
   } catch (error) {
     if (!isMissingMaxMovesColumn(error)) throw error;
     const response = await supabaseRequest('/rest/v1/campaign_overrides', {
@@ -163,6 +224,9 @@ export async function upsertCampaignOverrideInSupabase(level: LevelData): Promis
       throw new Error('Supabase did not return the saved campaign override.');
     }
 
-    return mapRowToLevel(row);
+    const savedLevel = mapRowToLevel(row);
+    invalidateCampaignSupabaseCache(level.id);
+    campaignOverrideByIdCache.set(String(savedLevel.id), savedLevel);
+    return cloneLevelData(savedLevel);
   }
 }

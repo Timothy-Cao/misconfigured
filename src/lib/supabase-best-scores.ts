@@ -1,4 +1,6 @@
 import { getSupabaseAdminClient } from '@/lib/supabase/admin-client';
+import { PUBLIC_READ_CACHE_TTL_MS } from '@/lib/public-cache';
+import { TtlCache } from '@/lib/ttl-cache';
 
 export interface LevelBestScore {
   levelHash: string;
@@ -24,6 +26,8 @@ interface LevelBestScoreRow {
   achieved_at: string | null;
 }
 
+const levelBestScoreCache = new TtlCache<LevelBestScore | null>(PUBLIC_READ_CACHE_TTL_MS);
+
 function mapRow(row: LevelBestScoreRow): LevelBestScore {
   return {
     levelHash: row.level_hash,
@@ -36,6 +40,19 @@ function mapRow(row: LevelBestScoreRow): LevelBestScore {
     solutionMoves: row.solution_moves ?? null,
     achievedAt: row.achieved_at,
   };
+}
+
+function cloneScore(score: LevelBestScore): LevelBestScore {
+  return { ...score };
+}
+
+export function invalidateLevelBestScoreCache(levelHash?: string): void {
+  if (!levelHash) {
+    levelBestScoreCache.clear();
+    return;
+  }
+
+  levelBestScoreCache.delete(levelHash);
 }
 
 function isMissingSolutionMovesColumn(error: unknown): boolean {
@@ -52,29 +69,70 @@ export async function listLevelBestScoresFromSupabase(hashes: string[]): Promise
   const uniqueHashes = Array.from(new Set(hashes.map(hash => hash.trim()).filter(Boolean)));
   if (uniqueHashes.length === 0) return [];
 
+  const cachedScores = new Map<string, LevelBestScore>();
+  const missingHashes: string[] = [];
+  for (const hash of uniqueHashes) {
+    const cached = levelBestScoreCache.get(hash);
+    if (cached === undefined) {
+      missingHashes.push(hash);
+      continue;
+    }
+
+    if (cached) {
+      cachedScores.set(hash, cloneScore(cached));
+    }
+  }
+
+  if (missingHashes.length === 0) {
+    return Array.from(cachedScores.values());
+  }
+
   const admin = getSupabaseAdminClient();
   const { data, error } = await admin
     .from('level_best_scores')
     .select('level_hash,best_moves,source,source_level_id,level_name,player_user_id,player_display_name,solution_moves,achieved_at')
-    .in('level_hash', uniqueHashes);
+    .in('level_hash', missingHashes);
 
   if (error) {
     if (isMissingSolutionMovesColumn(error)) {
       const { data: fallbackData, error: fallbackError } = await admin
         .from('level_best_scores')
         .select('level_hash,best_moves,source,source_level_id,level_name,player_user_id,player_display_name,achieved_at')
-        .in('level_hash', uniqueHashes);
+        .in('level_hash', missingHashes);
 
       if (fallbackError) {
         throw fallbackError instanceof Error ? fallbackError : new Error('Failed to load level best scores.');
       }
 
-      return (fallbackData ?? []).map(row => mapRow(row as LevelBestScoreRow));
+      const rows = (fallbackData ?? []).map(row => mapRow(row as LevelBestScoreRow));
+      const fetchedHashes = new Set(rows.map(row => row.levelHash));
+      for (const row of rows) {
+        levelBestScoreCache.set(row.levelHash, row);
+        cachedScores.set(row.levelHash, cloneScore(row));
+      }
+      for (const hash of missingHashes) {
+        if (!fetchedHashes.has(hash)) {
+          levelBestScoreCache.set(hash, null);
+        }
+      }
+      return Array.from(cachedScores.values());
     }
     throw error instanceof Error ? error : new Error('Failed to load level best scores.');
   }
 
-  return (data ?? []).map(row => mapRow(row as LevelBestScoreRow));
+  const rows = (data ?? []).map(row => mapRow(row as LevelBestScoreRow));
+  const fetchedHashes = new Set(rows.map(row => row.levelHash));
+  for (const row of rows) {
+    levelBestScoreCache.set(row.levelHash, row);
+    cachedScores.set(row.levelHash, cloneScore(row));
+  }
+  for (const hash of missingHashes) {
+    if (!fetchedHashes.has(hash)) {
+      levelBestScoreCache.set(hash, null);
+    }
+  }
+
+  return Array.from(cachedScores.values());
 }
 
 export async function submitLevelBestScoreToSupabase(input: {
@@ -116,7 +174,9 @@ export async function submitLevelBestScoreToSupabase(input: {
       (Number(existing.best_moves) === bestMoves && (existing.solution_moves || !input.solutionMoves))
     )
   ) {
-    return { score: mapRow(existing), improved: false };
+    const score = mapRow(existing);
+    levelBestScoreCache.set(score.levelHash, score);
+    return { score, improved: false };
   }
 
   const upsertRow: Record<string, unknown> = {
@@ -154,5 +214,7 @@ export async function submitLevelBestScoreToSupabase(input: {
     throw new Error('Level best score save returned no data.');
   }
 
-  return { score: mapRow(row), improved: !existing || Number(existing.best_moves) > bestMoves };
+  const score = mapRow(row);
+  levelBestScoreCache.set(score.levelHash, score);
+  return { score, improved: !existing || Number(existing.best_moves) > bestMoves };
 }

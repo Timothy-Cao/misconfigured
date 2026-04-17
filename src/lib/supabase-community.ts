@@ -1,6 +1,9 @@
 import { type LevelData } from '@/engine/types';
 import { MAX_PUBLISHED_COMMUNITY_LEVELS } from '@/lib/community-limits';
 import { getSupabaseAdminClient } from '@/lib/supabase/admin-client';
+import { cloneLevelData } from '@/lib/level-clone';
+import { PUBLIC_READ_CACHE_TTL_MS } from '@/lib/public-cache';
+import { TtlCache } from '@/lib/ttl-cache';
 
 export interface OwnedCommunityLevelSummary {
   id: number;
@@ -52,6 +55,9 @@ export interface SaveOwnedCommunityLevelInput {
   isPublished: boolean;
 }
 
+const publishedCommunityItemsCache = new TtlCache<CommunityLevelListItem[]>(PUBLIC_READ_CACHE_TTL_MS);
+const publicCommunityLevelCache = new TtlCache<OwnedCommunityLevelRecord | null>(PUBLIC_READ_CACHE_TTL_MS);
+
 function mapRowToLevel(row: CommunityLevelRow): LevelData {
   return {
     id: Number(row.id),
@@ -63,6 +69,27 @@ function mapRowToLevel(row: CommunityLevelRow): LevelData {
     lives: row.lives ?? 1,
     maxMoves: row.max_moves && row.max_moves > 0 ? row.max_moves : undefined,
   };
+}
+
+function cloneOwnedRecord(record: OwnedCommunityLevelRecord): OwnedCommunityLevelRecord {
+  return {
+    ...record,
+    level: cloneLevelData(record.level),
+  };
+}
+
+function cloneCommunityListItem(level: CommunityLevelListItem): CommunityLevelListItem {
+  return {
+    ...cloneLevelData(level),
+    creatorInitials: level.creatorInitials,
+    creatorName: level.creatorName,
+    isBuiltIn: level.isBuiltIn,
+  };
+}
+
+export function invalidateCommunityReadCaches(): void {
+  publishedCommunityItemsCache.clear();
+  publicCommunityLevelCache.clear();
 }
 
 function mapRowToOwnedRecord(row: CommunityLevelRow): OwnedCommunityLevelRecord {
@@ -148,6 +175,11 @@ export async function listPublishedCommunityLevelsFromSupabase(): Promise<LevelD
 }
 
 export async function listPublishedCommunityLevelItemsFromSupabase(): Promise<CommunityLevelListItem[]> {
+  const cached = publishedCommunityItemsCache.get('published');
+  if (cached !== undefined) {
+    return cached.map(cloneCommunityListItem);
+  }
+
   const admin = getSupabaseAdminClient();
   const rows = await selectRows(
     admin
@@ -175,7 +207,7 @@ export async function listPublishedCommunityLevelItemsFromSupabase(): Promise<Co
     profileMap = new Map((data ?? []).map(profile => [profile.id, profile as ProfileRow]));
   }
 
-  return rows.map((row) => {
+  const levels = rows.map((row) => {
     const profile = row.owner_id ? profileMap.get(row.owner_id) ?? null : null;
     return {
       ...mapRowToLevel(row),
@@ -184,6 +216,9 @@ export async function listPublishedCommunityLevelItemsFromSupabase(): Promise<Co
       isBuiltIn: false,
     };
   });
+
+  publishedCommunityItemsCache.set('published', levels);
+  return levels.map(cloneCommunityListItem);
 }
 
 export async function listOwnedCommunityLevelsFromSupabase(ownerId: string): Promise<OwnedCommunityLevelSummary[]> {
@@ -220,6 +255,13 @@ async function getOwnedCommunityLevelRowFromSupabase(id: number, ownerId: string
 }
 
 export async function getAccessibleCommunityLevelFromSupabase(id: number, viewerId: string | null): Promise<OwnedCommunityLevelRecord | null> {
+  if (!viewerId) {
+    const cached = publicCommunityLevelCache.get(String(id));
+    if (cached !== undefined) {
+      return cached ? cloneOwnedRecord(cached) : null;
+    }
+  }
+
   const admin = getSupabaseAdminClient();
   let query = admin
     .from('community_levels')
@@ -235,7 +277,11 @@ export async function getAccessibleCommunityLevelFromSupabase(id: number, viewer
 
   const rows = await selectRows(query);
   const row = rows[0];
-  return row ? mapRowToOwnedRecord(row) : null;
+  const record = row ? mapRowToOwnedRecord(row) : null;
+  if (!viewerId) {
+    publicCommunityLevelCache.set(String(id), record);
+  }
+  return record ? cloneOwnedRecord(record) : null;
 }
 
 async function ensurePublishedLimit(ownerId: string, nextPublished: boolean, existingId?: number | null, isAdmin = false): Promise<void> {
@@ -305,6 +351,7 @@ export async function saveOwnedCommunityLevelInSupabase(input: SaveOwnedCommunit
       throw new Error('Cloud map update returned no data.');
     }
 
+    invalidateCommunityReadCaches();
     return mapRowToOwnedRecord(row as CommunityLevelRow);
   }
 
@@ -335,6 +382,7 @@ export async function saveOwnedCommunityLevelInSupabase(input: SaveOwnedCommunit
     throw new Error('Cloud map creation returned no data.');
   }
 
+  invalidateCommunityReadCaches();
   return mapRowToOwnedRecord(row as CommunityLevelRow);
 }
 
@@ -368,6 +416,7 @@ export async function setOwnedCommunityLevelPublishedInSupabase(ownerId: string,
     throw new Error('Publication update returned no data.');
   }
 
+  invalidateCommunityReadCaches();
   return mapRowToOwnedSummary(row as CommunityLevelRow);
 }
 
@@ -387,6 +436,8 @@ export async function deleteOwnedCommunityLevelFromSupabase(ownerId: string, id:
   if (error) {
     throw new Error(getSupabaseErrorMessage(error, 'Failed to delete cloud map.'));
   }
+
+  invalidateCommunityReadCaches();
 }
 
 export async function deleteCommunityLevelFromSupabase(requesterId: string, id: number, isAdmin = false): Promise<void> {
@@ -416,6 +467,7 @@ export async function deleteCommunityLevelFromSupabase(requesterId: string, id: 
       throw new Error(getSupabaseErrorMessage(deleteError, 'Failed to delete cloud map.'));
     }
 
+    invalidateCommunityReadCaches();
     return;
   }
 

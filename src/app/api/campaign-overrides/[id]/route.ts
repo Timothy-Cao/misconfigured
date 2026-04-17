@@ -1,6 +1,7 @@
 import { getCurrentAuthUser } from '@/lib/auth';
 import { getCampaignOverrideFromSupabase, upsertCampaignOverrideInSupabase } from '@/lib/supabase-campaign';
 import { type LevelData } from '@/engine/types';
+import { getPublicReadCacheHeaders } from '@/lib/public-cache';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,7 +19,9 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
       return Response.json({ error: 'Campaign override not found.' }, { status: 404 });
     }
 
-    return Response.json({ level });
+    return Response.json({ level }, {
+      headers: getPublicReadCacheHeaders(),
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to load campaign override.';
     return Response.json({ error: message }, { status: 500 });
