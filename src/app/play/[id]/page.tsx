@@ -101,6 +101,8 @@ export default function PlayPage() {
   const [isNewBest, setIsNewBest] = useState(false);
   const [gameOver, setGameOver] = useState(false);
   const [gameOverReason, setGameOverReason] = useState<'lives' | 'moves' | null>(null);
+  const [canUndo, setCanUndo] = useState(false);
+  const [undoRequestNonce, setUndoRequestNonce] = useState(0);
   const [simulationSpeed, setSimulationSpeed] = useState(() => getDefaultSimulationSpeed(replayMode));
   const [loadedSpeedStorageKey, setLoadedSpeedStorageKey] = useState<string | null>(null);
   const movesUsedRef = useRef(0);
@@ -159,6 +161,7 @@ export default function PlayPage() {
         setIsNewBest(false);
         setGameOver(false);
         setGameOverReason(null);
+        setCanUndo(false);
         if (levelId < COMMUNITY_LEVEL_START_ID) {
           setLoadError(null);
         } else {
@@ -267,6 +270,7 @@ export default function PlayPage() {
   const handleGameOver = useCallback((reason: 'lives' | 'moves') => {
     setGameOver(true);
     setGameOverReason(reason);
+    setCanUndo(false);
   }, []);
 
   const handleRestart = useCallback(() => {
@@ -283,8 +287,22 @@ export default function PlayPage() {
     setIsNewBest(false);
     setGameOver(false);
     setGameOverReason(null);
+    setCanUndo(false);
     setKey(k => k + 1);
   }, [level]);
+
+  const handleUndo = useCallback(() => {
+    if (!canUndo || replayMode || levelComplete || gameOver) {
+      return;
+    }
+
+    setUndoRequestNonce(current => current + 1);
+  }, [canUndo, gameOver, levelComplete, replayMode]);
+
+  const handleUndoPerformed = useCallback(() => {
+    solutionMovesRef.current = solutionMovesRef.current.slice(0, -1);
+    setIsNewBest(false);
+  }, []);
 
   const handleToggleSimulationSpeed = useCallback(() => {
     setSimulationSpeed(current => getNextSimulationSpeed(current, replayMode));
@@ -305,6 +323,7 @@ export default function PlayPage() {
       setIsNewBest(false);
       setGameOver(false);
       setGameOverReason(null);
+      setCanUndo(false);
       router.push(`/play/${levelId + 1}`);
     } else {
       router.push('/levels');
@@ -326,6 +345,7 @@ export default function PlayPage() {
       setIsNewBest(false);
       setGameOver(false);
       setGameOverReason(null);
+      setCanUndo(false);
       router.push(`/play/${levelId - 1}`);
     } else {
       router.push('/levels');
@@ -358,6 +378,12 @@ export default function PlayPage() {
         return;
       }
 
+      if (event.key.toLowerCase() === 'z') {
+        event.preventDefault();
+        handleUndo();
+        return;
+      }
+
       if (event.key === 'Enter' || event.key === ' ') {
         if (levelComplete) {
           event.preventDefault();
@@ -377,7 +403,7 @@ export default function PlayPage() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [canGoNext, gameOver, handleNextLevel, handleRestart, levelComplete, returnPath, router]);
+  }, [canGoNext, gameOver, handleNextLevel, handleRestart, handleUndo, levelComplete, returnPath, router]);
 
   if (!level) {
     return (
@@ -455,6 +481,8 @@ export default function PlayPage() {
           gameOverReason={gameOverReason}
           canGoNext={canGoNext}
           onRestart={handleRestart}
+          canUndo={canUndo}
+          onUndo={handleUndo}
           onNextLevel={handleNextLevel}
           simulationSpeed={simulationSpeed}
           nextSimulationSpeed={nextSimulationSpeed}
@@ -487,10 +515,13 @@ export default function PlayPage() {
                 onMovesUpdate={handleMovesUpdate}
                 onCountedMove={handleCountedMove}
                 onPassiveReplayStep={handlePassiveReplayStep}
+                onUndoAvailabilityChange={setCanUndo}
+                onUndoPerformed={handleUndoPerformed}
                 autoRestartOnGameOver={false}
                 captureGlobalMobileSwipes
                 simulationSpeed={simulationSpeed}
                 replayScript={replayMode ? bestSolutionMoves : null}
+                undoRequestNonce={undoRequestNonce}
               />
               <HUD
                 levelId={levelId}
@@ -510,6 +541,8 @@ export default function PlayPage() {
                 gameOverReason={gameOverReason}
                 canGoNext={canGoNext}
                 onRestart={handleRestart}
+                canUndo={canUndo}
+                onUndo={handleUndo}
                 onNextLevel={handleNextLevel}
                 simulationSpeed={simulationSpeed}
                 nextSimulationSpeed={nextSimulationSpeed}

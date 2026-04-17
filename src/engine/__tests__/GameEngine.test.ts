@@ -472,6 +472,131 @@ describe('restart behavior', () => {
   });
 });
 
+describe('undo behavior', () => {
+  it('reverts counted manual moves back through prior settled states', () => {
+    const level: LevelData = {
+      id: 203,
+      name: 'undo-basic',
+      width: 6,
+      height: 3,
+      grid: [
+        [0, 0, 0, 0, 0, 0],
+        [0, 1, 1, 1, 1, 0],
+        [0, 0, 0, 0, 0, 0],
+      ],
+      players: [{ startX: 1, startY: 1, rotation: 0 }],
+    };
+
+    const canvas = document.createElement('canvas');
+    vi.spyOn(canvas, 'getContext').mockReturnValue({} as CanvasRenderingContext2D);
+    const engine = new GameEngine(canvas, level, TILE, {});
+    const enqueueManualInput = (engine as unknown as { enqueueManualInput: (input: { kind: 'key'; key: 'D' }) => void }).enqueueManualInput.bind(engine);
+    const update = (engine as unknown as { update: (dt: number) => void }).update.bind(engine);
+    const getState = () => (engine as unknown as { state: ReturnType<typeof createInitialState> }).state;
+
+    enqueueManualInput({ kind: 'key', key: 'D' });
+    update(0.5);
+    update(0.5);
+    enqueueManualInput({ kind: 'key', key: 'D' });
+    update(0.5);
+    update(0.5);
+
+    expect(getState().players[0].col).toBe(3);
+    expect(getState().movesUsed).toBe(2);
+
+    expect(engine.undo()).toBe(true);
+    expect(getState().players[0].col).toBe(2);
+    expect(getState().movesUsed).toBe(1);
+
+    expect(engine.undo()).toBe(true);
+    expect(getState().players[0].col).toBe(1);
+    expect(getState().movesUsed).toBe(0);
+
+    expect(engine.undo()).toBe(false);
+  });
+
+  it('caps undo history at the last three counted moves', () => {
+    const level: LevelData = {
+      id: 204,
+      name: 'undo-cap',
+      width: 8,
+      height: 3,
+      grid: [
+        [0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 1, 1, 1, 1, 1, 1, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0],
+      ],
+      players: [{ startX: 1, startY: 1, rotation: 0 }],
+    };
+
+    const canvas = document.createElement('canvas');
+    vi.spyOn(canvas, 'getContext').mockReturnValue({} as CanvasRenderingContext2D);
+    const engine = new GameEngine(canvas, level, TILE, {});
+    const enqueueManualInput = (engine as unknown as { enqueueManualInput: (input: { kind: 'key'; key: 'D' }) => void }).enqueueManualInput.bind(engine);
+    const update = (engine as unknown as { update: (dt: number) => void }).update.bind(engine);
+    const getState = () => (engine as unknown as { state: ReturnType<typeof createInitialState> }).state;
+
+    for (let i = 0; i < 4; i += 1) {
+      enqueueManualInput({ kind: 'key', key: 'D' });
+      update(0.5);
+      update(0.5);
+    }
+
+    expect(getState().players[0].col).toBe(5);
+    expect(getState().movesUsed).toBe(4);
+
+    expect(engine.undo()).toBe(true);
+    expect(engine.undo()).toBe(true);
+    expect(engine.undo()).toBe(true);
+    expect(getState().players[0].col).toBe(2);
+    expect(getState().movesUsed).toBe(1);
+
+    expect(engine.undo()).toBe(false);
+    expect(getState().players[0].col).toBe(2);
+    expect(getState().movesUsed).toBe(1);
+  });
+
+  it('restores pickup and move-limit state when undoing the last counted move', () => {
+    const level: LevelData = {
+      id: 205,
+      name: 'undo-pickup',
+      width: 5,
+      height: 3,
+      grid: [
+        [0, 0, 0, 0, 0],
+        [0, 1, TileType.LIFE_PICKUP, 1, 0],
+        [0, 0, 0, 0, 0],
+      ],
+      players: [{ startX: 1, startY: 1, rotation: 0 }],
+      lives: 1,
+      maxMoves: 1,
+    };
+
+    const canvas = document.createElement('canvas');
+    vi.spyOn(canvas, 'getContext').mockReturnValue({} as CanvasRenderingContext2D);
+    const engine = new GameEngine(canvas, level, TILE, {});
+    const enqueueManualInput = (engine as unknown as { enqueueManualInput: (input: { kind: 'key'; key: 'D' }) => void }).enqueueManualInput.bind(engine);
+    const update = (engine as unknown as { update: (dt: number) => void }).update.bind(engine);
+    const getState = () => (engine as unknown as { state: ReturnType<typeof createInitialState> }).state;
+
+    enqueueManualInput({ kind: 'key', key: 'D' });
+    update(0.5);
+    update(0.5);
+
+    expect(getState().livesRemaining).toBe(2);
+    expect(getState().movesUsed).toBe(1);
+    expect(getState().outOfMoves).toBe(true);
+
+    expect(engine.undo()).toBe(true);
+    expect(getState().players[0].col).toBe(1);
+    expect(getState().livesRemaining).toBe(1);
+    expect(getState().maxLives).toBe(1);
+    expect(getState().movesUsed).toBe(0);
+    expect(getState().outOfMoves).toBe(false);
+    expect(getState().collectedLifeTiles.size).toBe(0);
+  });
+});
+
 describe('black hole settling', () => {
   it('still accepts manual input for remaining units after one unit finishes in a black hole', () => {
     const level: LevelData = {

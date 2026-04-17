@@ -18,10 +18,13 @@ interface GameCanvasProps {
   onMovesUpdate?: (movesUsed: number, maxMoves: number | null) => void;
   onCountedMove?: (move: BufferedAction) => void;
   onPassiveReplayStep?: () => void;
+  onUndoAvailabilityChange?: (canUndo: boolean) => void;
+  onUndoPerformed?: () => void;
   autoRestartOnGameOver?: boolean;
   captureGlobalMobileSwipes?: boolean;
   simulationSpeed?: number;
   replayScript?: string | null;
+  undoRequestNonce?: number;
 }
 
 export default function GameCanvas({
@@ -33,10 +36,13 @@ export default function GameCanvas({
   onMovesUpdate,
   onCountedMove,
   onPassiveReplayStep,
+  onUndoAvailabilityChange,
+  onUndoPerformed,
   autoRestartOnGameOver = true,
   captureGlobalMobileSwipes = false,
   simulationSpeed = 1,
   replayScript = null,
+  undoRequestNonce = 0,
 }: GameCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -48,7 +54,10 @@ export default function GameCanvas({
   const onMovesUpdateRef = useRef(onMovesUpdate);
   const onCountedMoveRef = useRef(onCountedMove);
   const onPassiveReplayStepRef = useRef(onPassiveReplayStep);
+  const onUndoAvailabilityChangeRef = useRef(onUndoAvailabilityChange);
+  const onUndoPerformedRef = useRef(onUndoPerformed);
   const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
+  const undoRequestNonceRef = useRef(undoRequestNonce);
   const clearTimeoutRef = useRef<number | null>(null);
   const restartHideTimeoutRef = useRef<number | null>(null);
   const [scale, setScale] = useState(1);
@@ -117,6 +126,14 @@ export default function GameCanvas({
   useEffect(() => {
     onPassiveReplayStepRef.current = onPassiveReplayStep;
   }, [onPassiveReplayStep]);
+
+  useEffect(() => {
+    onUndoAvailabilityChangeRef.current = onUndoAvailabilityChange;
+  }, [onUndoAvailabilityChange]);
+
+  useEffect(() => {
+    onUndoPerformedRef.current = onUndoPerformed;
+  }, [onUndoPerformed]);
 
   useEffect(() => {
     return () => {
@@ -286,6 +303,7 @@ export default function GameCanvas({
       onMovesUpdate: (movesUsed, maxMoves) => onMovesUpdateRef.current?.(movesUsed, maxMoves),
       onCountedMove: (move) => onCountedMoveRef.current?.(move),
       onPassiveReplayStep: () => onPassiveReplayStepRef.current?.(),
+      onUndoAvailabilityChange: (canUndo) => onUndoAvailabilityChangeRef.current?.(canUndo),
     }, {
       replayScript,
     });
@@ -310,6 +328,18 @@ export default function GameCanvas({
       engineRef.current = null;
     };
   }, [autoRestartOnGameOver, level, replayScript]);
+
+  useEffect(() => {
+    if (undoRequestNonceRef.current === undoRequestNonce) {
+      return;
+    }
+
+    undoRequestNonceRef.current = undoRequestNonce;
+    const undone = engineRef.current?.undo() ?? false;
+    if (undone) {
+      onUndoPerformedRef.current?.();
+    }
+  }, [undoRequestNonce]);
 
   useEffect(() => {
     engineRef.current?.setSpeedMultiplier(simulationSpeed);

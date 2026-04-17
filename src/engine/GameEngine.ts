@@ -13,6 +13,32 @@ function cloneLevelData(level: LevelData): LevelData {
   };
 }
 
+function cloneQueuedManualInput(input: QueuedManualInput | null): QueuedManualInput | null {
+  if (!input) {
+    return null;
+  }
+
+  if (input.kind === 'key') {
+    return { ...input };
+  }
+
+  return { ...input };
+}
+
+function cloneGameState(state: GameState): GameState {
+  return {
+    ...state,
+    players: state.players.map(player => ({ ...player })),
+    occupiedGoals: new Set(state.occupiedGoals),
+    pushableBlocks: state.pushableBlocks.map(block => ({ ...block })),
+    activePlates: new Set(state.activePlates),
+    crumbledTiles: new Set(state.crumbledTiles),
+    toggledSwitches: new Set(state.toggledSwitches),
+    teleportCharges: new Map(state.teleportCharges),
+    collectedLifeTiles: new Set(state.collectedLifeTiles),
+  };
+}
+
 function collectPushableBlocks(level: LevelData): PushableBlock[] {
   const blocks: PushableBlock[] = [];
   for (let row = 0; row < level.height; row++) {
@@ -444,6 +470,7 @@ export interface GameEngineCallbacks {
   onMovesUpdate?: (movesUsed: number, maxMoves: number | null) => void;
   onCountedMove?: (move: BufferedAction) => void;
   onPassiveReplayStep?: () => void;
+  onUndoAvailabilityChange?: (canUndo: boolean) => void;
 }
 
 interface GameEngineOptions {
@@ -464,6 +491,19 @@ type QueuedManualInputBase =
   | { kind: 'swipe'; dx: number; dy: number };
 
 type QueuedManualInput = QueuedManualInputBase & { expiresAt: number };
+
+interface UndoSnapshot {
+  levelGrid: number[][];
+  state: GameState;
+  elapsed: number;
+  stepTimers: number[];
+  inputCooldownRemaining: number;
+  queuedManualInput: QueuedManualInput | null;
+  conveyorTicksArmed: boolean;
+  conveyorTickRemaining: number;
+  outOfMovesStillnessTime: number;
+  outOfMovesSnapshot: string | null;
+}
 
 function manualInputToBufferedAction(input: QueuedManualInputBase): BufferedAction {
   if (input.kind === 'key') return input.key;
@@ -524,6 +564,8 @@ export class GameEngine {
   private replayActions: ReplayAction[];
   private replayIndex: number = 0;
   private replayWaitingForConveyorTick: boolean = false;
+  private undoHistory: UndoSnapshot[] = [];
+  private lastReportedCanUndo: boolean | null = null;
 
   constructor(
     canvas: HTMLCanvasElement,
@@ -559,6 +601,7 @@ export class GameEngine {
       this.input.attach();
     }
     this.lastTime = performance.now();
+    this.reportUndoAvailability();
     this.loop(this.lastTime);
   }
 
@@ -583,9 +626,42 @@ export class GameEngine {
     this.outOfMovesSnapshot = null;
     this.replayIndex = 0;
     this.replayWaitingForConveyorTick = false;
+    this.undoHistory = [];
     this.input.reset();
     toggleCooldown.clear();
     rotationCooldown.clear();
+    this.reportUndoAvailability(true);
+  }
+
+  canUndo(): boolean {
+    return !this.isReplayMode() &&
+      !this.state.levelComplete &&
+      !this.state.gameOver &&
+      this.undoHistory.length > 0 &&
+      this.isBoardSettledForManualInput() &&
+      this.inputCooldownRemaining <= 0 &&
+      this.queuedManualInput === null;
+  }
+
+  undo(): boolean {
+    if (!this.canUndo()) {
+      this.reportUndoAvailability();
+      return false;
+    }
+
+    const snapshot = this.undoHistory.pop();
+    if (!snapshot) {
+      this.reportUndoAvailability(true);
+      return false;
+    }
+
+    this.restoreUndoSnapshot(snapshot);
+    this.input.reset();
+    this.callbacks.onProgressUpdate?.(this.state.settledUnits);
+    this.callbacks.onLivesUpdate?.(this.state.livesRemaining, this.state.maxLives);
+    this.callbacks.onMovesUpdate?.(this.state.movesUsed, this.state.maxMoves);
+    this.reportUndoAvailability(true);
+    return true;
   }
 
   queueSwipe(dx: number, dy: number): void {
@@ -642,6 +718,53 @@ export class GameEngine {
 
   private getManualInputReadyIn(): number {
     return Math.max(this.inputCooldownRemaining, this.getBoardSettleRemaining());
+  }
+
+  private createUndoSnapshot(): UndoSnapshot {
+    return {
+      levelGrid: this.level.grid.map(row => [...row]),
+      state: cloneGameState(this.state),
+      elapsed: this.elapsed,
+      stepTimers: [...this.stepTimers],
+      inputCooldownRemaining: this.inputCooldownRemaining,
+      queuedManualInput: cloneQueuedManualInput(this.queuedManualInput),
+      conveyorTicksArmed: this.conveyorTicksArmed,
+      conveyorTickRemaining: this.conveyorTickRemaining,
+      outOfMovesStillnessTime: this.outOfMovesStillnessTime,
+      outOfMovesSnapshot: this.outOfMovesSnapshot,
+    };
+  }
+
+  private restoreUndoSnapshot(snapshot: UndoSnapshot): void {
+    this.level.grid = snapshot.levelGrid.map(row => [...row]);
+    this.state = cloneGameState(snapshot.state);
+    this.elapsed = snapshot.elapsed;
+    this.state.time = snapshot.elapsed;
+    this.stepTimers = [...snapshot.stepTimers];
+    this.inputCooldownRemaining = snapshot.inputCooldownRemaining;
+    this.queuedManualInput = cloneQueuedManualInput(snapshot.queuedManualInput);
+    this.conveyorTicksArmed = snapshot.conveyorTicksArmed;
+    this.conveyorTickRemaining = snapshot.conveyorTickRemaining;
+    this.outOfMovesStillnessTime = snapshot.outOfMovesStillnessTime;
+    this.outOfMovesSnapshot = snapshot.outOfMovesSnapshot;
+  }
+
+  private pushUndoSnapshot(snapshot: UndoSnapshot): void {
+    this.undoHistory.push(snapshot);
+    if (this.undoHistory.length > 3) {
+      this.undoHistory.shift();
+    }
+    this.reportUndoAvailability(true);
+  }
+
+  private reportUndoAvailability(force = false): void {
+    const canUndo = this.canUndo();
+    if (!force && this.lastReportedCanUndo === canUndo) {
+      return;
+    }
+
+    this.lastReportedCanUndo = canUndo;
+    this.callbacks.onUndoAvailabilityChange?.(canUndo);
   }
 
   private enqueueManualInput(input: QueuedManualInputBase): void {
@@ -780,6 +903,13 @@ export class GameEngine {
 
     const pendingMoves: PendingMove[] = [];
     const moveSnapshotBefore = acceptedManualInput ? this.getMoveTrackingSnapshot() : null;
+    const undoSnapshotBefore = acceptedManualInput
+      ? {
+          ...this.createUndoSnapshot(),
+          inputCooldownRemaining: 0,
+          queuedManualInput: null,
+        }
+      : null;
     const movedThisUpdate = new Set<number>();
     let pushedThisUpdate = false;
     let movedByManual = false;
@@ -1069,6 +1199,9 @@ export class GameEngine {
 
     const manualMoveChangedState = acceptedManualInput && moveSnapshotBefore !== this.getMoveTrackingSnapshot();
     if (manualMoveChangedState) {
+      if (undoSnapshotBefore) {
+        this.pushUndoSnapshot(undoSnapshotBefore);
+      }
       this.state.movesUsed += 1;
       this.callbacks.onMovesUpdate?.(this.state.movesUsed, this.state.maxMoves);
       this.callbacks.onCountedMove?.(manualInputToBufferedAction(acceptedManualInput));
@@ -1144,5 +1277,6 @@ export class GameEngine {
     if (stickyEntered) playSfx('sticky');
 
     this.callbacks.onProgressUpdate?.(this.state.settledUnits);
+    this.reportUndoAvailability();
   }
 }

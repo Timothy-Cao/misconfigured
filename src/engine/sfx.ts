@@ -173,7 +173,14 @@ class SfxEngine {
 
     const audio = new Audio(def.src);
     audio.volume = Math.max(0, Math.min(1, this.getVolume() * def.volume));
-    void audio.play().catch(() => {});
+    try {
+      const playback = audio.play();
+      if (playback && typeof playback.catch === 'function') {
+        void playback.catch(() => {});
+      }
+    } catch {
+      // Ignore playback failures; the finish sound is optional.
+    }
   }
 
   getVolume(): number {

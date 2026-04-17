@@ -18,6 +18,8 @@ interface HUDProps {
   gameOverReason: 'lives' | 'moves' | null;
   canGoNext: boolean;
   onRestart: () => void;
+  canUndo?: boolean;
+  onUndo?: () => void;
   onNextLevel: () => void;
   simulationSpeed?: number;
   nextSimulationSpeed?: number;
@@ -35,7 +37,7 @@ function formatTime(seconds: number): string {
     : `${s}.${String(ms).padStart(2, '0')}s`;
 }
 
-export default function HUD({ levelId, levelName, sourceLabel, levelComplete, settledUnits, totalUnits, completionTime, lives, maxLives, movesUsed, maxMoves, bestMoves = null, isNewBest = false, gameOver, gameOverReason, canGoNext, onRestart, onNextLevel, simulationSpeed = 1, nextSimulationSpeed, onToggleSimulationSpeed, showBar = true, showOverlays = true }: HUDProps) {
+export default function HUD({ levelId, levelName, sourceLabel, levelComplete, settledUnits, totalUnits, completionTime, lives, maxLives, movesUsed, maxMoves, bestMoves = null, isNewBest = false, gameOver, gameOverReason, canGoNext, onRestart, canUndo = false, onUndo, onNextLevel, simulationSpeed = 1, nextSimulationSpeed, onToggleSimulationSpeed, showBar = true, showOverlays = true }: HUDProps) {
   const displayName = levelName || `Level ${String(levelId).padStart(2, '0')}`;
   const nextSpeedLabel = `${(nextSimulationSpeed ?? (simulationSpeed > 1 ? 1 : 2)).toFixed(0)}x`;
   const isWarningSource = sourceLabel?.toLowerCase().includes('warning') ?? false;
@@ -46,7 +48,7 @@ export default function HUD({ levelId, levelName, sourceLabel, levelComplete, se
     ? 'Esc back, R restart, Enter or Space next'
     : gameOver
       ? (canGoNext ? 'Esc back, R restart, Enter or Space next' : 'Esc back, R restart, Enter or Space retry')
-      : 'Esc back, R restart';
+      : (canUndo ? 'Esc back, Z undo, R restart' : 'Esc back, R restart');
 
   return (
     <>
@@ -56,6 +58,19 @@ export default function HUD({ levelId, levelName, sourceLabel, levelComplete, se
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center">
               <div className="flex justify-start">
                 <div className="flex items-center gap-2">
+                  {onUndo && (
+                    <button
+                      onClick={onUndo}
+                      disabled={!canUndo}
+                      className={`text-xs px-3 py-2 border rounded-lg transition-all duration-200 ${
+                        canUndo
+                          ? 'text-white/70 border-white/10 hover:text-white hover:border-white/25 hover:bg-white/5'
+                          : 'text-white/25 border-white/5 cursor-not-allowed'
+                      }`}
+                    >
+                      Undo
+                    </button>
+                  )}
                   <button
                     onClick={onRestart}
                     className="text-white/55 hover:text-white text-xs px-3 py-2 border border-white/10 rounded-lg hover:border-white/25 hover:bg-white/5 transition-all duration-200"
