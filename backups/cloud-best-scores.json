@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "exportedAt": "2026-04-17T16:15:02.255Z",
+  "exportedAt": "2026-04-17T16:45:37.837Z",
   "source": "supabase",
   "bestScores": [
     {
@@ -136,26 +136,26 @@
       "achievedAt": "2026-04-07T21:58:23.023+00:00"
     },
     {
-      "levelHash": "14a64523924429",
-      "bestMoves": 35,
-      "source": "campaign",
-      "sourceLevelId": 13,
-      "levelName": "Rotation Station 2",
-      "playerUserId": null,
-      "playerDisplayName": null,
-      "solutionMoves": "AWSADAASWAWADDADAAAWWWWASDASDWASDDD",
-      "achievedAt": "2026-04-08T02:07:21.63+00:00"
-    },
-    {
       "levelHash": "108b0d504b1516",
       "bestMoves": 49,
       "source": "campaign",
-      "sourceLevelId": 14,
+      "sourceLevelId": 13,
       "levelName": "Rotation Station",
       "playerUserId": "15394b2c-6c5c-4035-ba00-d32701d4e60c",
       "playerDisplayName": "Timothy Cao",
       "solutionMoves": "WWAWWDSDDDDSSSSAAWASAWSWSSSSSAAAWWWWWAAASSSSDDDDD",
       "achievedAt": "2026-04-07T22:04:12.215+00:00"
+    },
+    {
+      "levelHash": "14a64523924429",
+      "bestMoves": 35,
+      "source": "campaign",
+      "sourceLevelId": 14,
+      "levelName": "Rotation Station 2",
+      "playerUserId": null,
+      "playerDisplayName": null,
+      "solutionMoves": "AWSADAASWAWADDADAAAWWWWASDASDWASDDD",
+      "achievedAt": "2026-04-08T02:07:21.63+00:00"
     },
     {
       "levelHash": "0764a0c3289445",
@@ -290,17 +290,6 @@
       "achievedAt": "2026-04-07T19:14:13.163+00:00"
     },
     {
-      "levelHash": "0845a9b3402276",
-      "bestMoves": 7,
-      "source": "campaign-test",
-      "sourceLevelId": 16,
-      "levelName": "Ice and fire 6",
-      "playerUserId": "15394b2c-6c5c-4035-ba00-d32701d4e60c",
-      "playerDisplayName": "Timothy Cao",
-      "solutionMoves": null,
-      "achievedAt": "2026-04-07T16:44:15.365+00:00"
-    },
-    {
       "levelHash": "170d567ec01fd3",
       "bestMoves": 1,
       "source": "campaign-test",
@@ -310,6 +299,17 @@
       "playerDisplayName": "Timothy Cao",
       "solutionMoves": null,
       "achievedAt": "2026-04-07T16:38:06.016+00:00"
+    },
+    {
+      "levelHash": "0845a9b3402276",
+      "bestMoves": 7,
+      "source": "campaign-test",
+      "sourceLevelId": 16,
+      "levelName": "Ice and fire 6",
+      "playerUserId": "15394b2c-6c5c-4035-ba00-d32701d4e60c",
+      "playerDisplayName": "Timothy Cao",
+      "solutionMoves": null,
+      "achievedAt": "2026-04-07T16:44:15.365+00:00"
     },
     {
       "levelHash": "03f1f0c255e704",
@@ -334,26 +334,15 @@
       "achievedAt": "2026-04-17T04:50:14.497+00:00"
     },
     {
-      "levelHash": "0a2a1eda882908",
+      "levelHash": "07643b074ceb03",
       "bestMoves": 21,
       "source": "editor-test",
       "sourceLevelId": null,
-      "levelName": "Break The Conveyor Chains",
-      "playerUserId": "a8607b32-97d8-497f-a67c-ddf563c53859",
-      "playerDisplayName": "Jasio Chacala",
-      "solutionMoves": "W.A.W.DDDDW.WAAAAAADDD....................SSS",
-      "achievedAt": "2026-04-09T03:10:31.715+00:00"
-    },
-    {
-      "levelHash": "1e8a01f86d575b",
-      "bestMoves": 29,
-      "source": "editor-test",
-      "sourceLevelId": null,
       "levelName": "Editor Test",
-      "playerUserId": "15394b2c-6c5c-4035-ba00-d32701d4e60c",
-      "playerDisplayName": "Timothy Cao",
-      "solutionMoves": "DDDDDDDDDDDDDDWWWWWWWWWWWAAAA",
-      "achievedAt": "2026-04-08T00:21:25.76+00:00"
+      "playerUserId": null,
+      "playerDisplayName": null,
+      "solutionMoves": "W.A.W.DDDDW.WAAAAAADDD....................SSS",
+      "achievedAt": "2026-04-09T03:05:19.715+00:00"
     },
     {
       "levelHash": "1e387a61d4e3d3",
@@ -378,15 +367,26 @@
       "achievedAt": "2026-04-07T21:31:51.497+00:00"
     },
     {
-      "levelHash": "07643b074ceb03",
-      "bestMoves": 21,
+      "levelHash": "1dc9197bbffaae",
+      "bestMoves": 26,
       "source": "editor-test",
       "sourceLevelId": null,
       "levelName": "Editor Test",
       "playerUserId": null,
       "playerDisplayName": null,
-      "solutionMoves": "W.A.W.DDDDW.WAAAAAADDD....................SSS",
-      "achievedAt": "2026-04-09T03:05:19.715+00:00"
+      "solutionMoves": "S.AW.W.DDDDW.WAAAAAADDD...SSSWWAA",
+      "achievedAt": "2026-04-09T02:59:54.228+00:00"
+    },
+    {
+      "levelHash": "1e8a01f86d575b",
+      "bestMoves": 29,
+      "source": "editor-test",
+      "sourceLevelId": null,
+      "levelName": "Editor Test",
+      "playerUserId": "15394b2c-6c5c-4035-ba00-d32701d4e60c",
+      "playerDisplayName": "Timothy Cao",
+      "solutionMoves": "DDDDDDDDDDDDDDWWWWWWWWWWWAAAA",
+      "achievedAt": "2026-04-08T00:21:25.76+00:00"
     },
     {
       "levelHash": "10bb6f6435915c",
@@ -400,15 +400,15 @@
       "achievedAt": "2026-04-09T03:03:03.116+00:00"
     },
     {
-      "levelHash": "1dc9197bbffaae",
-      "bestMoves": 26,
+      "levelHash": "0a2a1eda882908",
+      "bestMoves": 21,
       "source": "editor-test",
       "sourceLevelId": null,
-      "levelName": "Editor Test",
-      "playerUserId": null,
-      "playerDisplayName": null,
-      "solutionMoves": "S.AW.W.DDDDW.WAAAAAADDD...SSSWWAA",
-      "achievedAt": "2026-04-09T02:59:54.228+00:00"
+      "levelName": "Break The Conveyor Chains",
+      "playerUserId": "a8607b32-97d8-497f-a67c-ddf563c53859",
+      "playerDisplayName": "Jasio Chacala",
+      "solutionMoves": "W.A.W.DDDDW.WAAAAAADDD....................SSS",
+      "achievedAt": "2026-04-09T03:10:31.715+00:00"
     }
   ]
 }

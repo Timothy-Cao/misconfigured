@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "updatedAt": "2026-04-17T16:15:02.255Z",
+  "updatedAt": "2026-04-17T16:45:37.837Z",
   "source": "supabase.level_best_scores",
   "campaignSolutions": {
     "1": {
@@ -100,20 +100,20 @@
       "playerDisplayName": "Timothy Cao"
     },
     "13": {
-      "levelHash": "14a64523924429",
-      "levelName": "Rotation Station 2",
-      "bestMoves": 35,
-      "solutionMoves": "AWSADAASWAWADDADAAAWWWWASDASDWASDDD",
-      "achievedAt": "2026-04-08T02:07:21.63+00:00",
-      "playerDisplayName": null
-    },
-    "14": {
       "levelHash": "108b0d504b1516",
       "levelName": "Rotation Station",
       "bestMoves": 49,
       "solutionMoves": "WWAWWDSDDDDSSSSAAWASAWSWSSSSSAAAWWWWWAAASSSSDDDDD",
       "achievedAt": "2026-04-07T22:04:12.215+00:00",
       "playerDisplayName": "Timothy Cao"
+    },
+    "14": {
+      "levelHash": "14a64523924429",
+      "levelName": "Rotation Station 2",
+      "bestMoves": 35,
+      "solutionMoves": "AWSADAASWAWADDADAAAWWWWASDASDWASDDD",
+      "achievedAt": "2026-04-08T02:07:21.63+00:00",
+      "playerDisplayName": null
     },
     "15": {
       "levelHash": "0764a0c3289445",
