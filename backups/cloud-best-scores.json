@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "exportedAt": "2026-04-08T16:53:40.308Z",
+  "exportedAt": "2026-04-17T16:15:02.255Z",
   "source": "supabase",
   "bestScores": [
     {
@@ -49,25 +49,25 @@
     },
     {
       "levelHash": "0910a668d8fd51",
-      "bestMoves": 42,
+      "bestMoves": 36,
       "source": "campaign",
       "sourceLevelId": 5,
       "levelName": "Color Filter",
-      "playerUserId": "a7eda59b-08e0-4a63-9450-ce69906065ad",
-      "playerDisplayName": "bob joe",
-      "solutionMoves": "SSASAAAAAAWAAAWWWWWWDDAAAASSSSSSSSSDDDDDDD",
-      "achievedAt": "2026-04-08T00:17:09.167+00:00"
+      "playerUserId": null,
+      "playerDisplayName": null,
+      "solutionMoves": "ASSSAAAAWAAAWWWWWWAASSSSSSSSSDDDDDDD",
+      "achievedAt": "2026-04-13T05:43:42.223+00:00"
     },
     {
       "levelHash": "14bdac738d62b0",
-      "bestMoves": 13,
+      "bestMoves": 11,
       "source": "campaign",
       "sourceLevelId": 6,
       "levelName": "Conveyor Belt",
-      "playerUserId": "15394b2c-6c5c-4035-ba00-d32701d4e60c",
-      "playerDisplayName": "Timothy Cao",
-      "solutionMoves": "DWW..S.S.AWW..DWWWA",
-      "achievedAt": "2026-04-07T21:54:52.015+00:00"
+      "playerUserId": null,
+      "playerDisplayName": null,
+      "solutionMoves": "DWW..AWWDWWWA",
+      "achievedAt": "2026-04-09T01:34:40.498+00:00"
     },
     {
       "levelHash": "0f166f1ec1f71e",
@@ -92,21 +92,10 @@
       "achievedAt": "2026-04-07T21:55:09.703+00:00"
     },
     {
-      "levelHash": "0764a0c3289445",
-      "bestMoves": 18,
-      "source": "campaign",
-      "sourceLevelId": 9,
-      "levelName": "Respawn Point 2",
-      "playerUserId": "15394b2c-6c5c-4035-ba00-d32701d4e60c",
-      "playerDisplayName": "Timothy Cao",
-      "solutionMoves": "ASSDDAWAWDDDDDWAWD",
-      "achievedAt": "2026-04-07T21:55:24.066+00:00"
-    },
-    {
       "levelHash": "09ff15df988843",
       "bestMoves": 9,
       "source": "campaign",
-      "sourceLevelId": 10,
+      "sourceLevelId": 9,
       "levelName": "Ice and Fire 2",
       "playerUserId": "15394b2c-6c5c-4035-ba00-d32701d4e60c",
       "playerDisplayName": "Timothy Cao",
@@ -117,7 +106,7 @@
       "levelHash": "0182ea6eacad67",
       "bestMoves": 10,
       "source": "campaign",
-      "sourceLevelId": 11,
+      "sourceLevelId": 10,
       "levelName": "Ice and Fire 3",
       "playerUserId": "a7eda59b-08e0-4a63-9450-ce69906065ad",
       "playerDisplayName": "bob joe",
@@ -128,7 +117,7 @@
       "levelHash": "07847cd52b0e0d",
       "bestMoves": 47,
       "source": "campaign",
-      "sourceLevelId": 12,
+      "sourceLevelId": 11,
       "levelName": "Open the Gates 2",
       "playerUserId": "15394b2c-6c5c-4035-ba00-d32701d4e60c",
       "playerDisplayName": "Timothy Cao",
@@ -139,7 +128,7 @@
       "levelHash": "1092cacb313806",
       "bestMoves": 18,
       "source": "campaign",
-      "sourceLevelId": 13,
+      "sourceLevelId": 12,
       "levelName": "Crumbling Roads",
       "playerUserId": "15394b2c-6c5c-4035-ba00-d32701d4e60c",
       "playerDisplayName": "Timothy Cao",
@@ -150,7 +139,7 @@
       "levelHash": "14a64523924429",
       "bestMoves": 35,
       "source": "campaign",
-      "sourceLevelId": 14,
+      "sourceLevelId": 13,
       "levelName": "Rotation Station 2",
       "playerUserId": null,
       "playerDisplayName": null,
@@ -161,12 +150,23 @@
       "levelHash": "108b0d504b1516",
       "bestMoves": 49,
       "source": "campaign",
-      "sourceLevelId": 15,
+      "sourceLevelId": 14,
       "levelName": "Rotation Station",
       "playerUserId": "15394b2c-6c5c-4035-ba00-d32701d4e60c",
       "playerDisplayName": "Timothy Cao",
       "solutionMoves": "WWAWWDSDDDDSSSSAAWASAWSWSSSSSAAAWWWWWAAASSSSDDDDD",
       "achievedAt": "2026-04-07T22:04:12.215+00:00"
+    },
+    {
+      "levelHash": "0764a0c3289445",
+      "bestMoves": 18,
+      "source": "campaign",
+      "sourceLevelId": 15,
+      "levelName": "Respawn Point 2",
+      "playerUserId": "15394b2c-6c5c-4035-ba00-d32701d4e60c",
+      "playerDisplayName": "Timothy Cao",
+      "solutionMoves": "ASSDDAWAWDDDDDWAWD",
+      "achievedAt": "2026-04-07T21:55:24.066+00:00"
     },
     {
       "levelHash": "0ad5d1e7f56fae",
@@ -180,21 +180,10 @@
       "achievedAt": "2026-04-07T21:08:54.016+00:00"
     },
     {
-      "levelHash": "0e6e53f1c63cd3",
-      "bestMoves": 53,
-      "source": "campaign",
-      "sourceLevelId": 17,
-      "levelName": "Disappearing Roads",
-      "playerUserId": "15394b2c-6c5c-4035-ba00-d32701d4e60c",
-      "playerDisplayName": "Timothy Cao",
-      "solutionMoves": "DDDWWWAAAAWDAWDAWDDDDDDWAAAAWAAAWWWWSDWSSSSSAAAAAAASS",
-      "achievedAt": "2026-04-08T15:22:34.623+00:00"
-    },
-    {
       "levelHash": "0919616a56c1c3",
       "bestMoves": 7,
       "source": "campaign",
-      "sourceLevelId": 18,
+      "sourceLevelId": 17,
       "levelName": "Quadruple axel",
       "playerUserId": "15394b2c-6c5c-4035-ba00-d32701d4e60c",
       "playerDisplayName": "Timothy Cao",
@@ -205,7 +194,7 @@
       "levelHash": "05e574f85681e7",
       "bestMoves": 6,
       "source": "campaign",
-      "sourceLevelId": 19,
+      "sourceLevelId": 18,
       "levelName": "6 Move Wonder",
       "playerUserId": "15394b2c-6c5c-4035-ba00-d32701d4e60c",
       "playerDisplayName": "Timothy Cao",
@@ -214,20 +203,20 @@
     },
     {
       "levelHash": "1a8fbb820d959b",
-      "bestMoves": 65,
+      "bestMoves": 60,
       "source": "campaign",
-      "sourceLevelId": 20,
+      "sourceLevelId": 19,
       "levelName": "One use road",
-      "playerUserId": "15394b2c-6c5c-4035-ba00-d32701d4e60c",
-      "playerDisplayName": "Timothy Cao",
-      "solutionMoves": "SDWWDDDDDDDDDDDSSSWWAWWWAAAAAAAAAAAWDDDDDDDDDDDSSSDSSSSSSSSSSSAAA",
-      "achievedAt": "2026-04-07T22:14:31.823+00:00"
+      "playerUserId": null,
+      "playerDisplayName": null,
+      "solutionMoves": "SDDAAAAAAAAADAADAAWSWSSSWSWDDDDDDDDDDDDSSSSSSWWWAASDDDDSSAAA",
+      "achievedAt": "2026-04-17T03:10:47.255+00:00"
     },
     {
       "levelHash": "02502a8a2d7f6a",
       "bestMoves": 44,
       "source": "campaign",
-      "sourceLevelId": 21,
+      "sourceLevelId": 20,
       "levelName": "Open the Gates 3",
       "playerUserId": "15394b2c-6c5c-4035-ba00-d32701d4e60c",
       "playerDisplayName": "Timothy Cao",
@@ -235,21 +224,10 @@
       "achievedAt": "2026-04-07T22:16:34.555+00:00"
     },
     {
-      "levelHash": "0fc7c12df7629d",
-      "bestMoves": 110,
-      "source": "campaign",
-      "sourceLevelId": 22,
-      "levelName": "Open the gates: Conga Line!",
-      "playerUserId": "15394b2c-6c5c-4035-ba00-d32701d4e60c",
-      "playerDisplayName": "Timothy Cao",
-      "solutionMoves": "SWWWWSSSAAWWASWAWASWAWASADAASSDWWSSSAADADAAADADDASWDWDASWDDDDDDDDAAAWWWWWWWWWWWWWWWWWWWWWWWWWWDDDWWWDSSAAAWAWW",
-      "achievedAt": "2026-04-07T22:53:56.217+00:00"
-    },
-    {
       "levelHash": "1ed429cb7bf784",
       "bestMoves": 100,
       "source": "campaign",
-      "sourceLevelId": 23,
+      "sourceLevelId": 21,
       "levelName": "The purple strait",
       "playerUserId": "15394b2c-6c5c-4035-ba00-d32701d4e60c",
       "playerDisplayName": "Timothy Cao",
@@ -260,7 +238,7 @@
       "levelHash": "160f43911d3339",
       "bestMoves": 70,
       "source": "campaign",
-      "sourceLevelId": 24,
+      "sourceLevelId": 22,
       "levelName": "No, After YOU!",
       "playerUserId": "15394b2c-6c5c-4035-ba00-d32701d4e60c",
       "playerDisplayName": "Timothy Cao",
@@ -271,12 +249,34 @@
       "levelHash": "09050a316df6a9",
       "bestMoves": 98,
       "source": "campaign",
-      "sourceLevelId": 25,
+      "sourceLevelId": 23,
       "levelName": "switcheroo",
       "playerUserId": "15394b2c-6c5c-4035-ba00-d32701d4e60c",
       "playerDisplayName": "Timothy Cao",
       "solutionMoves": "ASDSADDWWDWWDDASSDADSSASASAAWDWDDDDDDDWWAWWAWWWAASSSSDDDWWAAWWWDWWDDASSWSADDDDDDDWWAAAAAADSAAAAAAW",
       "achievedAt": "2026-04-08T01:27:58.866+00:00"
+    },
+    {
+      "levelHash": "0e6e53f1c63cd3",
+      "bestMoves": 53,
+      "source": "campaign",
+      "sourceLevelId": 24,
+      "levelName": "Disappearing Roads",
+      "playerUserId": "15394b2c-6c5c-4035-ba00-d32701d4e60c",
+      "playerDisplayName": "Timothy Cao",
+      "solutionMoves": "DDDWWWAAAAWDAWDAWDDDDDDWAAAAWAAAWWWWSDWSSSSSAAAAAAASS",
+      "achievedAt": "2026-04-08T15:22:34.623+00:00"
+    },
+    {
+      "levelHash": "0fc7c12df7629d",
+      "bestMoves": 110,
+      "source": "campaign",
+      "sourceLevelId": 25,
+      "levelName": "Open the gates: Conga Line!",
+      "playerUserId": "15394b2c-6c5c-4035-ba00-d32701d4e60c",
+      "playerDisplayName": "Timothy Cao",
+      "solutionMoves": "SWWWWSSSAAWWASWAWASWAWASADAASSDWWSSSAADADAAADADDASWDWDASWDDDDDDDDAAAWWWWWWWWWWWWWWWWWWWWWWWWWWDDDWWWDSSAAAWAWW",
+      "achievedAt": "2026-04-07T22:53:56.217+00:00"
     },
     {
       "levelHash": "13b804d25aedfc",
@@ -290,6 +290,17 @@
       "achievedAt": "2026-04-07T19:14:13.163+00:00"
     },
     {
+      "levelHash": "0845a9b3402276",
+      "bestMoves": 7,
+      "source": "campaign-test",
+      "sourceLevelId": 16,
+      "levelName": "Ice and fire 6",
+      "playerUserId": "15394b2c-6c5c-4035-ba00-d32701d4e60c",
+      "playerDisplayName": "Timothy Cao",
+      "solutionMoves": null,
+      "achievedAt": "2026-04-07T16:44:15.365+00:00"
+    },
+    {
       "levelHash": "170d567ec01fd3",
       "bestMoves": 1,
       "source": "campaign-test",
@@ -301,15 +312,37 @@
       "achievedAt": "2026-04-07T16:38:06.016+00:00"
     },
     {
-      "levelHash": "0845a9b3402276",
-      "bestMoves": 7,
-      "source": "campaign-test",
-      "sourceLevelId": 16,
-      "levelName": "Ice and fire 6",
+      "levelHash": "03f1f0c255e704",
+      "bestMoves": 9,
+      "source": "community",
+      "sourceLevelId": 1002,
+      "levelName": "Gatekeeper",
       "playerUserId": "15394b2c-6c5c-4035-ba00-d32701d4e60c",
       "playerDisplayName": "Timothy Cao",
-      "solutionMoves": null,
-      "achievedAt": "2026-04-07T16:44:15.365+00:00"
+      "solutionMoves": "WAAWWDWAA",
+      "achievedAt": "2026-04-08T17:24:12.012+00:00"
+    },
+    {
+      "levelHash": "1d6142bd4c722e",
+      "bestMoves": 44,
+      "source": "community",
+      "sourceLevelId": 10001,
+      "levelName": "Across the mud 1",
+      "playerUserId": null,
+      "playerDisplayName": null,
+      "solutionMoves": "AAAAAAAAAAASWWDDDWWSDSAAAASSSDDWWWWDDDDWSSSS",
+      "achievedAt": "2026-04-17T04:50:14.497+00:00"
+    },
+    {
+      "levelHash": "0a2a1eda882908",
+      "bestMoves": 21,
+      "source": "editor-test",
+      "sourceLevelId": null,
+      "levelName": "Break The Conveyor Chains",
+      "playerUserId": "a8607b32-97d8-497f-a67c-ddf563c53859",
+      "playerDisplayName": "Jasio Chacala",
+      "solutionMoves": "W.A.W.DDDDW.WAAAAAADDD....................SSS",
+      "achievedAt": "2026-04-09T03:10:31.715+00:00"
     },
     {
       "levelHash": "1e8a01f86d575b",
@@ -323,6 +356,17 @@
       "achievedAt": "2026-04-08T00:21:25.76+00:00"
     },
     {
+      "levelHash": "1e387a61d4e3d3",
+      "bestMoves": 21,
+      "source": "editor-test",
+      "sourceLevelId": null,
+      "levelName": "Editor Test",
+      "playerUserId": null,
+      "playerDisplayName": null,
+      "solutionMoves": "WWWDWWAWWDDDSSSSSASSD",
+      "achievedAt": "2026-04-09T02:36:50.585+00:00"
+    },
+    {
       "levelHash": "05e6c6d40fed22",
       "bestMoves": 31,
       "source": "editor-test",
@@ -332,6 +376,39 @@
       "playerDisplayName": "Timothy Cao",
       "solutionMoves": "SSSSSSWDAAAAAAAAAAAAAAAAAAWWWWW",
       "achievedAt": "2026-04-07T21:31:51.497+00:00"
+    },
+    {
+      "levelHash": "07643b074ceb03",
+      "bestMoves": 21,
+      "source": "editor-test",
+      "sourceLevelId": null,
+      "levelName": "Editor Test",
+      "playerUserId": null,
+      "playerDisplayName": null,
+      "solutionMoves": "W.A.W.DDDDW.WAAAAAADDD....................SSS",
+      "achievedAt": "2026-04-09T03:05:19.715+00:00"
+    },
+    {
+      "levelHash": "10bb6f6435915c",
+      "bestMoves": 21,
+      "source": "editor-test",
+      "sourceLevelId": null,
+      "levelName": "Editor Test",
+      "playerUserId": null,
+      "playerDisplayName": null,
+      "solutionMoves": "W.A.W.DDDDW.WAAAAAADDDSSS",
+      "achievedAt": "2026-04-09T03:03:03.116+00:00"
+    },
+    {
+      "levelHash": "1dc9197bbffaae",
+      "bestMoves": 26,
+      "source": "editor-test",
+      "sourceLevelId": null,
+      "levelName": "Editor Test",
+      "playerUserId": null,
+      "playerDisplayName": null,
+      "solutionMoves": "S.AW.W.DDDDW.WAAAAAADDD...SSSWWAA",
+      "achievedAt": "2026-04-09T02:59:54.228+00:00"
     }
   ]
 }

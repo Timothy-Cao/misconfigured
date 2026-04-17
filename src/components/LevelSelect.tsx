@@ -31,11 +31,12 @@ const DIFFICULTY_CARD_CLASS: Record<Difficulty, string> = {
 };
 
 function getCampaignDifficulty(levelId: number, levelName?: string): Difficulty {
+  if (levelName === 'Respawn Point 2') return 'medium';
   if (levelName === 'Skating Rink') return 'medium';
   if (levelName === 'Rotation Station 2') return 'easy';
   if (levelId >= 1 && levelId <= 7) return 'tutorial';
-  if (levelId >= 8 && levelId <= 15) return 'easy';
-  if (levelId >= 16 && levelId <= 21) return 'medium';
+  if (levelId >= 8 && levelId <= 14) return 'easy';
+  if (levelId >= 15 && levelId <= 19) return 'medium';
   return 'hard';
 }
 

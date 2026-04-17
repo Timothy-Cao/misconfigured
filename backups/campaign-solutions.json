@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "updatedAt": "2026-04-08T16:53:40.308Z",
+  "updatedAt": "2026-04-17T16:15:02.255Z",
   "source": "supabase.level_best_scores",
   "campaignSolutions": {
     "1": {
@@ -38,18 +38,18 @@
     "5": {
       "levelHash": "0910a668d8fd51",
       "levelName": "Color Filter",
-      "bestMoves": 42,
-      "solutionMoves": "SSASAAAAAAWAAAWWWWWWDDAAAASSSSSSSSSDDDDDDD",
-      "achievedAt": "2026-04-08T00:17:09.167+00:00",
-      "playerDisplayName": "bob joe"
+      "bestMoves": 36,
+      "solutionMoves": "ASSSAAAAWAAAWWWWWWAASSSSSSSSSDDDDDDD",
+      "achievedAt": "2026-04-13T05:43:42.223+00:00",
+      "playerDisplayName": null
     },
     "6": {
       "levelHash": "14bdac738d62b0",
       "levelName": "Conveyor Belt",
-      "bestMoves": 13,
-      "solutionMoves": "DWW..S.S.AWW..DWWWA",
-      "achievedAt": "2026-04-07T21:54:52.015+00:00",
-      "playerDisplayName": "Timothy Cao"
+      "bestMoves": 11,
+      "solutionMoves": "DWW..AWWDWWWA",
+      "achievedAt": "2026-04-09T01:34:40.498+00:00",
+      "playerDisplayName": null
     },
     "7": {
       "levelHash": "0f166f1ec1f71e",
@@ -68,14 +68,6 @@
       "playerDisplayName": "Timothy Cao"
     },
     "9": {
-      "levelHash": "0764a0c3289445",
-      "levelName": "Respawn Point 2",
-      "bestMoves": 18,
-      "solutionMoves": "ASSDDAWAWDDDDDWAWD",
-      "achievedAt": "2026-04-07T21:55:24.066+00:00",
-      "playerDisplayName": "Timothy Cao"
-    },
-    "10": {
       "levelHash": "09ff15df988843",
       "levelName": "Ice and Fire 2",
       "bestMoves": 9,
@@ -83,7 +75,7 @@
       "achievedAt": "2026-04-07T21:55:31.603+00:00",
       "playerDisplayName": "Timothy Cao"
     },
-    "11": {
+    "10": {
       "levelHash": "0182ea6eacad67",
       "levelName": "Ice and Fire 3",
       "bestMoves": 10,
@@ -91,7 +83,7 @@
       "achievedAt": "2026-04-08T00:23:03.717+00:00",
       "playerDisplayName": "bob joe"
     },
-    "12": {
+    "11": {
       "levelHash": "07847cd52b0e0d",
       "levelName": "Open the Gates 2",
       "bestMoves": 47,
@@ -99,7 +91,7 @@
       "achievedAt": "2026-04-07T21:57:42.994+00:00",
       "playerDisplayName": "Timothy Cao"
     },
-    "13": {
+    "12": {
       "levelHash": "1092cacb313806",
       "levelName": "Crumbling Roads",
       "bestMoves": 18,
@@ -107,7 +99,7 @@
       "achievedAt": "2026-04-07T21:58:23.023+00:00",
       "playerDisplayName": "Timothy Cao"
     },
-    "14": {
+    "13": {
       "levelHash": "14a64523924429",
       "levelName": "Rotation Station 2",
       "bestMoves": 35,
@@ -115,12 +107,20 @@
       "achievedAt": "2026-04-08T02:07:21.63+00:00",
       "playerDisplayName": null
     },
-    "15": {
+    "14": {
       "levelHash": "108b0d504b1516",
       "levelName": "Rotation Station",
       "bestMoves": 49,
       "solutionMoves": "WWAWWDSDDDDSSSSAAWASAWSWSSSSSAAAWWWWWAAASSSSDDDDD",
       "achievedAt": "2026-04-07T22:04:12.215+00:00",
+      "playerDisplayName": "Timothy Cao"
+    },
+    "15": {
+      "levelHash": "0764a0c3289445",
+      "levelName": "Respawn Point 2",
+      "bestMoves": 18,
+      "solutionMoves": "ASSDDAWAWDDDDDWAWD",
+      "achievedAt": "2026-04-07T21:55:24.066+00:00",
       "playerDisplayName": "Timothy Cao"
     },
     "16": {
@@ -132,14 +132,6 @@
       "playerDisplayName": null
     },
     "17": {
-      "levelHash": "0e6e53f1c63cd3",
-      "levelName": "Disappearing Roads",
-      "bestMoves": 53,
-      "solutionMoves": "DDDWWWAAAAWDAWDAWDDDDDDWAAAAWAAAWWWWSDWSSSSSAAAAAAASS",
-      "achievedAt": "2026-04-08T15:22:34.623+00:00",
-      "playerDisplayName": "Timothy Cao"
-    },
-    "18": {
       "levelHash": "0919616a56c1c3",
       "levelName": "Quadruple axel",
       "bestMoves": 7,
@@ -147,7 +139,7 @@
       "achievedAt": "2026-04-07T21:47:51.404+00:00",
       "playerDisplayName": "Timothy Cao"
     },
-    "19": {
+    "18": {
       "levelHash": "05e574f85681e7",
       "levelName": "6 Move Wonder",
       "bestMoves": 6,
@@ -155,15 +147,15 @@
       "achievedAt": "2026-04-07T21:48:13.25+00:00",
       "playerDisplayName": "Timothy Cao"
     },
-    "20": {
+    "19": {
       "levelHash": "1a8fbb820d959b",
       "levelName": "One use road",
-      "bestMoves": 65,
-      "solutionMoves": "SDWWDDDDDDDDDDDSSSWWAWWWAAAAAAAAAAAWDDDDDDDDDDDSSSDSSSSSSSSSSSAAA",
-      "achievedAt": "2026-04-07T22:14:31.823+00:00",
-      "playerDisplayName": "Timothy Cao"
+      "bestMoves": 60,
+      "solutionMoves": "SDDAAAAAAAAADAADAAWSWSSSWSWDDDDDDDDDDDDSSSSSSWWWAASDDDDSSAAA",
+      "achievedAt": "2026-04-17T03:10:47.255+00:00",
+      "playerDisplayName": null
     },
-    "21": {
+    "20": {
       "levelHash": "02502a8a2d7f6a",
       "levelName": "Open the Gates 3",
       "bestMoves": 44,
@@ -171,15 +163,7 @@
       "achievedAt": "2026-04-07T22:16:34.555+00:00",
       "playerDisplayName": "Timothy Cao"
     },
-    "22": {
-      "levelHash": "0fc7c12df7629d",
-      "levelName": "Open the gates: Conga Line!",
-      "bestMoves": 110,
-      "solutionMoves": "SWWWWSSSAAWWASWAWASWAWASADAASSDWWSSSAADADAAADADDASWDWDASWDDDDDDDDAAAWWWWWWWWWWWWWWWWWWWWWWWWWWDDDWWWDSSAAAWAWW",
-      "achievedAt": "2026-04-07T22:53:56.217+00:00",
-      "playerDisplayName": "Timothy Cao"
-    },
-    "23": {
+    "21": {
       "levelHash": "1ed429cb7bf784",
       "levelName": "The purple strait",
       "bestMoves": 100,
@@ -187,7 +171,7 @@
       "achievedAt": "2026-04-07T23:43:03.137+00:00",
       "playerDisplayName": "Timothy Cao"
     },
-    "24": {
+    "22": {
       "levelHash": "160f43911d3339",
       "levelName": "No, After YOU!",
       "bestMoves": 70,
@@ -195,12 +179,28 @@
       "achievedAt": "2026-04-07T23:49:15.194+00:00",
       "playerDisplayName": "Timothy Cao"
     },
-    "25": {
+    "23": {
       "levelHash": "09050a316df6a9",
       "levelName": "switcheroo",
       "bestMoves": 98,
       "solutionMoves": "ASDSADDWWDWWDDASSDADSSASASAAWDWDDDDDDDWWAWWAWWWAASSSSDDDWWAAWWWDWWDDASSWSADDDDDDDWWAAAAAADSAAAAAAW",
       "achievedAt": "2026-04-08T01:27:58.866+00:00",
+      "playerDisplayName": "Timothy Cao"
+    },
+    "24": {
+      "levelHash": "0e6e53f1c63cd3",
+      "levelName": "Disappearing Roads",
+      "bestMoves": 53,
+      "solutionMoves": "DDDWWWAAAAWDAWDAWDDDDDDWAAAAWAAAWWWWSDWSSSSSAAAAAAASS",
+      "achievedAt": "2026-04-08T15:22:34.623+00:00",
+      "playerDisplayName": "Timothy Cao"
+    },
+    "25": {
+      "levelHash": "0fc7c12df7629d",
+      "levelName": "Open the gates: Conga Line!",
+      "bestMoves": 110,
+      "solutionMoves": "SWWWWSSSAAWWASWAWASWAWASADAASSDWWSSSAADADAAADADDASWDWDASWDDDDDDDDAAAWWWWWWWWWWWWWWWWWWWWWWWWWWDDDWWWDSSAAAWAWW",
+      "achievedAt": "2026-04-07T22:53:56.217+00:00",
       "playerDisplayName": "Timothy Cao"
     }
   }
