@@ -2,6 +2,7 @@ import { getCurrentAuthUser } from '@/lib/auth';
 import { getCampaignOverrideFromSupabase, upsertCampaignOverrideInSupabase } from '@/lib/supabase-campaign';
 import { type LevelData } from '@/engine/types';
 import { getPublicReadCacheHeaders } from '@/lib/public-cache';
+import { validateLevelData, sanitizeLevelData } from '@/lib/validate-level';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,11 +44,12 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     }
 
     const { level } = await request.json() as { level?: LevelData };
-    if (!level || typeof level !== 'object') {
-      return Response.json({ error: 'Missing level payload.' }, { status: 400 });
+    const validationError = validateLevelData(level);
+    if (validationError) {
+      return Response.json({ error: validationError }, { status: 400 });
     }
 
-    const savedLevel = await upsertCampaignOverrideInSupabase({ ...level, id: numericId });
+    const savedLevel = await upsertCampaignOverrideInSupabase({ ...sanitizeLevelData(level as LevelData), id: numericId });
     return Response.json({ level: savedLevel });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to save campaign override.';

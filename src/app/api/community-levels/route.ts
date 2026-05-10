@@ -3,6 +3,7 @@ import { getCurrentAuthUser } from '@/lib/auth';
 import { type CommunityLevelListItem, listPublishedCommunityLevelItemsFromSupabase, saveOwnedCommunityLevelInSupabase } from '@/lib/supabase-community';
 import { builtInCommunityLevels, getBuiltInCommunityLevel } from '@/levels/community-levels';
 import { getPublicReadCacheHeaders } from '@/lib/public-cache';
+import { validateLevelData, sanitizeLevelData } from '@/lib/validate-level';
 
 export const dynamic = 'force-dynamic';
 
@@ -51,8 +52,9 @@ export async function POST(request: Request) {
       isPublished?: boolean;
     };
 
-    if (!level || typeof level !== 'object') {
-      return Response.json({ error: 'Missing level payload.' }, { status: 400 });
+    const validationError = validateLevelData(level);
+    if (validationError) {
+      return Response.json({ error: validationError }, { status: 400 });
     }
 
     if (id != null && (!Number.isFinite(id) || getBuiltInCommunityLevel(Number(id)))) {
@@ -63,7 +65,7 @@ export async function POST(request: Request) {
       id: id != null ? Number(id) : null,
       ownerId: user.id,
       isAdmin: user.isAdmin,
-      level,
+      level: sanitizeLevelData(level as LevelData),
       isPublished: Boolean(isPublished),
     });
 
